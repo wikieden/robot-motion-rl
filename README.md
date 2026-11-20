@@ -2,6 +2,7 @@
 
 **在线阅读：<https://wikieden.github.io/robot-motion-rl/>** · [讲义目录](https://wikieden.github.io/robot-motion-rl/lessons/index.html) · [全部动画](https://wikieden.github.io/robot-motion-rl/animations/index.html) · [复习卡片](https://wikieden.github.io/robot-motion-rl/review.html) · [全部讲义书](https://wikieden.github.io/ai-books/)
 
+> 在线阅读：<https://wikieden.github.io/robot-motion-rl/> · 全部讲义书：<https://wikieden.github.io/ai-books/>
 > 英文名 RL for Robot Motion Control。《从零学强化学习》的续篇。
 > 18 章（第一部分 11 章 + 第二部分 7 章）· 18 个动画（GIF + 可交互页面）· 36 张复习卡片 · 覆盖 SuperMimic（arXiv 2610.28480）全文，legged_gym、DeepMimic、BeyondMimic、SONIC、GRPO 相关论文的运控主线，以及 Underactuated Robotics 的 LQR / 人形 / 轨迹优化、凸 MPC + WBIC、MPPI、AMP、SHAC、ASAP
 
