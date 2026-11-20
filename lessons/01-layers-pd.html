@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>第 1 章 · 运控的三层与 PD 目标接口：策略不直接给力矩 · 机器人运控与强化学习</title>
+<style>
+:root{--bg:#fbfbfa;--fg:#1f2328;--mute:#5d6470;--line:#e3e5e8;--card:#fff;--acc:#2f6fdf;--code:#f2f3f5;--quote:#f4f6fa}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15181d;--fg:#e4e7ec;--mute:#9aa3b2;--line:#2c323b;--card:#1c2026;--acc:#7aa7ff;--code:#22272f;--quote:#1b2029}}
+:root[data-theme="dark"]{--bg:#15181d;--fg:#e4e7ec;--mute:#9aa3b2;--line:#2c323b;--card:#1c2026;--acc:#7aa7ff;--code:#22272f;--quote:#1b2029}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.75 -apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Helvetica Neue",sans-serif}
+a{color:var(--acc)}
+header.top{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+header.top .in{max-width:860px;margin:0 auto;padding:10px 16px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;font-size:14px}
+header.top .brand{font-weight:600;color:var(--fg);text-decoration:none;margin-right:auto}
+header.top a{text-decoration:none}
+main{max-width:860px;margin:0 auto;padding:24px 16px 72px;overflow-wrap:anywhere}
+h1{font-size:28px;line-height:1.35;margin:8px 0 16px} h2{font-size:22px;margin:40px 0 12px;padding-top:8px;border-top:1px solid var(--line)} h3{font-size:18px;margin:28px 0 8px}
+img{max-width:100%;height:auto;border-radius:8px;border:1px solid var(--line);background:#fff}
+blockquote{margin:16px 0;padding:10px 16px;background:var(--quote);border-left:3px solid var(--acc);border-radius:4px;color:var(--mute)}
+blockquote p{margin:4px 0}
+code{background:var(--code);padding:1px 5px;border-radius:4px;font-size:.9em}
+pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto} pre code{padding:0;background:none}
+table{border-collapse:collapse;display:block;overflow-x:auto;max-width:100%;margin:12px 0;font-size:15px}
+th,td{border:1px solid var(--line);padding:6px 10px;vertical-align:top} th{background:var(--code)}
+details{border:1px solid var(--line);border-radius:8px;padding:6px 12px;margin:8px 0;background:var(--card)}
+details[open]{padding-bottom:10px} summary{cursor:pointer;color:var(--acc);font-weight:500}
+mjx-container{overflow-x:auto;overflow-y:hidden;max-width:100%}
+.btn{display:inline-block;margin:4px 8px 4px 0;padding:6px 14px;border:1px solid var(--acc);border-radius:999px;text-decoration:none;font-size:14px}
+.pager{display:flex;justify-content:space-between;gap:12px;margin-top:48px;padding-top:16px;border-top:1px solid var(--line);font-size:15px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin:16px 0}
+.card{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden;color:inherit;text-decoration:none}
+.card:hover{border-color:var(--acc)} .card img{border:0;border-bottom:1px solid var(--line);border-radius:0;aspect-ratio:16/10;object-fit:contain;width:100%}
+.card .no{color:var(--mute);font-size:13px;padding:8px 12px 0} .card .t{padding:0 12px 12px;font-weight:500;line-height:1.5}
+.lead{font-size:17px;color:var(--mute)}
+footer{max-width:860px;margin:0 auto;padding:0 16px 40px;color:var(--mute);font-size:13px}
+</style>
+<script>window.MathJax={tex:{inlineMath:[["\\(","\\)"]],displayMath:[["\\[","\\]"],["$$","$$"]],processEscapes:true,processEnvironments:true}};</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js"></script>
+</head><body>
+<header class="top"><div class="in">
+<a class="brand" href="../index.html">机器人运控与强化学习</a>
+<a href="../lessons/index.html">讲义目录</a>
+<a href="../animations/index.html">动画</a>
+<a href="../review.html">复习卡片</a>
+<a href="../lessons/appendix-glossary.html">缩写表</a>
+<a href="https://wikieden.github.io/ai-books/">← 全部讲义书</a>
+</div></header>
+<main>
+<h1 id="1-pd">第 1 章 · 运控的三层与 PD 目标接口：策略不直接给力矩</h1><p><a class="btn" href="../animations/01-pd-layers.html">▶ 打开本章可交互动画</a></p>
+<blockquote>
+<p>本章回答：一台人形机器人从「想做什么」到「电机出多少力」分几层？强化学习训出来的策略到底输出什么？为什么很多运控论文故意把 PD 增益调得很低？<br />
+讲解日期：2026-11-20 · 上一章：《从零学强化学习》第 23 章 PPO · 下一章：<a href="../lessons/02-tracking-mdp.html">第 2 章 把动作跟踪写成 MDP</a><br />
+对应原文：SuperMimic 附录 A「Action」（<code>papers/supermimic-2610.28480.txt</code> L692–L695）；机器人架构讲义第 6 章（<code>robot-system-architecture/notes/lessons/06-low-level-control.md</code>）。<code>papers/</code> 指 <code>cs285-deep-rl/materials/text/papers/</code>。<br />
+本章缩写：PD = Proportional–Derivative（比例 / 微分：按误差和误差变化率出力）；Kp、Kd：比例增益、微分增益（p = proportional，d = derivative）；q、q̇：关节角、关节角速度（读 "q dot"，点表示对时间求导）；q*：目标角（星号 = 想要的值）；τ：力矩（读 "tau"）；Hz = Hertz（赫兹：每秒多少次）；RL = Reinforcement Learning（强化 / 学习）。全部缩写见 <a href="../lessons/appendix-glossary.html">附录 · 缩写与术语表</a></p>
+</blockquote>
+<h2 id="_1">讲解</h2>
+<h3 id="2026-11-20">第一步：三层，三种速度（2026-11-20）</h3>
+<p><strong>类比：开车。</strong> 你决定「去超市」（高层，几秒想一次）；你的手每秒调几十次方向盘（中层）；方向助力泵每秒响应上千次，把你手上的力放大（底层）。</p>
+<table>
+<thead>
+<tr>
+<th>层</th>
+<th>频率</th>
+<th>做什么</th>
+<th>谁来做</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>高层</td>
+<td>1–10 Hz</td>
+<td>「往前走」「做个空翻」</td>
+<td>VLA（Vision-Language-Action，视觉 / 语言 / 动作）模型、规划器、遥控</td>
+</tr>
+<tr>
+<td>中层</td>
+<td>~50 Hz</td>
+<td>给每个关节一个目标角 q*</td>
+<td><strong>RL 训出来的策略</strong>（本书主角）</td>
+</tr>
+<tr>
+<td>底层</td>
+<td>~1000 Hz</td>
+<td>按 q* 算力矩 τ，驱动电机</td>
+<td>PD 控制器（写死的公式，不学习）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>数字</strong>：策略 50 Hz、PD 1000 Hz，所以策略每给一次目标角，PD 要跑 1000 / 50 = <strong>20</strong> 次。</p>
+<p><strong>一句话</strong>：策略不直接管电机，它每 20 ms 给一次「目标角」，剩下的交给 1 kHz 的 PD。</p>
+<h3 id="pd-2026-11-20">第二步：PD 公式（2026-11-20）</h3>
+<p><strong>类比：一根弹簧加一个阻尼器。</strong> 关节被弹簧拉向目标角（离得越远拉得越狠），阻尼器让它别冲过头（转得越快越刹车）。</p>
+<div class="arithmatex">\[\tau = K_p\,(q^* - q) - K_d\,\dot q\]</div>
+<ul>
+<li><span class="arithmatex">\(\tau\)</span>（tau）：电机要出的力矩，单位 N·m（牛·米）。</li>
+<li><span class="arithmatex">\(K_p\)</span>：比例增益，「弹簧有多硬」。<span class="arithmatex">\(q^* - q\)</span>：离目标还差多少（rad，弧度）。</li>
+<li><span class="arithmatex">\(K_d\)</span>：微分增益，「阻尼有多大」。<span class="arithmatex">\(\dot q\)</span>：关节现在转多快（rad/s）。这里目标速度取 0，所以只剩 <span class="arithmatex">\(-K_d\dot q\)</span>。</li>
+</ul>
+<p><strong>例子</strong>（数字是编的）：<span class="arithmatex">\(K_p = 40\)</span>，<span class="arithmatex">\(K_d = 2\)</span>，<span class="arithmatex">\(q^* = 0.5\)</span>，<span class="arithmatex">\(q = 0.3\)</span>，<span class="arithmatex">\(\dot q = 1.0\)</span>：</p>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>算式</th>
+<th>结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>弹簧</td>
+<td>40 × (0.5 − 0.3)</td>
+<td>8 N·m</td>
+</tr>
+<tr>
+<td>阻尼</td>
+<td>−2 × 1.0</td>
+<td>−2 N·m</td>
+</tr>
+<tr>
+<td>合计</td>
+<td>8 − 2</td>
+<td><strong>6 N·m</strong></td>
+</tr>
+</tbody>
+</table>
+<p>电机有上限。如果最大力矩 <span class="arithmatex">\(\tau_{max} = 5\)</span>，6 会被截成 <strong>5</strong>（力矩饱和）。仿真和真机的饱和值必须一样，否则仿真里学会的动作真机做不出来。</p>
+<p><strong>一句话</strong>：PD 是「弹簧 + 阻尼」，输入目标角，输出力矩，还会被电机上限截断。</p>
+<h3 id="2026-11-20_1">第三步：低增益时，目标角其实是「力矩旋钮」（2026-11-20）</h3>
+<p><strong>类比：用一根软弹簧提重物。</strong> 弹簧越软，重物把它拉得越长。想让重物停在某个高度，你得把弹簧上端提得比那个高度更高。</p>
+<p>关节上有恒定负载（比如重力）时，PD 停下来的位置不在 <span class="arithmatex">\(q^*\)</span>，而是差一点：稳态时弹簧力正好顶住负载，</p>
+<div class="arithmatex">\[K_p\,e = \text{负载} \quad\Rightarrow\quad e = \frac{\text{负载}}{K_p}\]</div>
+<p><strong>例子</strong>（负载 4 N·m，目标 0.5 rad，代码里用 1 kHz 积分仿真了 2 秒）：</p>
+<table>
+<thead>
+<tr>
+<th><span class="arithmatex">\(K_p\)</span></th>
+<th>稳态误差 4 / Kp</th>
+<th>仿真最后的 q</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>40（低增益）</td>
+<td>0.10 rad</td>
+<td>0.400</td>
+</tr>
+<tr>
+<td>200（高增益）</td>
+<td>0.02 rad</td>
+<td>0.480</td>
+</tr>
+</tbody>
+</table>
+<p>低增益下，想让关节停在 0.5，设定值要给 0.5 + 0.1 = <strong>0.6</strong>。也就是说，策略输出的「目标角」不再是「我想让关节到哪」，而是「我想让电机出多大力」的一个旋钮。</p>
+<p>SuperMimic 原文（L694–L695）沿用 BeyondMimic 的写法：动作映射成设定值 <span class="arithmatex">\(q^{sp} = \alpha\,a_t + q^0\)</span>（<span class="arithmatex">\(q^0\)</span> 是默认姿态，α 是缩放），并说低 PD 增益让这个设定值成了 "a proxy for joint torque"（关节力矩的代理）。</p>
+<p><strong>为什么故意调低？</strong> 低增益让关节「软」：落地冲击时不会硬顶，接触更平顺，仿真和真机的差别也小（硬弹簧对建模误差很敏感）。代价是策略要自己学会「多给一点」去抵消负载，这正好是 RL 擅长的。</p>
+<p><strong>一句话</strong>：低增益时目标角 ≈ 力矩旋钮，策略学的是「给多大劲」，不是「去哪」。</p>
+<h3 id="pd">动画演示：低增益 PD 跟踪阶梯目标</h3>
+<p><img alt="PD 跟踪：50 Hz 阶梯目标、1 kHz 力矩" src="../animations/01-pd-layers.gif" /></p>
+<p>可交互版：<a href="../animations/01-pd-layers.html">animations/01-pd-layers.html</a>（滑块：Kp、Kd、负载。要能拖滑块需用本地服务打开，见 <a href="../animations/index.html">animations/README.md</a>）。</p>
+<p><strong>怎么看</strong>：</p>
+<ol>
+<li>灰色阶梯是策略每 20 ms 给一次的目标角（第一步），蓝线是关节实际角度，按 1 kHz 一小步一小步算（第二步）。</li>
+<li>下方橙色是 PD 算出的力矩，碰到 ±τ_max 的虚线就被截平（第二步的饱和）。</li>
+<li>打开负载：蓝线总比阶梯低一截，差距约为负载 / Kp（第三步）。把 Kp 调大，差距变小但力矩更「冲」。</li>
+</ol>
+<h2 id="_2">练习与作答记录</h2>
+<p><strong>题 1</strong>（第一步）：如果策略跑 100 Hz、PD 跑 2 kHz，策略每给一次目标角，PD 跑几次？如果策略算得太慢、只有 25 Hz，会发生什么？</p>
+<p><strong>作答</strong>：（待作答）</p>
+<p><strong>题 2</strong>（第二步）：<span class="arithmatex">\(K_p = 30\)</span>，<span class="arithmatex">\(K_d = 1.5\)</span>，<span class="arithmatex">\(q^* = 0.2\)</span>，<span class="arithmatex">\(q = 0.4\)</span>，<span class="arithmatex">\(\dot q = -2\)</span>，力矩上限 4。算 τ，并说明有没有被截断。</p>
+<p><strong>作答</strong>：（待作答）</p>
+<p><strong>题 3</strong>（第三步）：负载 3 N·m，<span class="arithmatex">\(K_p = 60\)</span>。想让关节停在 1.0 rad，设定值该给多少？为什么说这时策略输出的是「力矩旋钮」？</p>
+<p><strong>作答</strong>：（待作答）</p>
+<h2 id="_3">口诀</h2>
+<blockquote>
+<p>高层想、中层定、底层出力：VLA 几赫兹、策略五十赫兹、PD 一千赫兹；<br />
+弹簧拉向目标、阻尼刹住速度，力矩到顶就截平；<br />
+增益调低关节软，负载压出一截差，目标角变成力矩钮。</p>
+</blockquote>
+<h2 id="_4">本章复习卡片</h2>
+<p>M01（三层频率与 PD 公式）、M02（低增益下设定值是力矩代理，稳态误差 = 负载 / Kp）</p>
+<h2 id="_5">附录 · 延伸阅读</h2>
+<blockquote>
+<p>留给以后深入学习用，不影响本章主线。★ 是建议先读的。</p>
+</blockquote>
+<h3 id="_6">推荐阅读</h3>
+<table>
+<thead>
+<tr>
+<th>读什么</th>
+<th>读哪里</th>
+<th>读它为了什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>★ 机器人架构讲义第 6 章</td>
+<td><code>robot-system-architecture/notes/lessons/06-low-level-control.md</code></td>
+<td>PD + 前馈、FOC 电流环、阻抗控制，本章底层的完整版</td>
+</tr>
+<tr>
+<td>★ 运控细化笔记 §2</td>
+<td><code>robot-system-architecture/notes/02-motion-control-deep-dive.md</code> §2.3「PD 目标」接口</td>
+<td>为什么仿真和真机的 Kp、Kd、饱和、延迟必须一致</td>
+</tr>
+<tr>
+<td>SuperMimic 附录 A</td>
+<td><code>papers/supermimic-2610.28480.txt</code> L692–L695</td>
+<td>动作 → 设定值的映射、低增益的原话</td>
+</tr>
+<tr>
+<td>BeyondMimic</td>
+<td><code>papers/beyondmimic-2508.08241.txt</code>（PD 增益与动作缩放的设定）</td>
+<td>人形动作跟踪的标准设定从哪来</td>
+</tr>
+<tr>
+<td>Modern Robotics 第 11 章</td>
+<td><code>robot-system-architecture/materials/text/modern-robotics-lynch-park.txt</code></td>
+<td>计算力矩、PD 稳定性的推导</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_7">数学原理</h3>
+<ul>
+<li><strong>稳态</strong>：系统不再变化时 <span class="arithmatex">\(\dot q = 0\)</span>、<span class="arithmatex">\(\ddot q = 0\)</span>，牛顿定律变成「力平衡」：$K_p e = $ 负载。</li>
+<li><strong>数值积分（显式欧拉）</strong>：<span class="arithmatex">\(\dot q \leftarrow \dot q + \ddot q\,\Delta t\)</span>，<span class="arithmatex">\(q \leftarrow q + \dot q\,\Delta t\)</span>，Δt = 1 ms，就是仿真器一小步一小步往前算的方式。</li>
+</ul>
+<h3 id="_8">公式清单</h3>
+<table>
+<thead>
+<tr>
+<th>公式</th>
+<th>意思</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span class="arithmatex">\(\tau = K_p(q^*-q) - K_d\dot q\)</span></td>
+<td>PD 力矩</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(\tau \leftarrow \text{clip}(\tau, -\tau_{max}, \tau_{max})\)</span></td>
+<td>力矩饱和</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(e_{ss} = \text{负载}/K_p\)</span></td>
+<td>恒定负载下的稳态误差</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(q^{sp} = \alpha a_t + q^0\)</span></td>
+<td>策略动作 → 关节设定值</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_9">代码对照：把本章的数字用代码算一遍</h3>
+<blockquote>
+<p>用 Python + NumPy（Numerical Python：数值 / Python）把讲义里讲过的数算一遍，不算练习题。代码在仓库本地 <code>robot-motion-rl/solutions/chapter-code/ch01_layers_pd.py</code>，配套测试 <code>tests/test_ch01_06.py</code>，notebook 在 <code>notebooks/ch01_layers_pd.ipynb</code>。Mac 上直接能跑，不需要 GPU：</p>
+<p><code>bash  
+cd robot-motion-rl/solutions/chapter-code  
+uv run python ch01_layers_pd.py   # 一步一步打印  
+uv run pytest tests/test_ch01_06.py</code></p>
+</blockquote>
+<p><strong>讲义 ↔ 代码</strong>（增益、负载、角度都是编的）：</p>
+<table>
+<thead>
+<tr>
+<th>讲义</th>
+<th>公式</th>
+<th>写法</th>
+<th>跑出来</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>第一步 三层</td>
+<td>1000 / 50</td>
+<td><code>pd_steps_per_policy_step()</code></td>
+<td>20</td>
+</tr>
+<tr>
+<td>第二步 PD</td>
+<td><span class="arithmatex">\(K_p(q^*-q)-K_d\dot q\)</span></td>
+<td><code>pd_torque(40, 2, 0.5, 0.3, 1.0)</code></td>
+<td>6.0；加饱和 5.0</td>
+</tr>
+<tr>
+<td>第三步 稳态误差</td>
+<td>负载 / Kp</td>
+<td><code>steady_state_error(4, kp)</code></td>
+<td>0.100、0.020</td>
+</tr>
+<tr>
+<td>第三步 仿真</td>
+<td>1 kHz 积分 2 s</td>
+<td><code>simulate_joint(kp, kd, 0.5, 4)</code></td>
+<td>0.400、0.480</td>
+</tr>
+</tbody>
+</table>
+<p><strong>关键几行</strong>：</p>
+<pre><code class="language-python">tau = kp * (q_target - q) - kd * qd     # PD：弹簧拉向目标，阻尼刹住速度
+qdd = (tau - load) / inertia            # 牛顿第二定律：I·q̈ = τ − 负载
+qd += qdd * dt                          # 显式欧拉，dt = 1 ms（1 kHz）
+q += qd * dt
+</code></pre>
+<p><strong>代码里才看得到的 2 件事</strong>：</p>
+<ul>
+<li>仿真里 Kd 取了临界阻尼 <span class="arithmatex">\(2\sqrt{K_p I}\)</span>（I = 0.1），这样 2 秒内能停稳；讲义第二步的 Kd = 2 只是算一次力矩用的例子。</li>
+<li>仿真最后的角度和「目标 − 负载/Kp」差不到 0.002，测试按这个容差核对。</li>
+</ul>
+<p><strong>自己改一改</strong>（不影响练习答案）：</p>
+<ul>
+<li>把 <code>simulate_joint</code> 的 kd 改成临界阻尼的 0.1 倍，看最后的角度还稳不稳（打印中间过程）。</li>
+<li>把 dt 改成 0.02（相当于 PD 也只跑 50 Hz），看会不会发散。</li>
+</ul><nav class="pager"><span></span><a href="02-tracking-mdp.html">第 2 章 · 把动作跟踪写成 MDP：看什么、做什么、怎么打分、什么时候算摔 →</a></nav>
+</main>
+<footer>来自个人学习仓库的对话讲义，含练习作答记录。源码：<a href="https://github.com/wikieden/robot-motion-rl">github.com/wikieden/robot-motion-rl</a>。更多讲义书：<a href="https://wikieden.github.io/ai-books/">AI 算法图解讲义（合集）</a></footer>
+</body></html>

@@ -1,0 +1,457 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>robot-motion-rl · 复习卡片 · 机器人运控与强化学习</title>
+<style>
+:root{--bg:#fbfbfa;--fg:#1f2328;--mute:#5d6470;--line:#e3e5e8;--card:#fff;--acc:#2f6fdf;--code:#f2f3f5;--quote:#f4f6fa}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15181d;--fg:#e4e7ec;--mute:#9aa3b2;--line:#2c323b;--card:#1c2026;--acc:#7aa7ff;--code:#22272f;--quote:#1b2029}}
+:root[data-theme="dark"]{--bg:#15181d;--fg:#e4e7ec;--mute:#9aa3b2;--line:#2c323b;--card:#1c2026;--acc:#7aa7ff;--code:#22272f;--quote:#1b2029}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.75 -apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Helvetica Neue",sans-serif}
+a{color:var(--acc)}
+header.top{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+header.top .in{max-width:860px;margin:0 auto;padding:10px 16px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;font-size:14px}
+header.top .brand{font-weight:600;color:var(--fg);text-decoration:none;margin-right:auto}
+header.top a{text-decoration:none}
+main{max-width:860px;margin:0 auto;padding:24px 16px 72px;overflow-wrap:anywhere}
+h1{font-size:28px;line-height:1.35;margin:8px 0 16px} h2{font-size:22px;margin:40px 0 12px;padding-top:8px;border-top:1px solid var(--line)} h3{font-size:18px;margin:28px 0 8px}
+img{max-width:100%;height:auto;border-radius:8px;border:1px solid var(--line);background:#fff}
+blockquote{margin:16px 0;padding:10px 16px;background:var(--quote);border-left:3px solid var(--acc);border-radius:4px;color:var(--mute)}
+blockquote p{margin:4px 0}
+code{background:var(--code);padding:1px 5px;border-radius:4px;font-size:.9em}
+pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto} pre code{padding:0;background:none}
+table{border-collapse:collapse;display:block;overflow-x:auto;max-width:100%;margin:12px 0;font-size:15px}
+th,td{border:1px solid var(--line);padding:6px 10px;vertical-align:top} th{background:var(--code)}
+details{border:1px solid var(--line);border-radius:8px;padding:6px 12px;margin:8px 0;background:var(--card)}
+details[open]{padding-bottom:10px} summary{cursor:pointer;color:var(--acc);font-weight:500}
+mjx-container{overflow-x:auto;overflow-y:hidden;max-width:100%}
+.btn{display:inline-block;margin:4px 8px 4px 0;padding:6px 14px;border:1px solid var(--acc);border-radius:999px;text-decoration:none;font-size:14px}
+.pager{display:flex;justify-content:space-between;gap:12px;margin-top:48px;padding-top:16px;border-top:1px solid var(--line);font-size:15px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin:16px 0}
+.card{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden;color:inherit;text-decoration:none}
+.card:hover{border-color:var(--acc)} .card img{border:0;border-bottom:1px solid var(--line);border-radius:0;aspect-ratio:16/10;object-fit:contain;width:100%}
+.card .no{color:var(--mute);font-size:13px;padding:8px 12px 0} .card .t{padding:0 12px 12px;font-weight:500;line-height:1.5}
+.lead{font-size:17px;color:var(--mute)}
+footer{max-width:860px;margin:0 auto;padding:0 16px 40px;color:var(--mute);font-size:13px}
+</style>
+<script>window.MathJax={tex:{inlineMath:[["\\(","\\)"]],displayMath:[["\\[","\\]"],["$$","$$"]],processEscapes:true,processEnvironments:true}};</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js"></script>
+</head><body>
+<header class="top"><div class="in">
+<a class="brand" href="index.html">机器人运控与强化学习</a>
+<a href="lessons/index.html">讲义目录</a>
+<a href="animations/index.html">动画</a>
+<a href="review.html">复习卡片</a>
+<a href="lessons/appendix-glossary.html">缩写表</a>
+<a href="https://wikieden.github.io/ai-books/">← 全部讲义书</a>
+</div></header>
+<main>
+<h1 id="robot-motion-rl">robot-motion-rl · 复习卡片</h1>
+<p>讲解中卡住、追问、答错的地方，以及必须记住的公式和符号，都会自动追加到这里。每张卡片的「来源」链接到 <a href="lessons/index.html">lessons/</a> 里对应的讲义章节，忘了就回去重读那一章。</p>
+<h2 id="_1">怎么用</h2>
+<ol>
+<li>先只看<strong>问题</strong>，自己说出或写出答案；</li>
+<li>再点开「答案」核对；</li>
+<li>答对了，在「复习记录」里补一个日期；答错了就当天再看一遍。</li>
+</ol>
+<p><strong>复习间隔</strong>（按答对的次数）：第 1 次 → 隔 1 天 → 隔 3 天 → 隔 7 天 → 隔 14 天 → 隔 30 天。连续答对 5 次的卡片移到文末「已掌握」。</p>
+<p>想复习时说一声「复习」，我会挑到期的卡片来考你。</p>
+<blockquote>
+<p>2026-11-20 全书正文写完时，按「必须记住的公式 / 概念」给每章加了 2 张卡：第一部分 11 章 M01–M22，第二部分 7 章 M23–M36。各章练习题还没作答，卡片里不含练习答案；作答时卡住或答错的地方再补卡。</p>
+</blockquote>
+<hr />
+<h2 id="mdpppo">一、问题设定：分层、MDP、PPO 配方</h2>
+<h3 id="m01-hzpd">M01 · 人形机器人运控分哪三层，各多少 Hz？PD 公式是什么？</h3>
+<p>来源：<a href="lessons/01-layers-pd.html">第 1 章</a> · 加入 2026-11-20 · 复习记录：</p>
+<details>
+<summary>答案</summary>
+<ul>
+<li>高层（VLA、规划器）1–10 Hz；中层 RL 策略 ~50 Hz，输出关节目标角；底层 PD ~1000 Hz，算力矩。策略每输出一次，PD 跑 20 次。</li>
+<li><span class="arithmatex">\(\tau = K_p(q^* - q) - K_d\dot q\)</span>，再按电机上限截断（饱和）。</li>
+<li>例：Kp = 40、Kd = 2、q* = 0.5、q = 0.3、q̇ = 1 → τ = 8 − 2 = 6 N·m。</li>
+</ul>
+<p>口诀：高层想、中层定、底层出力。</p>
+</details>
+<h3 id="m02-pd">M02 · 为什么说低 PD 增益下，策略输出的「目标角」其实是力矩代理？</h3>
+<p>来源：<a href="lessons/01-layers-pd.html">第 1 章</a> · 加入 2026-11-20 · 复习记录：</p>
+<details>
+<summary>答案</summary>
+<ul>
+<li>恒定负载下稳态误差 <span class="arithmatex">\(e = \text{负载}/K_p\)</span>；Kp 小时误差大，想停在某个角度，设定值要多给一截。</li>
+<li>例：负载 4 N·m、Kp = 40 → 误差 0.1 rad，想停在 0.5 就要给 0.6。</li>
+<li>所以设定值决定的是「出多大力」，策略学的是给多大劲（SuperMimic 附录 A："a proxy for joint torque"）。低增益让关节软、接触平顺、对建模误差不敏感。</li>
+</ul>
+<p>口诀：增益调低关节软，目标角变成力矩钮。</p>
+</details>
+<h3 id="m03-e2">M03 · 动作跟踪的奖励核是什么形状？误差等于 σ 时得多少？为什么不用 −e²？</h3>
+<p>来源：<a href="lessons/02-tracking-mdp.html">第 2 章</a> · 加入 2026-11-20 · 复习记录：</p>
+<details>
+<summary>答案</summary>
+<ul>
+<li><span class="arithmatex">\(k(e) = \exp(-e^2/\sigma^2)\)</span>，误差 0 得 1，e = σ 得 <span class="arithmatex">\(e^{-1} \approx 0.368\)</span>。位置项 σ = 0.3 m：误差 0.1 → 0.895，0.6 → 0.018。</li>
+<li>−e² 没有下界，一次大失误扣成很大负数，把整批梯度拽过去；exp 核每项限制在 [0, 1]，各项好加权求和。</li>
+<li>各项加权求和、减动作平滑和关节超限惩罚，最后乘 dt = 0.02。</li>
+</ul>
+<p>口诀：误差进核零到一，加权求和乘 dt。</p>
+</details>
+<h3 id="m04-supermimic">M04 · SuperMimic 什么时候终止一局？为什么「正奖励 + 提前终止」能让策略学会别摔？</h3>
+<p>来源：<a href="lessons/02-tracking-mdp.html">第 2 章</a> · 加入 2026-11-20 · 复习记录：</p>
+<details>
+<summary>答案</summary>
+<ul>
+<li>根部高度偏离参考 &gt; 0.25 m，或倾斜误差 &gt; 0.8（参考直立时约 78°，误差 = |1 − cos θ|）。</li>
+<li>每步奖励都 ≥ 0，终止后后面的正奖励全拿不到，活得越久分越多，所以终止本身就是惩罚。</li>
+<li>如果奖励都是负的，提前终止反而变成「早死早超生」，会鼓励摔倒。</li>
+</ul>
+<p>口诀：偏高倒斜就终止，正分拿不到，自然学会别摔。</p>
+</details>
+<h3 id="m05-log-ppo">M05 · 连续动作的高斯策略，log 概率怎么算？PPO 的比率怎么算？</h3>
+<p>来源：<a href="lessons/03-ppo-recipe.html">第 3 章</a> · 加入 2026-11-20 · 复习记录：</p>
+<details>
+<summary>答案</summary>
+<ul>
+<li><span class="arithmatex">\(\log\pi(a) = -\frac{(a-\mu)^2}{2\sigma^2} - \log\sigma - \frac12\log 2\pi\)</span>，多维时各维相加。例：μ = 0.2、σ = 0.5、a = 0.7 → −0.726。</li>
+<li><span class="arithmatex">\(r = \exp(\log\pi_{新}(a) - \log\pi_{旧}(a))\)</span>。σ 不变时后两项抵消，只看平方项。例：μ 从 0.2 改到 0.3 → r = 1.197；改到 0.45 → r = 1.455，A &gt; 0 时剪成 1.2。</li>
+</ul>
+<p>口诀：瞄准 μ、手抖 σ，log 概率三项加；比率 log 相减再 exp。</p>
+</details>
+<h3 id="m06-legged_gym-ppo-kl">M06 · legged_gym 的 PPO 批量账是怎样的？学习率怎么按 KL 自动调？</h3>
+<p>来源：<a href="lessons/03-ppo-recipe.html">第 3 章</a> · 加入 2026-11-20 · 复习记录：</p>
+<details>
+<summary>答案</summary>
+<ul>
+<li>4096 环境 × 24 步 = 98304 样本；4 个 mini-batch（每个 24576）；5 epochs → 每次迭代 20 步梯度。clip 0.2、γ 0.99、λ 0.95。</li>
+<li>Algorithm 1：KL &gt; 2 × 0.01 → lr ÷ 1.5（下限 1e-5）；KL &lt; 0.5 × 0.01 → lr × 1.5（上限 1e-2）；否则不动。</li>
+<li>并行把 PPO 低样本效率抵消了：不到 20 分钟训出崎岖地形上的四足。</li>
+</ul>
+<p>口诀：四千个环境二十四步，切四份看五遍；KL 超两倍降一点五。</p>
+</details>
+<h2 id="grpo">二、仿真到真机、动作模仿、GRPO 对照</h2>
+<h3 id="m07">M07 · 域随机化在买什么、付什么代价？玩具例子里它的最优动作怎么算？</h3>
+<p>来源：<a href="lessons/04-sim2real.html">第 4 章</a> · 加入 2026-11-20 · 复习记录：</p>
+<details>
+<summary>答案</summary>
+<ul>
+<li>训练时每局随机抽一套物理参数（摩擦 U[0.3, 1.2]、标定偏差、质心偏移），学一个对整个分布平均最好的策略：买的是稳（平均好、最坏不离谱），付的是在某个具体参数上不是最优。</li>
+<li>玩具：奖励 −(aμ − 1)²，μ ~ U[0.3, 1.2] → <span class="arithmatex">\(a^* = \mathbb E[\mu]/\mathbb E[\mu^2] = 0.75/0.63 \approx 1.19\)</span>。</li>
+<li>对比只训 μ = 1.0（a = 1.0）：真机 μ = 0.4 时 −0.36 vs DR −0.274；最坏 −0.490 vs −0.413；但 μ = 1.2 时 DR 反而更差（−0.184 vs −0.040）。</li>
+</ul>
+<p>口诀：每局换个参数练，处处过得去，买的是稳不是最优。</p>
+</details>
+<h3 id="m08-actor-critic-teacher-student">M08 · 非对称 actor-critic 和 teacher-student 都在用「特权信息」，区别是什么？</h3>
+<p>来源：<a href="lessons/04-sim2real.html">第 4 章</a> · 加入 2026-11-20 · 复习记录：</p>
+<details>
+<summary>答案</summary>
+<ul>
+<li>非对称 actor-critic：只有 critic 看特权信息（真实摩擦、速度等），critic 只在训练时用，部署时扔掉，所以看什么都行；它让优势估计更准。</li>
+<li>teacher-student：先训一个直接看特权信息的 teacher 策略，再训一个只看观测历史的 student 去模仿（ANYmal 野外地形、RMA）。</li>
+<li>SuperMimic：把随机化参数打包成 sim context ξ，喂给 world model 和 critic，策略本身只看本体感知。</li>
+</ul>
+<p>口诀：教练知道地滑不滑：给 critic 看，或 teacher 教 student。</p>
+</details>
+<h3 id="m09-rsi">M09 · 动作模仿里的 RSI 和提前终止各解决什么问题？</h3>
+<p>来源：<a href="lessons/05-imitation-sampling.html">第 5 章</a> · 加入 2026-11-20 · 复习记录：</p>
+<details>
+<summary>答案</summary>
+<ul>
+<li>RSI（Reference State Initialization）：每局从参考动作的随机时刻开始。否则难点在片段中间时，策略撑不到那里就摔，永远练不到。例：10 s 片段、空翻在第 6 s、只能撑 2 s，从头开始概率 0，RSI 均匀抽起点 0.2。</li>
+<li>提前终止（ET）：摔了就结束，不让「躺在地上」的样本挤占数据；配合正奖励，终止本身是惩罚。</li>
+</ul>
+<p>口诀：难处在中间，随机开局才练得到；摔了就喊停。</p>
+</details>
+<h3 id="m10-supermimic">M10 · SuperMimic 的按回报重置分布是怎么组成的？</h3>
+<p>来源：<a href="lessons/05-imitation-sampling.html">第 5 章</a> · 加入 2026-11-20 · 复习记录：</p>
+<details>
+<summary>答案</summary>
+<ul>
+<li>动作时间轴切成 1 秒一段，每段维护回报估计 <span class="arithmatex">\(G_b\)</span>。</li>
+<li>重置分布 = 50% 均匀 + 40% <span class="arithmatex">\(\text{softmax}_b(-25\,G_b/G_{max})\)</span>（回报越低越常抽）+ 10% 每段过去的 softmax 权重（学会的难段保留一点练习）。</li>
+<li>例：<span class="arithmatex">\(G_b/G_{max}\)</span> = [0.9, 0.9, 0.2, 0.8, 0.9] → softmax 几乎全押第 3 段 → 最终 [0.1, 0.1, 0.6, 0.1, 0.1]。</li>
+</ul>
+<p>口诀：一半均匀保底，四成押最差，一成照顾学会的。</p>
+</details>
+<h3 id="m11-grpo">M11 · 为什么 GRPO 在底层运控里不灵？用「信用分配」解释。</h3>
+<p>来源：<a href="lessons/06-grpo-credit.html">第 6 章</a> · 加入 2026-11-20 · 复习记录：</p>
+<details>
+<summary>答案</summary>
+<ul>
+<li>GRPO 的优势 <span class="arithmatex">\((r_i - \text{mean})/\text{std}\)</span> 是整条轨迹一个数，所有步共享，不知道「哪一步不好」。</li>
+<li>运控是几百步、每步都有奖励的长时域问题：踩错一步、几步后才摔。例：回报 [3, 6, 6, 6] → A 三步全是 −1.732，惩罚只有 1/3 落在踩错那步。</li>
+<li>PPO + GAE 用 critic：<span class="arithmatex">\(\delta_t = r_t + \gamma V(s_{t+1}) - V(s_t)\)</span>，理想 critic 下 δ = [0, −3, 0]，惩罚 100% 落在踩错那步。时域越长，GRPO 摊得越薄（约 1/T）。</li>
+</ul>
+<p>口诀：踩空一脚晃几下才摔，错在那一脚；critic 看出局面何时变坏。</p>
+</details>
+<h3 id="m12-grpo-llm">M12 · GRPO 在 LLM 上成立的三个前提是什么？在机器人里它合适用在哪？</h3>
+<p>来源：<a href="lessons/06-grpo-credit.html">第 6 章</a> · 加入 2026-11-20 · 复习记录：</p>
+<details>
+<summary>答案</summary>
+<ul>
+<li>前提：① 同一个 prompt 能随便重采，起点完全相同；② 整条回答只有一个分；③ 「一次决策、一个分数」，没有中间状态要估值。</li>
+<li>底层运控三条都不满足（第 1 步后轨迹就分叉、每步都有奖励、几百步决策），用 PPO + GAE，critic 小不贵。</li>
+<li>VLA 微调满足：成功 0/1、可重置到同一场景、策略是大模型（critic 贵），适合 GRPO（如 SimpleVLA-RL）。</li>
+</ul>
+<p>口诀：长时域稠密奖励用 PPO，成功失败一个分才轮到 GRPO。</p>
+</details>
+<h2 id="supermimic">三、规模化与 SuperMimic</h2>
+<h3 id="m13-sonic-supermimic">M13 · SONIC 和 SuperMimic 的算力账怎么算？扣掉不公平的地方后还剩多少倍？</h3>
+<p>来源：<a href="lessons/07-scaling-cost.html">第 7 章</a> · 加入 2026-11-20 · 复习记录：</p>
+<details>
+<summary>答案</summary>
+<ul>
+<li>SONIC：128 张 L40 × 168 h = 21504 GPU-h；SuperMimic：1 张 H100 × 3 h = 3 GPU-h。GPU-h 比 ≈ 7168（论文说 &gt;1000×），墙钟比 56（论文说 &gt;50×）。</li>
+<li>不公平：SuperMimic 数据少（611 / 264.56 ≈ 2.31×），H100 tensor-core 峰值最多高 5.5×。全算给 SONIC：7168 / 12.7 ≈ 564×。</li>
+<li>失败数（25 vs 179）在训练集动作上测，衡量覆盖度，不是泛化。</li>
+</ul>
+<p>口诀：两万一对三，差七千；扣掉二点三和五点五，还剩五百多。</p>
+</details>
+<h3 id="m14-ppo">M14 · 为什么 PPO 路线「扩数据就是扩算力」？什么实验能说明瓶颈不在卡数？</h3>
+<p>来源：<a href="lessons/07-scaling-cost.html">第 7 章</a> · 加入 2026-11-20 · 复习记录：</p>
+<details>
+<summary>答案</summary>
+<ul>
+<li>所有动作由同一副身体执行，共享刚体和接触动力学；model-free 的 PPO 不显式建模这份共享结构，每条动作都要从带噪声的仿真回放里重新估计动作后果。</li>
+<li>受控实验（LAFAN1 40 条动作）：PPO-Sim 1 / 4 / 8 卡 18 h 后回报 0.60 / 0.70 / 0.72，4 → 8 卡几乎不涨；SuperMimic 1 卡 1.2 h 到 0.82。两者动作、观测、奖励、网络都一样，差别只在梯度从哪来。</li>
+</ul>
+<p>口诀：同一副身体，PPO 每条重摸一遍，加卡不变聪明。</p>
+</details>
+<h3 id="m15-pathwise">M15 · 似然比梯度和解析（pathwise）梯度的公式分别是什么？各需要什么条件？</h3>
+<p>来源：<a href="lessons/08-two-gradients.html">第 8 章</a> · 加入 2026-11-20 · 复习记录：</p>
+<details>
+<summary>答案</summary>
+<ul>
+<li>似然比：<span class="arithmatex">\(\nabla\mathbb E[J] = \mathbb E[(J(a)-b)\nabla\log\pi(a)]\)</span>，高斯时 <span class="arithmatex">\(\nabla_\theta\log\pi = \varepsilon/\sigma\)</span>。只要能采样打分，环境是黑箱；策略必须随机。</li>
+<li>解析：重参数化 <span class="arithmatex">\(a = \theta + \sigma\varepsilon\)</span>，<span class="arithmatex">\(\nabla\mathbb E[J] = \mathbb E[J'(a)\,da/d\theta]\)</span>。需要 J（和环境动态）可微；策略可以是确定性的。</li>
+<li>玩具 J = −(a − 2)²、θ = 0、σ = 0.5：真值 4；4 个样本时似然比 3.0、解析 3.7。</li>
+</ul>
+<p>口诀：似然比只看分，黑箱能用；解析沿路求导，要环境可微。</p>
+</details>
+<h3 id="m16-supermimic-ppo-wm">M16 · 为什么解析梯度方差小？SuperMimic 的 PPO-WM 消融说明了什么？</h3>
+<p>来源：<a href="lessons/08-two-gradients.html">第 8 章</a> · 加入 2026-11-20 · 复习记录：</p>
+<details>
+<summary>答案</summary>
+<ul>
+<li>似然比每个样本只带回一个标量分数，方向靠样本互相比较去猜；解析梯度每个样本直接带回方向（导数）。玩具里重复 2000 次、N = 4：似然比 2.99 ± 2.46，解析 4.00 ± 0.51，散布约 5 倍。</li>
+<li>PPO-WM：在<strong>同一个</strong> world model 里跑 PPO。SuperMimic 达到 PPO-WM 最好回报只用约 1/64 的想象步数。模型和速度都一样，所以收益来自梯度类型本身，不只是「仿真变快」。</li>
+</ul>
+<p>口诀：同一模型比一比，解析省六十四倍。</p>
+</details>
+<h3 id="m17-supermimic-world-model">M17 · SuperMimic 的 world model 为什么可以是确定性的？</h3>
+<p>来源：<a href="lessons/09-world-model.html">第 9 章</a> · 加入 2026-11-20 · 复习记录：</p>
+<details>
+<summary>答案</summary>
+<p>仿真的随机性来源都已知：
+- 每局的摩擦、标定、质心打包成 sim context ξ，作为模型输入；
+- 传感器噪声：模型预测无噪声观测，噪声在模型外按已知分布加；
+- 动作噪声：缓冲区存实际执行的带噪动作，模型用它训练；
+- 推搡（根部速度突变）：确定性模型学不了，直接从域随机化里去掉。</p>
+<p>所以同样的 (s, a, ξ) 永远给出同样的下一状态，好学、好求导。</p>
+<p>口诀：知道的随机当输入、在外加，推搡学不了就去掉。</p>
+</details>
+<h3 id="m18-world-model-k">M18 · 为什么 world model 用 k 步自回归损失训练？生存权重怎么算、有什么用？</h3>
+<p>来源：<a href="lessons/09-world-model.html">第 9 章</a> · 加入 2026-11-20 · 复习记录：</p>
+<details>
+<summary>答案</summary>
+<ul>
+<li>想象时模型吃自己的预测，误差累积。玩具：真 0.95、模型 0.97，1 步误差 0.02，8 步 0.12；1 步损失 0.0004，8 步自回归损失 0.0532（133 倍）。k = 8 步窗口自回归训练（式 1：状态 + 奖励 + 观测 + 终止 BCE）逼模型学会纠偏，想象 32 步也稳定。</li>
+<li>生存权重 <span class="arithmatex">\(c_0 = 1\)</span>，<span class="arithmatex">\(c_{t+1} = c_t(1-\hat d_{t+1})\)</span>：把硬终止换成可导的终止概率连乘。例：d̂ = 0, 0.1, 0.5 → c = 1, 1, 0.9, 0.45。</li>
+</ul>
+<p>口诀：闭眼走路误差滚，八步自回归逼它纠偏；摔倒变概率，开关变旋钮。</p>
+</details>
+<h3 id="m19-bptt-supermimic">M19 · BPTT 的梯度为什么会爆炸或消失？SuperMimic 怎么防梯度尖峰？</h3>
+<p>来源：<a href="lessons/10-bptt-critic.html">第 10 章</a> · 加入 2026-11-20 · 复习记录：</p>
+<details>
+<summary>答案</summary>
+<ul>
+<li>想象 H 步，梯度里有 <span class="arithmatex">\(\prod_t \partial\hat s_{t+1}/\partial\hat s_t\)</span> 连乘；一维时是 <span class="arithmatex">\(a^H\)</span>：1.1³² ≈ 21、1.1¹²⁸ ≈ 2 × 10⁵（爆炸）；0.9³² ≈ 0.034（消失）。接触动力学让这些导数忽大忽小。</li>
+<li>防尖峰：表 A.5 两层裁剪，先按全局范数缩到 ≤ 1，再逐元素截到 ±0.1。例：[3, 0.4, −0.05] → [0.991, 0.132, −0.0165] → [0.1, 0.1, −0.0165]。</li>
+</ul>
+<p>口诀：多米诺连乘，H 长就爆炸或消失；梯度先缩总量再截单个。</p>
+</details>
+<h3 id="m20-supermimic-2-critic">M20 · SuperMimic 的策略目标（式 2）是什么？为什么必须有 critic？</h3>
+<p>来源：<a href="lessons/10-bptt-critic.html">第 10 章</a> · 加入 2026-11-20 · 复习记录：</p>
+<details>
+<summary>答案</summary>
+<ul>
+<li><span class="arithmatex">\(\hat J = \sum_{t&lt;H}\gamma^t\hat c_t\hat r_{t+1} + \gamma^H\hat c_H V_\psi(\hat s_H, g_H, \xi)\)</span>，H = 32。前 H 步用模型精确求导，之后交给 critic（用想象轨迹上的 GAE 目标拟合）。</li>
+<li>没有 critic：H ≤ 16 训不出来；回报相同时，推一把恢复不了（恢复的回报在 32 步之外）。有 critic：H = 16 追平无 critic 的 H = 32。H 从 64 加到 128 反而更慢更差。</li>
+</ul>
+<p>口诀：前三十二步精确求导，后面交给 critic 估；没有 critic 只看眼前。
+</details></p>
+<h3 id="m21-supermimic">M21 · SuperMimic 的训练循环是哪三步？为什么旧数据还能用？</h3>
+<p>来源：<a href="lessons/11-supermimic.html">第 11 章</a> · 加入 2026-11-20 · 复习记录：</p>
+<details>
+<summary>答案</summary>
+<ul>
+<li>① 采数据：确定性策略加动作噪声在仿真里跑，存入回放缓冲区（4096 × 1000 条），按回报重置；② 拟合 world model：8 步窗口自回归；③ 改策略：冻住模型，想象 32 步 BPTT，同时拟合 critic。三步每轮都做。</li>
+<li>模型学的是物理，物理不依赖采数据的策略，所以旧策略的数据对拟合模型一直有效（Dyna 风格）；PPO 学的是「当前策略下的优势」，数据用一轮就作废。</li>
+</ul>
+<p>口诀：上路采数据、更新车感、躺床上演练，三步每轮都转。</p>
+</details>
+<h3 id="m22-supermimic">M22 · SuperMimic 快在哪三个地方？它还有什么局限？</h3>
+<p>来源：<a href="lessons/11-supermimic.html">第 11 章</a> · 加入 2026-11-20 · 复习记录：</p>
+<details>
+<summary>答案</summary>
+<ul>
+<li>① 一个模型摊销整个动作库：数据 1 → 264 h，8 步预测误差保持 0.007–0.011；② 想象比仿真快：2k–16k 并行时 &gt;10×，64k 时 62×；③ 解析梯度：同一模型里比 PPO-WM 省约 64× 想象步数。world model + PPO 只拿到 ① ②。</li>
+<li>局限：只用仿真数据、只有平地（无地形和物体交互）、确定性模型学不了突变、多接口联合训练研究不足。</li>
+</ul>
+<p>口诀：共享模型、想象快、梯度准，三样乘起来。</p>
+</details>
+<h2 id="_2">四、经典控制与上真机（第二部分）</h2>
+<h3 id="m23-lqr-riccati-k">M23 · LQR 的 Riccati 方程和增益 K 是什么？它和强化学习的价值函数是什么关系？</h3>
+<p>来源：<a href="lessons/12-lqr.html">第 12 章</a> · 加入 2026-11-20 · 复习记录：</p>
+<details>
+<summary>答案</summary>
+<ul>
+<li>系统 <span class="arithmatex">\(x_{t+1} = ax + bu\)</span>，代价 <span class="arithmatex">\(\sum qx^2 + ru^2\)</span>。价值函数是抛物线 <span class="arithmatex">\(V(x) = Px^2\)</span>，策略是直线 <span class="arithmatex">\(u = -Kx\)</span>。</li>
+<li>Riccati：<span class="arithmatex">\(P = q + a^2P - \frac{(abP)^2}{r+b^2P}\)</span>；<span class="arithmatex">\(K = \frac{abP}{r+b^2P}\)</span>。从 P = q 反复代入就是价值迭代。</li>
+<li>例：a = 1.1、b = q = r = 1 → P：1 → 1.605 → 1.746 → … → 1.774，K = 0.703，闭环 0.397。</li>
+<li>和 RL：模型已知、线性、二次代价时 Bellman 方程有闭式解，不用采样。</li>
+</ul>
+<p>口诀：价值是抛物线、策略是直线，Riccati 反复代几步就收敛。</p>
+</details>
+<h3 id="m24-lqr-qr-lqr">M24 · LQR 的 q、r 各管什么？LQR 适用在什么范围？</h3>
+<p>来源：<a href="lessons/12-lqr.html">第 12 章</a> · 加入 2026-11-20 · 复习记录：</p>
+<details>
+<summary>答案</summary>
+<ul>
+<li>q 大 → 更在乎偏离 → K 大、回得快、用力猛；r 大 → 舍不得用力 → K 小、回得慢。例（a = 1.1）：q = 1、r = 10 → K = 0.370；q = 10、r = 1 → K = 1.009。</li>
+<li>只在平衡点附近有效（离远了线性化不准），且要模型已知。接触、大动作、非线性交给 RL 或在线重新线性化的 MPC。</li>
+</ul>
+<p>口诀：q 在乎偏离、r 舍不得用力，离平衡点远了就不灵。</p>
+</details>
+<h3 id="m25-zmp-zmp">M25 · ZMP 方程是什么？为什么 ZMP 必须在支撑多边形里？</h3>
+<p>来源：<a href="lessons/13-lipm-zmp.html">第 13 章</a> · 加入 2026-11-20 · 复习记录：</p>
+<details>
+<summary>答案</summary>
+<ul>
+<li>线性倒立摆（质心高 <span class="arithmatex">\(z_c\)</span> 不变、身体不转）：<span class="arithmatex">\(\ddot x = \omega^2(x - p)\)</span>，<span class="arithmatex">\(\omega = \sqrt{g/z_c}\)</span>。质心在 ZMP 哪边就往哪边加速。</li>
+<li>ZMP：地面支撑力的合力作用点（该点合力矩为 0）；地面只能推不能拉，所以它只能在着地脚覆盖的区域里。</li>
+<li>例：<span class="arithmatex">\(z_c\)</span> = 0.8 → ω = 3.5；想要 ẍ = 1 m/s²，ZMP 放在质心后 1/12.25 ≈ 0.082 m。</li>
+</ul>
+<p>口诀：地面托你那一点叫 ZMP，只能在脚底；质心在哪边就往哪边加速。</p>
+</details>
+<h3 id="m26">M26 · 线性倒立摆为什么不稳定？捕获点是什么？</h3>
+<p>来源：<a href="lessons/13-lipm-zmp.html">第 13 章</a> · 加入 2026-11-20 · 复习记录：</p>
+<details>
+<summary>答案</summary>
+<ul>
+<li>ZMP 固定时 <span class="arithmatex">\(x(t) = p + (x_0-p)\cosh\omega t + \frac{v_0}{\omega}\sinh\omega t\)</span>，偏差按 cosh 指数增长。例：偏 5 cm、静止，0.5 s 后 0.148 m。ZMP 只能在脚底挪，挪不够就得迈步。</li>
+<li>捕获点 <span class="arithmatex">\(\xi = x + \dot x/\omega\)</span>：把脚放在这里，质心正好停在脚正上方。例：x = 0、ẋ = 0.5、ω = 3.5 → ξ = 0.143 m。</li>
+</ul>
+<p>口诀：歪了按 cosh 倒，位置加速度除以 ω，踩在捕获点就停住。</p>
+</details>
+<h3 id="m27-mpc">M27 · 单刚体凸 MPC 做了哪些简化？摩擦锥怎么限制加速度？</h3>
+<p>来源：<a href="lessons/14-convex-mpc.html">第 14 章</a> · 加入 2026-11-20 · 复习记录：</p>
+<details>
+<summary>答案</summary>
+<ul>
+<li>机身当一个刚体、忽略腿的质量，只优化着地脚的地面反力；Kim 2019 再假设横滚俯仰角小、落脚点给定、惯量近似不变 → 动力学对力是线性的，优化是凸的 QP。</li>
+<li>摩擦锥：<span class="arithmatex">\(f_z \ge 0\)</span>，<span class="arithmatex">\(|f_x| \le \mu f_z\)</span>。所有脚用满摩擦时最大水平加速度 μg，和质量无关。例：9 kg 两脚着地、μ = 0.6 → 每脚 f_z = 44.1 N、|f_x| ≤ 26.5 N，a_max = 5.88 m/s²。</li>
+</ul>
+<p>口诀：机身当砖头只算推力；只推不拉不能太斜，加速度锁在 μg。</p>
+</details>
+<h3 id="m28-jtf">M28 · 滚动优化为什么只执行第一步？经典四足控制栈怎么分层？τ = Jᵀf 是什么？</h3>
+<p>来源：<a href="lessons/14-convex-mpc.html">第 14 章</a> · 加入 2026-11-20 · 复习记录：</p>
+<details>
+<summary>答案</summary>
+<ul>
+<li>每个周期规划未来 N 步，只执行第一步，下个周期在新状态上重解：能随时修正扰动和模型误差。</li>
+<li>分层（Kim 2019）：MPC 30 Hz 算地面反力 → WBC / WBIC 500 Hz 算关节指令 → PD 1 kHz 以上。RL 策略占的是 MPC + WBC 的位置。</li>
+<li>τ = Jᵀf：着地脚要出力 f，关节力矩等于雅可比转置乘 f（虚功原理）。</li>
+</ul>
+<p>口诀：看一段走一步再重看；力乘雅可比转置变力矩。</p>
+</details>
+<h3 id="m29-ilqr-lqrddp">M29 · iLQR 的循环是哪几步？它和 LQR、DDP 什么关系？</h3>
+<p>来源：<a href="lessons/15-ilqr-mppi.html">第 15 章</a> · 加入 2026-11-20 · 复习记录：</p>
+<details>
+<summary>答案</summary>
+<ol>
+<li>按当前控制序列往前滚出轨迹；2. 沿整条轨迹逐点线性化（a_t、b_t）、代价展开到二次；3. 从后往前做 LQR（Riccati 反推），得到修正 δu = k + K·δx；4. 带修正往前滚（代价不降就减小步长），重复。
+- LQR 只在一个平衡点线性化；iLQR 沿轨迹反复线性化；DDP 再多保留动力学的二阶项。
+- 例：甩摆问题代价 296.09 → 39.04 → 23.76 → 23.73，3 次收敛。</li>
+</ol>
+<p>口诀：沿轨迹线性化，LQR 往回推，三遍就收敛。</p>
+</details>
+<h3 id="m30-mppi-rl">M30 · MPPI 的权重怎么算？λ 的作用？在线优化和 RL 怎么分工？</h3>
+<p>来源：<a href="lessons/15-ilqr-mppi.html">第 15 章</a> · 加入 2026-11-20 · 复习记录：</p>
+<details>
+<summary>答案</summary>
+<ul>
+<li>在当前控制序列上加噪声采 K 条，算各自代价 S_k；<span class="arithmatex">\(w_k \propto \exp(-(S_k - \min S)/\lambda)\)</span>；更新 <span class="arithmatex">\(u \leftarrow u + \sum w_k\varepsilon_k\)</span>。不要导数，好并行。</li>
+<li>λ 小 → 只听最好的几条；λ 大 → 接近平均。例：代价 [10, 12, 20, 11]，λ = 1 → [0.665, 0.09, 0, 0.245]；λ = 5 → [0.381, 0.255, 0.052, 0.312]。</li>
+<li>iLQR / MPPI 每一刻在线现算（做成 MPC）；RL 离线学一个策略，部署时一次前向。梯度类型：iLQR 解析，MPPI 采样（第 8 章）。</li>
+</ul>
+<p>口诀：撒一把，exp 负代价除 λ 加权平均；在线现算是 MPC，离线学好是 RL。</p>
+</details>
+<h3 id="m31-amp-amp">M31 · AMP 的判别器怎么训练？为什么 AMP 不需要时间对齐的参考片段？</h3>
+<p>来源：<a href="lessons/16-amp.html">第 16 章</a> · 加入 2026-11-20 · 复习记录：</p>
+<details>
+<summary>答案</summary>
+<ul>
+<li>最小二乘判别器：动作库里的状态转移 (s, s') 往 +1 推，策略的往 −1 推，损失 <span class="arithmatex">\(\mathbb E_{库}[(D-1)^2] + \mathbb E_{策略}[(D+1)^2]\)</span>；另加梯度惩罚让打分平滑。</li>
+<li>判别器只看「这个状态转移像不像库里的」，不看是第几帧，所以只要一个动作库就行；能配任意任务（朝目标跑、转身）。</li>
+<li>例：库 D = [0.9, 1.1]、策略 D = [−0.8, −1.2] → 损失 0.05（分得清）；库 [0.2, 0.4]、策略 [0.3, 0.1] → 1.95。</li>
+</ul>
+<p>口诀：裁判把真的推向一、假的推向负一，分不清时就像了。</p>
+</details>
+<h3 id="m32-amp">M32 · AMP 的风格奖励公式是什么？和任务奖励怎么组合？</h3>
+<p>来源：<a href="lessons/16-amp.html">第 16 章</a> · 加入 2026-11-20 · 复习记录：</p>
+<details>
+<summary>答案</summary>
+<ul>
+<li><span class="arithmatex">\(r_S = \max(0, 1 - 0.25(D-1)^2)\)</span>：D = 1 → 1；D = 0 或 2 → 0.75；D = −1 或 3 → 0。</li>
+<li><span class="arithmatex">\(r = w_G r_G + w_S r_S\)</span>，论文各 0.5。例：任务 0.8、D = 0 → 0.775；任务 0.2、D = 1 → 0.6。</li>
+<li>有参考片段、要复现特定动作（空翻、舞蹈）用跟踪奖励；只有动作库、要完成任务且自然用 AMP。</li>
+</ul>
+<p>口诀：一减四分之一 (D−1)²，截到零；任务风格各一半。</p>
+</details>
+<h3 id="m33">M33 · 为什么硬接触让可微仿真的梯度没法用？平滑接触的代价是什么？</h3>
+<p>来源：<a href="lessons/17-shac.html">第 17 章</a> · 加入 2026-11-20 · 复习记录：</p>
+<details>
+<summary>答案</summary>
+<ul>
+<li>硬接触 <span class="arithmatex">\(f = k\max(0, -z)\)</span>：脚在空中导数为 0（策略学不到「往下踩会被托住」），一触地导数突然变 −k。例：k = 1000，z = −0.005 → f = 5 N、df/dz = −1000；z &gt; 0 时都是 0。</li>
+<li>平滑接触 <span class="arithmatex">\(f = k\beta\log(1 + e^{-z/\beta})\)</span>，导数 <span class="arithmatex">\(-k\,\text{sigmoid}(-z/\beta)\)</span> 连续。代价：离地时也有虚假推力（β = 0.01、z = 2 cm → 1.27 N），物理不精确。</li>
+</ul>
+<p>口诀：脚在空中导数零、一碰地跳到负一千；softplus 磨成坡，代价是隔空有力。</p>
+</details>
+<h3 id="m34-shac-shac-supermimic">M34 · SHAC 的两件法宝是什么？SHAC 和 SuperMimic 的梯度分别来自哪里？</h3>
+<p>来源：<a href="lessons/17-shac.html">第 17 章</a> · 加入 2026-11-20 · 复习记录：</p>
+<details>
+<summary>答案</summary>
+<ul>
+<li>截断学习窗口：一局 H = 1000 切成 h = 32 的窗口（32 个），每个窗口内 BPTT，防止梯度连乘爆炸；平滑的 critic 估计窗口之后的回报，把崎岖的优化地形磨平。</li>
+<li>SHAC 对<strong>可微仿真器</strong>求导，接触常要平滑；SuperMimic 对<strong>学出来的 world model</strong> 求导，仿真器可以是任意（不可微、硬接触的）MuJoCo Warp。SuperMimic 的「critic 自举短视野目标」受 SHAC 启发，并用生存权重代替硬终止。</li>
+</ul>
+<p>口诀：SHAC 对真仿真求导要磨平，SuperMimic 对学的模型求导随便用。</p>
+</details>
+<h3 id="m35-sim2real">M35 · sim2real 差距有哪几个来源？执行器网络解决哪一个？</h3>
+<p>来源：<a href="lessons/18-deploy.html">第 18 章</a> · 加入 2026-11-20 · 复习记录：</p>
+<details>
+<summary>答案</summary>
+<ul>
+<li>执行器（响应、摩擦、饱和）、动力学参数（质量、质心、摩擦）、延迟（10–30 ms）、传感（噪声、零点）。</li>
+<li>执行器网络（ANYmal 2019）：用真机数据学「指令 + 状态 → 实际力矩」，塞进仿真器替换理想电机模型，专治执行器差距。</li>
+<li>延迟换算：⌈延迟 / 控制周期⌉，20 ms 周期下 5、20、30 ms → 晚 1、1、2 个周期，训练时要随机化。</li>
+</ul>
+<p>口诀：电机、参数、延迟、传感四处差；电机写不准就学一个网络塞回仿真。</p>
+</details>
+<h3 id="m36-asap-sim2sim">M36 · ASAP 的四步是什么？动作修正量和域随机化有什么区别？sim2sim 是什么？</h3>
+<p>来源：<a href="lessons/18-deploy.html">第 18 章</a> · 加入 2026-11-20 · 复习记录：</p>
+<details>
+<summary>答案</summary>
+<ol>
+<li>仿真里预训练跟踪策略；2. 真机上跑、记录轨迹；3. 训练动作修正模型 Δa(s, a)，让仿真执行 a + Δa 后贴近真机执行 a；4. 带着 Δa 在仿真里微调策略，部署时去掉 Δa。
+- 玩具：仿真 x' = x + a，真机 x' = x + 0.8a − 0.05 → Δa = −0.2a − 0.05。
+- 区别：DR 让策略在很多可能的物理上都还行（偏保守）；ASAP 用真机数据把仿真对齐到真实的那一个物理再练。
+- sim2sim：上真机前先换一个更精确的仿真器（如 CPU 版 MuJoCo）、去掉随机化跑一遍，换仿真器就摔的策略真机也会摔。</li>
+</ol>
+<p>口诀：学个 Δa 把手感对齐，练完再拿掉；换个试车场先跑一圈。</p>
+</details>
+<hr />
+<h2 id="_3">已掌握</h2>
+<p>（连续答对 5 次的卡片移到这里。）</p>
+</details>
+</main>
+<footer>来自个人学习仓库的对话讲义，含练习作答记录。源码：<a href="https://github.com/wikieden/robot-motion-rl">github.com/wikieden/robot-motion-rl</a>。更多讲义书：<a href="https://wikieden.github.io/ai-books/">AI 算法图解讲义（合集）</a></footer>
+</body></html>

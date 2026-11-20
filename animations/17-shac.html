@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>硬接触与平滑接触</title><link rel="stylesheet" href="anim.css"></head>
+<body><main>
+<h1>第 17 章 · 接触的导数：硬接触在触地处跳变，平滑接触连续</h1>
+<p class="sub">配套讲义：<a href="../lessons/17-shac.html">第 17 章 · 可微仿真与 SHAC：SuperMimic 之前，解析梯度是怎么来的</a> 第二步。刚度 k = 1000 N/m、β = 0.01，和讲义的表一致。<br>缩写：SHAC = Short-Horizon Actor-Critic（短视野 / 演员-评论家）；z：脚离地高度（负数 = 陷进地面）；β：平滑程度；softplus：log(1 + eˣ)；df/dz：力对高度的导数（策略的梯度要经过它）。</p>
+<div class="panel"><svg id="sv" viewBox="0 0 680 400"></svg></div>
+<div class="stats">
+<div class="stat"><div class="l">脚的高度 z</div><div class="v" id="s0">–</div></div>
+<div class="stat"><div class="l">硬接触 f / df/dz</div><div class="v" id="s1">–</div></div>
+<div class="stat"><div class="l">平滑接触 f / df/dz</div><div class="v" id="s2">–</div></div>
+</div>
+<div class="row ctl"><label>β</label><input type="range" id="bt" min="0.001" max="0.03" step="0.001" value="0.01"><span id="btv">0.01</span></div>
+<div class="row ctl"><label>z（拖动后停在这里，m）</label><input type="range" id="zz" min="-0.01" max="0.03" step="0.001" value="0.02"><span id="zzv">0.02</span></div>
+<div class="row"><button id="play">▶ 播放</button><button id="step">→ 单步</button><button id="reset">↺ 从头开始</button></div>
+<p class="note">看点：① 上图是接触力 f 随高度 z：红线是硬接触 k·max(0, −z)，只有陷进地面才有力；蓝线是平滑接触 k·β·log(1 + e^(−z/β))，离地时也有一点「虚假」推力。② 下图是导数 df/dz：红线在 z = 0 处从 0 突然跳到 −1000，脚在空中时梯度是 0，策略学不到「往下踩会得到支撑」；蓝线是连续的 S 形。③ 播放时脚从 3 cm 落到 −1 cm；拖 β：越小越接近硬接触。</p>
+</main>
+<script src="anim.js"></script>
+<script>
+const sv=$('sv');const K=1000,ZL=-0.01,ZH=0.03,X0=60,W=600,T1=20,H1=160,T2=220,H2=150;
+const X=z=>X0+(ZH-z)/(ZH-ZL)*W;
+const Y1=f=>T1+H1-clamp(f/12,0,1)*H1,Y2=g=>T2+clamp(-g/1100,0,1)*H2;
+el('rect',{x:X0,y:T1,width:W,height:H1,fill:'var(--bg)',stroke:'var(--line)'},sv);el('rect',{x:X0,y:T2,width:W,height:H2,fill:'var(--bg)',stroke:'var(--line)'},sv);
+txt('接触力 f（N）',{x:X0,y:T1-6,class:'m'},sv);txt('导数 df/dz（往下为负）',{x:X0,y:T2-6,class:'m'},sv);
+[0.03,0.02,0.01,0,-0.01].forEach(z=>txt(z,{x:X(z),y:T2+H2+16,'text-anchor':'middle',class:'m'},sv));txt('脚的高度 z（m） ← 离地　陷进地面 →',{x:X0+W,y:T2+H2+34,'text-anchor':'end',class:'m'},sv);
+el('line',{x1:X(0),x2:X(0),y1:T1,y2:T2+H2,stroke:'var(--line)','stroke-dasharray':'3 3'},sv);
+[0,-500,-1000].forEach(g=>txt(g,{x:X0-6,y:Y2(g)+4,'text-anchor':'end',class:'m'},sv));
+const hardF=el('polyline',{fill:'none',stroke:'var(--bad)','stroke-width':2.2},sv),softF=el('polyline',{fill:'none',stroke:'var(--accent)','stroke-width':2.2},sv);
+const hardG=el('polyline',{fill:'none',stroke:'var(--bad)','stroke-width':2.2},sv),softG=el('polyline',{fill:'none',stroke:'var(--accent)','stroke-width':2.2},sv);
+const cur=el('line',{y1:T1,y2:T2+H2,stroke:'var(--amber)','stroke-width':2},sv);
+const hf=z=>K*Math.max(0,-z),hg=z=>z<0?-K:0,sf=(z,b)=>K*b*Math.log1p(Math.exp(-z/b)),sg=(z,b)=>-K/(1+Math.exp(z/b));
+let z;
+function curves(){const b=+$('bt').value,a=[],c=[],d=[],e=[];for(let i=0;i<=200;i++){const zz=ZH-i/200*(ZH-ZL);a.push(`${X(zz)},${Y1(hf(zz))}`);c.push(`${X(zz)},${Y1(sf(zz,b))}`);d.push(`${X(zz)},${Y2(hg(zz))}`);e.push(`${X(zz)},${Y2(sg(zz,b))}`)}
+  hardF.setAttribute('points',a.join(' '));softF.setAttribute('points',c.join(' '));hardG.setAttribute('points',d.join(' '));softG.setAttribute('points',e.join(' '))}
+function draw(){const b=+$('bt').value;cur.setAttribute('x1',X(z));cur.setAttribute('x2',X(z));
+  $('s0').textContent=z.toFixed(3)+' m';$('s1').textContent=hf(z).toFixed(2)+' / '+hg(z).toFixed(0);$('s2').textContent=sf(z,b).toFixed(2)+' / '+sg(z,b).toFixed(1)}
+$('bt').oninput=()=>{$('btv').textContent=$('bt').value;curves();draw()};
+$('zz').oninput=()=>{ANIM.stop();z=+$('zz').value;$('zzv').textContent=z;draw()};
+function reset(){$('btv').textContent=$('bt').value;z=0.03;curves();draw()}
+function next(){if(z<=-0.01+1e-9)return false;z=Math.round((z-0.001)*1000)/1000;draw();return true}
+setupPlayer({captureSeed:1,reset,next},120);
+</script><a href="https://wikieden.github.io/ai-books/" style="position:fixed;right:12px;bottom:12px;z-index:99;padding:4px 10px;border-radius:14px;background:rgba(127,127,127,.18);color:inherit;font:13px/1.6 system-ui,sans-serif;text-decoration:none">← 全部讲义书</a>
+</body></html>

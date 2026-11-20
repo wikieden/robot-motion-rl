@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>高斯策略的比率</title><link rel="stylesheet" href="anim.css"></head>
+<body><main>
+<h1>第 3 章 · 高斯策略的比率 r 与 PPO 剪裁</h1>
+<p class="sub">配套讲义：<a href="../lessons/03-ppo-recipe.html">第 3 章 · 运控里的 PPO 配方：高斯策略、几千个环境、按 KL 调学习率</a> 第一、二步。旧策略 μ = 0.2、σ = 0.5，样本 a = 0.7，都是讲义里的数。<br>缩写：PPO = Proximal Policy Optimization（近端 / 策略 / 优化）；μ（mu）、σ（sigma）：高斯的均值、标准差；r = π_新(a) / π_旧(a)：比率；A：优势；ε = 0.2：剪裁范围。</p>
+<div class="panel"><svg id="sv" viewBox="0 0 680 400"></svg></div>
+<div class="stats">
+<div class="stat"><div class="l">新 μ</div><div class="v" id="s0">0.2</div></div>
+<div class="stat"><div class="l">比率 r</div><div class="v" id="s1">1</div></div>
+<div class="stat"><div class="l">PPO 项 min(rA, clip(r)A)</div><div class="v" id="s2">–</div></div>
+</div>
+<div class="row ctl"><label>σ</label><input type="range" id="sg" min="0.2" max="1" step="0.05" value="0.5"><span id="sgv">0.5</span></div>
+<div class="row ctl"><label>样本 a</label><input type="range" id="aa" min="-0.6" max="1.2" step="0.05" value="0.7"><span id="aav">0.7</span></div>
+<div class="row ctl"><label>优势 A</label><button id="ap" class="on">A = +1</button><button id="an">A = −1</button></div>
+<div class="row"><button id="play">▶ 播放</button><button id="step">→ 单步</button><button id="reset">↺ 从头开始</button></div>
+<p class="note">看点：① 灰色钟形是旧策略，蓝色是新策略，竖线是样本 a（第一步）。② 两条曲线在 a 处的高度之比就是 r（第二步）。播放时新 μ 从 0.2 往 a 挪：μ = 0.3 时 r ≈ 1.197，μ = 0.45 时 r ≈ 1.455。③ 下方条形：r 落在 [0.8, 1.2] 里是绿色；A = +1 时 r 超过 1.2 后 PPO 项被剪平成 1.2。切到 A = −1，剪裁改在 r &lt; 0.8 那一侧起作用。</p>
+</main>
+<script src="anim.js"></script>
+<script>
+const sv=$('sv');const X0=60,W=600,TOP=20,H=220,XLO=-1.5,XHI=2;
+const X=x=>X0+(x-XLO)/(XHI-XLO)*W;
+el('rect',{x:X0,y:TOP,width:W,height:H,fill:'var(--bg)',stroke:'var(--line)'},sv);
+[-1,0,1,2].forEach(v=>txt(v,{x:X(v),y:TOP+H+16,'text-anchor':'middle',class:'m'},sv));
+const oldL=el('polyline',{fill:'none',stroke:'var(--muted)','stroke-width':2},sv);
+const newL=el('polyline',{fill:'none',stroke:'var(--accent)','stroke-width':2.4},sv);
+const aL=el('line',{y1:TOP,y2:TOP+H,stroke:'var(--warm)','stroke-width':1.6},sv);
+const aT=txt('',{y:TOP+14,class:'m'},sv);
+const BY=300,BX0=60,BW=600,RMAX=2.5,BX=r=>BX0+r/RMAX*BW;
+txt('比率 r',{x:BX0,y:BY-10},sv);
+el('rect',{x:BX(0.8),y:BY,width:BX(1.2)-BX(0.8),height:28,fill:'var(--good)',opacity:0.15},sv);
+[0,0.8,1,1.2,2].forEach(v=>txt(v,{x:BX(v),y:BY+46,'text-anchor':'middle',class:'m'},sv));
+el('line',{x1:BX0,x2:BX0+BW,y1:BY+28,y2:BY+28,stroke:'var(--line)'},sv);
+const bar=el('rect',{x:BX0,y:BY+4,height:20,rx:3},sv);
+txt('绿色区间 = [1 − ε, 1 + ε] = [0.8, 1.2]',{x:BX0,y:BY+70,class:'m'},sv);
+let mu,A=1,auto=true;
+const pdf=(x,m,s)=>Math.exp(-((x-m)**2)/(2*s*s))/(Math.sqrt(2*Math.PI)*s);
+function draw(){const s=+$('sg').value,a=+$('aa').value,ymax=pdf(0,0,s)*1.15,Y=v=>TOP+H-v/ymax*H;
+  const curve=m=>{const p=[];for(let i=0;i<=140;i++){const x=XLO+i/140*(XHI-XLO);p.push(`${X(x)},${Y(pdf(x,m,s))}`)}return p.join(' ')};
+  oldL.setAttribute('points',curve(0.2));newL.setAttribute('points',curve(mu));
+  aL.setAttribute('x1',X(a));aL.setAttribute('x2',X(a));aT.setAttribute('x',X(a)+4);aT.textContent='a = '+a;
+  const r=pdf(a,mu,s)/pdf(a,0.2,s),cl=clamp(r,0.8,1.2),term=Math.min(r*A,cl*A),clipped=term!==r*A;
+  bar.setAttribute('width',Math.max(2,BX(Math.min(r,RMAX))-BX0));bar.setAttribute('fill',r>=0.8&&r<=1.2?'var(--good)':'var(--warm)');
+  $('s0').textContent=mu.toFixed(2);$('s1').textContent=r.toFixed(3);$('s2').textContent=term.toFixed(3)+(clipped?'（被剪）':'')}
+['sg','aa'].forEach(k=>$(k).oninput=()=>{$(k+'v').textContent=$(k).value;draw()});
+$('ap').onclick=()=>{A=1;$('ap').classList.add('on');$('an').classList.remove('on');draw()};
+$('an').onclick=()=>{A=-1;$('an').classList.add('on');$('ap').classList.remove('on');draw()};
+function reset(){mu=0.2;draw()}
+function next(){if(mu>=0.6-1e-9)return false;mu=Math.round((mu+0.025)*1000)/1000;draw();return true}
+setupPlayer({captureSeed:1,reset,next},260);
+</script><a href="https://wikieden.github.io/ai-books/" style="position:fixed;right:12px;bottom:12px;z-index:99;padding:4px 10px;border-radius:14px;background:rgba(127,127,127,.18);color:inherit;font:13px/1.6 system-ui,sans-serif;text-decoration:none">← 全部讲义书</a>
+</body></html>

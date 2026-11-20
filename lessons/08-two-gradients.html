@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>第 8 章 · 两种梯度：「试了打分」的似然比梯度 vs 「顺着公式求导」的解析梯度 · 机器人运控与强化学习</title>
+<style>
+:root{--bg:#fbfbfa;--fg:#1f2328;--mute:#5d6470;--line:#e3e5e8;--card:#fff;--acc:#2f6fdf;--code:#f2f3f5;--quote:#f4f6fa}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15181d;--fg:#e4e7ec;--mute:#9aa3b2;--line:#2c323b;--card:#1c2026;--acc:#7aa7ff;--code:#22272f;--quote:#1b2029}}
+:root[data-theme="dark"]{--bg:#15181d;--fg:#e4e7ec;--mute:#9aa3b2;--line:#2c323b;--card:#1c2026;--acc:#7aa7ff;--code:#22272f;--quote:#1b2029}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.75 -apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Helvetica Neue",sans-serif}
+a{color:var(--acc)}
+header.top{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+header.top .in{max-width:860px;margin:0 auto;padding:10px 16px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;font-size:14px}
+header.top .brand{font-weight:600;color:var(--fg);text-decoration:none;margin-right:auto}
+header.top a{text-decoration:none}
+main{max-width:860px;margin:0 auto;padding:24px 16px 72px;overflow-wrap:anywhere}
+h1{font-size:28px;line-height:1.35;margin:8px 0 16px} h2{font-size:22px;margin:40px 0 12px;padding-top:8px;border-top:1px solid var(--line)} h3{font-size:18px;margin:28px 0 8px}
+img{max-width:100%;height:auto;border-radius:8px;border:1px solid var(--line);background:#fff}
+blockquote{margin:16px 0;padding:10px 16px;background:var(--quote);border-left:3px solid var(--acc);border-radius:4px;color:var(--mute)}
+blockquote p{margin:4px 0}
+code{background:var(--code);padding:1px 5px;border-radius:4px;font-size:.9em}
+pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto} pre code{padding:0;background:none}
+table{border-collapse:collapse;display:block;overflow-x:auto;max-width:100%;margin:12px 0;font-size:15px}
+th,td{border:1px solid var(--line);padding:6px 10px;vertical-align:top} th{background:var(--code)}
+details{border:1px solid var(--line);border-radius:8px;padding:6px 12px;margin:8px 0;background:var(--card)}
+details[open]{padding-bottom:10px} summary{cursor:pointer;color:var(--acc);font-weight:500}
+mjx-container{overflow-x:auto;overflow-y:hidden;max-width:100%}
+.btn{display:inline-block;margin:4px 8px 4px 0;padding:6px 14px;border:1px solid var(--acc);border-radius:999px;text-decoration:none;font-size:14px}
+.pager{display:flex;justify-content:space-between;gap:12px;margin-top:48px;padding-top:16px;border-top:1px solid var(--line);font-size:15px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin:16px 0}
+.card{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden;color:inherit;text-decoration:none}
+.card:hover{border-color:var(--acc)} .card img{border:0;border-bottom:1px solid var(--line);border-radius:0;aspect-ratio:16/10;object-fit:contain;width:100%}
+.card .no{color:var(--mute);font-size:13px;padding:8px 12px 0} .card .t{padding:0 12px 12px;font-weight:500;line-height:1.5}
+.lead{font-size:17px;color:var(--mute)}
+footer{max-width:860px;margin:0 auto;padding:0 16px 40px;color:var(--mute);font-size:13px}
+</style>
+<script>window.MathJax={tex:{inlineMath:[["\\(","\\)"]],displayMath:[["\\[","\\]"],["$$","$$"]],processEscapes:true,processEnvironments:true}};</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js"></script>
+</head><body>
+<header class="top"><div class="in">
+<a class="brand" href="../index.html">机器人运控与强化学习</a>
+<a href="../lessons/index.html">讲义目录</a>
+<a href="../animations/index.html">动画</a>
+<a href="../review.html">复习卡片</a>
+<a href="../lessons/appendix-glossary.html">缩写表</a>
+<a href="https://wikieden.github.io/ai-books/">← 全部讲义书</a>
+</div></header>
+<main>
+<h1 id="8-vs">第 8 章 · 两种梯度：「试了打分」的似然比梯度 vs 「顺着公式求导」的解析梯度</h1><p><a class="btn" href="../animations/08-score-vs-pathwise.html">▶ 打开本章可交互动画</a></p>
+<blockquote>
+<p>本章回答：PPO 的梯度是怎么来的，为什么方差大？如果知道环境的公式，梯度能怎么算？两种梯度各要什么条件？SuperMimic 说的「解析梯度」到底是什么？<br />
+讲解日期：2026-11-20 · 上一章：<a href="../lessons/07-scaling-cost.html">第 7 章 规模化的代价</a> · 下一章：<a href="../lessons/09-world-model.html">第 9 章 可微 world model</a><br />
+对应原文：SuperMimic §3.3（<code>papers/supermimic-2610.28480.txt</code> L278–L281：PPO 是 likelihood-ratio 估计，BPTT 对每个动作求导，短视野内方差低得多）、§4.2「First-order gradients need fewer imagined steps」（L440–L442）；《从零学强化学习》第 20 章策略梯度、第 21 章 baseline<br />
+本章缩写：score function：得分函数，<span class="arithmatex">\(\nabla_\theta\log\pi\)</span>（第 20 章）；pathwise gradient：路径梯度 / 解析梯度（沿着「参数 → 动作 → 回报」这条计算路径求导）；ε：标准正态噪声（读 "epsilon"）；PPO-WM：在 world model 里跑的 PPO（WM = World Model）。全部缩写见 <a href="../lessons/appendix-glossary.html">附录 · 缩写与术语表</a></p>
+</blockquote>
+<h2 id="_1">讲解</h2>
+<h3 id="2026-11-20">第一步：同一个问题，两种算法（2026-11-20）</h3>
+<p><strong>类比：调咖啡里的糖。</strong> 办法一：放不同量的糖各冲几杯，尝一尝打分，看「多放糖的那几杯分高不高」，猜出该多放还是少放。办法二：你知道甜度和糖量的公式，直接求导，知道「多放 1 克，甜度变多少」。</p>
+<p><strong>玩具问题</strong>（编的，整章都用）：回报 <span class="arithmatex">\(J(a) = -(a-2)^2\)</span>（动作越接近 2 越好）。策略是高斯：<span class="arithmatex">\(a = \theta + \sigma\varepsilon\)</span>，<span class="arithmatex">\(\varepsilon \sim \mathcal N(0,1)\)</span>，σ = 0.5。在 θ = 0 处求平均回报对 θ 的梯度。</p>
+<p>真值：$\frac{d}{d\theta}\mathbb E[J] = \mathbb E[J'(a)] = -2(\theta - 2) = $ <strong>4</strong>（往大调 θ）。</p>
+<p><strong>一句话</strong>：同样求「θ 往哪调」，一种靠试和打分，一种靠求导。</p>
+<h3 id="ppo-2026-11-20">第二步：似然比梯度（PPO 用的）（2026-11-20）</h3>
+<p>第 20 章的策略梯度：</p>
+<div class="arithmatex">\[\nabla_\theta \mathbb E[J] = \mathbb E\big[(J(a) - b)\,\nabla_\theta\log\pi(a)\big]\]</div>
+<p>高斯策略下 <span class="arithmatex">\(\nabla_\theta\log\pi(a) = (a-\theta)/\sigma^2 = \varepsilon/\sigma\)</span>，所以</p>
+<div class="arithmatex">\[\hat g_{LR} = \frac1N\sum_i (J(a_i) - b)\,\frac{\varepsilon_i}{\sigma}\]</div>
+<p>每个样本只贡献一个<strong>标量</strong>分数 <span class="arithmatex">\(J(a_i)\)</span>，方向全靠「分高的样本噪声往哪边偏」去猜。b 是 baseline（第 21 章），这里取这批的平均分。<strong>不需要知道 J 的公式</strong>，环境是黑箱。</p>
+<p><strong>例子</strong>：4 个样本 ε = [0.5, −1.0, 1.5, 0.2]，a = θ + 0.5ε = [0.25, −0.5, 0.75, 0.1]：</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>1</th>
+<th>2</th>
+<th>3</th>
+<th>4</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>J(a)</td>
+<td>−3.06</td>
+<td>−6.25</td>
+<td>−1.56</td>
+<td>−3.61</td>
+</tr>
+<tr>
+<td>J − 平均（−3.62）</td>
+<td>+0.56</td>
+<td>−2.63</td>
+<td>+2.06</td>
+<td>+0.01</td>
+</tr>
+<tr>
+<td>× ε/σ</td>
+<td>+0.56</td>
+<td>+5.26</td>
+<td>+6.18</td>
+<td>+0.00</td>
+</tr>
+</tbody>
+</table>
+<p>平均 ≈ <strong>3.0</strong>，真值是 4。</p>
+<p><strong>一句话</strong>：似然比梯度只看分数，不看公式，所以能用在黑箱上，但每个样本带回的信息少。</p>
+<h3 id="supermimic-2026-11-20">第三步：解析梯度（SuperMimic 用的）（2026-11-20）</h3>
+<p>如果 J 可导，把 <span class="arithmatex">\(a = \theta + \sigma\varepsilon\)</span> 代进去，沿路径求导：<span class="arithmatex">\(\frac{dJ}{d\theta} = J'(a)\cdot\frac{da}{d\theta} = J'(a)\cdot 1\)</span>，</p>
+<div class="arithmatex">\[\hat g_{PW} = \frac1N\sum_i J'(a_i) = \frac1N\sum_i -2(a_i - 2)\]</div>
+<p>每个样本直接带回一个<strong>方向</strong>（导数），不用靠一批样本互相比较。</p>
+<p><strong>例子</strong>（同样 4 个样本）：J'(a) = [3.5, 5.0, 2.5, 3.8]，平均 = <strong>3.7</strong>。</p>
+<p><strong>代价</strong>：必须知道 J（以及 J 里面的环境动态）怎么随动作变，也就是环境要<strong>可微</strong>。真实仿真器的接触是突变的、实现也不一定支持求导，所以 SuperMimic 学了一个可微的替代模型（第 9 章）。</p>
+<p><strong>一句话</strong>：解析梯度要可微的环境，换来每个样本都带方向。</p>
+<h3 id="2000-2026-11-20">第四步：重复 2000 次看散布（2026-11-20）</h3>
+<p>一次估计看不出好坏，重复 2000 次（每次 N 个样本），看平均和标准差：</p>
+<table>
+<thead>
+<tr>
+<th>N</th>
+<th>似然比（平均 ± 标准差）</th>
+<th>解析（平均 ± 标准差）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>4</td>
+<td>2.99 ± <strong>2.46</strong></td>
+<td>4.00 ± <strong>0.51</strong></td>
+</tr>
+<tr>
+<td>64</td>
+<td>3.95 ± 0.71</td>
+<td>4.00 ± 0.13</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>同样 4 个样本，似然比的散布是解析的<strong>约 5 倍</strong>；要把似然比压到差不多，得多用好几倍样本。</li>
+<li>PPO 在机器人上用 98304 个样本一批（第 3 章），就是在用样本量压方差。</li>
+</ul>
+<p>SuperMimic 的机制消融（L440–L442、图 5b）把这一点放在真实问题上：<strong>在同一个 world model 里</strong>跑 PPO（PPO-WM），SuperMimic 达到 PPO-WM 的最好回报只用了约 <strong>1/64</strong> 的想象步数。模型一样、仿真速度一样，差别只在梯度类型。</p>
+<p><strong>一句话</strong>：解析梯度方差小得多，同一个模型里比 PPO 省约 64 倍样本。</p>
+<h3 id="vs">动画演示：采样梯度 vs 解析梯度</h3>
+<p><img alt="PPO 的采样梯度 vs SuperMimic 的解析梯度" src="../animations/08-score-vs-pathwise.gif" /></p>
+<p>可交互版：<a href="../animations/08-score-vs-pathwise.html">animations/08-score-vs-pathwise.html</a>（滑块：左边采样数 N、探索噪声 σ、右边 world model 偏差）。</p>
+<p><strong>怎么看</strong>：</p>
+<ol>
+<li>二维示意，等高线是回报，★ 是最优。左边每步撒 N 个随机动作只拿分数（第二步），右边沿模型求导（第三步）。</li>
+<li>实线箭头是这一步用的方向，虚线是真正的上坡方向；左边平均差 40° 左右，右边 8° 左右（第四步）。</li>
+<li>拖「world model 偏差」：模型学偏了，右边会又快又稳地走到错的地方。解析梯度只和模型一样好，这是第 9 章的出发点。</li>
+</ol>
+<h2 id="_2">练习与作答记录</h2>
+<p><strong>题 1</strong>（第二步）：换两个新样本 ε = 1.0、−0.6（θ = 0，σ = 0.5），baseline 取这两个的平均分，算似然比估计。</p>
+<p><strong>作答</strong>：（待作答）</p>
+<p><strong>题 2</strong>（第三步）：同样这两个样本（ε = 1.0、−0.6），算解析梯度估计。和题 1 比，哪个离真值 4 更近？</p>
+<p><strong>作答</strong>：（待作答）</p>
+<p><strong>题 3</strong>（第四步）：为什么解析梯度需要「可微的环境」，而似然比梯度不需要？举一个真实仿真器里不可微的例子。</p>
+<p><strong>作答</strong>：（待作答）</p>
+<h2 id="_3">口诀</h2>
+<blockquote>
+<p>调糖两办法：冲几杯尝分数，或按公式求导数；<br />
+似然比只看分，黑箱能用，方差大，靠样本压；<br />
+解析沿路求导，每个样本带方向，要环境可微；<br />
+同一模型比一比，解析省六十四倍。</p>
+</blockquote>
+<h2 id="_4">本章复习卡片</h2>
+<p>M15（似然比梯度与解析梯度的公式、各自需要什么）、M16（为什么解析梯度方差小；PPO-WM 消融说明了什么）</p>
+<h2 id="_5">附录 · 延伸阅读</h2>
+<blockquote>
+<p>留给以后深入学习用，不影响本章主线。★ 是建议先读的。</p>
+</blockquote>
+<h3 id="_6">推荐阅读</h3>
+<table>
+<thead>
+<tr>
+<th>读什么</th>
+<th>读哪里</th>
+<th>读它为了什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>★ SuperMimic §3.3、§4.2</td>
+<td><code>papers/supermimic-2610.28480.txt</code> L278–L281、L440–L442</td>
+<td>两种梯度的原文对比与 64× 消融</td>
+</tr>
+<tr>
+<td>★ SHAC</td>
+<td><code>papers/shac-2204.07137.txt</code> §3.2 优化地形（L224）</td>
+<td>为什么长视野的解析梯度会变得很难用</td>
+</tr>
+<tr>
+<td>《从零学强化学习》第 20–21 章</td>
+<td><code>cs285-deep-rl/notes/lessons/20-policy-gradient.md</code>、<code>21-baseline.md</code></td>
+<td>似然比梯度和 baseline 的推导</td>
+</tr>
+<tr>
+<td>DiffMimic</td>
+<td><code>papers/diffmimic-2304.03274.txt</code></td>
+<td>直接对可微物理求导做动作模仿</td>
+</tr>
+<tr>
+<td>运控调研 §5.3</td>
+<td>survey-ppo-grpo-supermimic.md</td>
+<td>两种梯度的对照表</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_7">数学原理</h3>
+<ul>
+<li><strong>log 导数技巧</strong>：<span class="arithmatex">\(\nabla_\theta\mathbb E_{a\sim\pi_\theta}[J(a)] = \mathbb E[J(a)\nabla_\theta\log\pi_\theta(a)]\)</span>，第 20 章推过。</li>
+<li><strong>重参数化</strong>：把随机性搬到与 θ 无关的 ε 上（<span class="arithmatex">\(a = \theta + \sigma\varepsilon\)</span>），期望和导数就能交换：<span class="arithmatex">\(\nabla_\theta\mathbb E_\varepsilon[J(\theta+\sigma\varepsilon)] = \mathbb E_\varepsilon[J'(\theta+\sigma\varepsilon)]\)</span>。VAE 用的是同一个技巧。</li>
+<li><strong>方差与样本数</strong>：独立样本平均的标准差按 <span class="arithmatex">\(1/\sqrt N\)</span> 下降：N 从 4 到 64，标准差约降为 1/4。</li>
+</ul>
+<h3 id="_8">公式清单</h3>
+<table>
+<thead>
+<tr>
+<th>公式</th>
+<th>意思</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span class="arithmatex">\(\hat g_{LR} = \frac1N\sum (J(a_i)-b)\,\varepsilon_i/\sigma\)</span></td>
+<td>似然比（score function）估计</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(\hat g_{PW} = \frac1N\sum J'(a_i)\,\frac{da}{d\theta}\)</span></td>
+<td>解析（pathwise）估计</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(a = \theta + \sigma\varepsilon\)</span></td>
+<td>重参数化</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_9">代码对照：把本章的数字用代码算一遍</h3>
+<blockquote>
+<p>用 Python + NumPy 把讲义里讲过的数算一遍，不算练习题。代码在仓库本地 <code>robot-motion-rl/solutions/chapter-code/ch08_two_gradients.py</code>，配套测试 <code>tests/test_ch07_11.py</code>，notebook 在 <code>notebooks/ch08_two_gradients.ipynb</code>。Mac 上直接能跑，不需要 GPU：</p>
+<p><code>bash  
+cd robot-motion-rl/solutions/chapter-code  
+uv run python ch08_two_gradients.py  
+uv run pytest tests/test_ch07_11.py</code></p>
+</blockquote>
+<p><strong>讲义 ↔ 代码</strong>（玩具回报和样本是编的，重复实验用固定随机种子 0）：</p>
+<table>
+<thead>
+<tr>
+<th>讲义</th>
+<th>公式</th>
+<th>写法</th>
+<th>跑出来</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>第一步 真值</td>
+<td>−2(θ − 2)</td>
+<td><code>dJ_da(0.0)</code></td>
+<td>4.0</td>
+</tr>
+<tr>
+<td>第二步 似然比</td>
+<td>mean[(J − b)ε/σ]</td>
+<td><code>score_estimate(0, 0.5, eps)</code></td>
+<td>2.999</td>
+</tr>
+<tr>
+<td>第三步 解析</td>
+<td>mean[J'(a)]</td>
+<td><code>pathwise_estimate(0, 0.5, eps)</code></td>
+<td>3.700</td>
+</tr>
+<tr>
+<td>第四步 散布</td>
+<td>重复 2000 次</td>
+<td><code>spread(..., n)</code></td>
+<td>N=4：2.99 ± 2.46 vs 4.00 ± 0.51</td>
+</tr>
+</tbody>
+</table>
+<p><strong>关键几行</strong>：</p>
+<pre><code class="language-python">a = theta + sigma * eps                          # 重参数化：随机性都在 eps 里
+g_lr = np.mean((J(a) - J(a).mean()) * eps / sigma)   # 似然比：只用分数 J(a)
+g_pw = np.mean(dJ_da(a))                         # 解析：沿 a 对 θ 求导（da/dθ = 1）
+</code></pre>
+<p><strong>代码里才看得到的 2 件事</strong>：</p>
+<ul>
+<li>似然比估计在 N = 4 时平均只有 2.99，不是 4：baseline 用了<strong>同一批样本自己的平均</strong>，会带来 (N − 1)/N 的缩小（4 × 3/4 = 3）。N = 64 时这个偏差变成 63/64，平均回到 3.95。实际实现里 baseline 用 critic 或「留一法」平均，就没有这个偏差。</li>
+<li>解析梯度的散布只来自 ε 本身（J' 是 a 的一次函数），所以 N = 4 时标准差 = 2σ/√4 = 0.5，和跑出来的 0.51 一致。</li>
+</ul>
+<p><strong>自己改一改</strong>（不影响练习答案）：</p>
+<ul>
+<li>把 baseline 设成 0（<code>baseline=False</code>），看似然比的散布变大多少。</li>
+<li>把 σ 从 0.5 改成 0.1，两种估计的散布分别怎么变？（提示：似然比里有 1/σ。）</li>
+</ul><nav class="pager"><a href="07-scaling-cost.html">← 第 7 章 · 规模化的代价：动作越多，PPO 越要堆算力</a><a href="09-world-model.html">第 9 章 · 可微 world model：学一个能求导的「物理模拟器」 →</a></nav>
+</main>
+<footer>来自个人学习仓库的对话讲义，含练习作答记录。源码：<a href="https://github.com/wikieden/robot-motion-rl">github.com/wikieden/robot-motion-rl</a>。更多讲义书：<a href="https://wikieden.github.io/ai-books/">AI 算法图解讲义（合集）</a></footer>
+</body></html>

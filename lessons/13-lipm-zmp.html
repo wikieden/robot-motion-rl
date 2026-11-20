@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>第 13 章 · 线性倒立摆与 ZMP：双足机器人为什么要不停地迈步 · 机器人运控与强化学习</title>
+<style>
+:root{--bg:#fbfbfa;--fg:#1f2328;--mute:#5d6470;--line:#e3e5e8;--card:#fff;--acc:#2f6fdf;--code:#f2f3f5;--quote:#f4f6fa}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15181d;--fg:#e4e7ec;--mute:#9aa3b2;--line:#2c323b;--card:#1c2026;--acc:#7aa7ff;--code:#22272f;--quote:#1b2029}}
+:root[data-theme="dark"]{--bg:#15181d;--fg:#e4e7ec;--mute:#9aa3b2;--line:#2c323b;--card:#1c2026;--acc:#7aa7ff;--code:#22272f;--quote:#1b2029}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.75 -apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Helvetica Neue",sans-serif}
+a{color:var(--acc)}
+header.top{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+header.top .in{max-width:860px;margin:0 auto;padding:10px 16px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;font-size:14px}
+header.top .brand{font-weight:600;color:var(--fg);text-decoration:none;margin-right:auto}
+header.top a{text-decoration:none}
+main{max-width:860px;margin:0 auto;padding:24px 16px 72px;overflow-wrap:anywhere}
+h1{font-size:28px;line-height:1.35;margin:8px 0 16px} h2{font-size:22px;margin:40px 0 12px;padding-top:8px;border-top:1px solid var(--line)} h3{font-size:18px;margin:28px 0 8px}
+img{max-width:100%;height:auto;border-radius:8px;border:1px solid var(--line);background:#fff}
+blockquote{margin:16px 0;padding:10px 16px;background:var(--quote);border-left:3px solid var(--acc);border-radius:4px;color:var(--mute)}
+blockquote p{margin:4px 0}
+code{background:var(--code);padding:1px 5px;border-radius:4px;font-size:.9em}
+pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto} pre code{padding:0;background:none}
+table{border-collapse:collapse;display:block;overflow-x:auto;max-width:100%;margin:12px 0;font-size:15px}
+th,td{border:1px solid var(--line);padding:6px 10px;vertical-align:top} th{background:var(--code)}
+details{border:1px solid var(--line);border-radius:8px;padding:6px 12px;margin:8px 0;background:var(--card)}
+details[open]{padding-bottom:10px} summary{cursor:pointer;color:var(--acc);font-weight:500}
+mjx-container{overflow-x:auto;overflow-y:hidden;max-width:100%}
+.btn{display:inline-block;margin:4px 8px 4px 0;padding:6px 14px;border:1px solid var(--acc);border-radius:999px;text-decoration:none;font-size:14px}
+.pager{display:flex;justify-content:space-between;gap:12px;margin-top:48px;padding-top:16px;border-top:1px solid var(--line);font-size:15px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin:16px 0}
+.card{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden;color:inherit;text-decoration:none}
+.card:hover{border-color:var(--acc)} .card img{border:0;border-bottom:1px solid var(--line);border-radius:0;aspect-ratio:16/10;object-fit:contain;width:100%}
+.card .no{color:var(--mute);font-size:13px;padding:8px 12px 0} .card .t{padding:0 12px 12px;font-weight:500;line-height:1.5}
+.lead{font-size:17px;color:var(--mute)}
+footer{max-width:860px;margin:0 auto;padding:0 16px 40px;color:var(--mute);font-size:13px}
+</style>
+<script>window.MathJax={tex:{inlineMath:[["\\(","\\)"]],displayMath:[["\\[","\\]"],["$$","$$"]],processEscapes:true,processEnvironments:true}};</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js"></script>
+</head><body>
+<header class="top"><div class="in">
+<a class="brand" href="../index.html">机器人运控与强化学习</a>
+<a href="../lessons/index.html">讲义目录</a>
+<a href="../animations/index.html">动画</a>
+<a href="../review.html">复习卡片</a>
+<a href="../lessons/appendix-glossary.html">缩写表</a>
+<a href="https://wikieden.github.io/ai-books/">← 全部讲义书</a>
+</div></header>
+<main>
+<h1 id="13-zmp">第 13 章 · 线性倒立摆与 ZMP：双足机器人为什么要不停地迈步</h1><p><a class="btn" href="../animations/13-lipm-zmp.html">▶ 打开本章可交互动画</a></p>
+<blockquote>
+<p>本章回答：人形机器人走路，经典方法把几十个关节压缩成什么？ZMP 是什么，为什么它必须在脚底下？质心偏离以后为什么会越来越快地倒？往哪里迈一步才能停下来？<br />
+讲解日期：2026-11-20 · 上一章：<a href="../lessons/12-lqr.html">第 12 章 LQR</a> · 下一章：<a href="../lessons/14-convex-mpc.html">第 14 章 单刚体凸 MPC 与 WBC</a><br />
+对应原文：Underactuated Robotics「Humanoid Robots」（<code>robot-motion-rl/materials/text/underactuated-humanoids.txt</code> L30–L37 CoP 与 ZMP 方程，L44–L46 ZMP 定义，L57–L62 「先定落脚点 → 再定 ZMP → 再定质心 → 最后算关节」的分层）；运控细化笔记 §5.3（<code>robot-system-architecture/notes/02-motion-control-deep-dive.md</code>）<br />
+本章缩写：CoM = Center of Mass（质 / 心）；CoP = Center of Pressure（压力 / 中心）；ZMP = Zero Moment Point（零 / 力矩 / 点）；LIPM = Linear Inverted Pendulum Model（线性 / 倒立摆 / 模型）；z_c：质心高度（c = constant，保持不变）；ω：LIPM 的固有频率（读 "omega"，单位 1/s）；ξ：捕获点（读 "xi"，capture point）；cosh、sinh：双曲余弦、双曲正弦（cosh t = (eᵗ + e⁻ᵗ)/2）。全部缩写见 <a href="../lessons/appendix-glossary.html">附录 · 缩写与术语表</a></p>
+</blockquote>
+<h2 id="_1">讲解</h2>
+<h3 id="zmp2026-11-20">第一步：ZMP：地面「托住」你的那个点（2026-11-20）</h3>
+<p><strong>类比：站在公交车上。</strong> 车一加速你往后倒，你会把重心压到前脚掌；地面推你的合力作用点从脚跟移到了脚尖。这个点就是压力中心 CoP。</p>
+<p>脚底各处受到的支撑力，可以合成一个作用在地面某一点上的力，这个点上合力矩为 0，叫 <strong>ZMP</strong>（原文 L44–L46）。在平地上 ZMP 就是 CoP。关键约束：<strong>ZMP 只能落在支撑多边形（着地脚覆盖的区域）里面</strong>，因为地面只能推、不能拉。</p>
+<p><strong>一句话</strong>：ZMP 是地面托你的那个点，它只能在脚底下。</p>
+<h3 id="2026-11-20">第二步：线性倒立摆：把整个人压缩成一个点（2026-11-20）</h3>
+<p><strong>类比：用手指顶一根竖着的扫帚。</strong></p>
+<p>假设质心高度保持 <span class="arithmatex">\(z_c\)</span> 不变、身体不转，原文的力矩平衡（L37）简化成著名的 ZMP 方程：</p>
+<div class="arithmatex">\[\ddot x = \omega^2\,(x - p),\qquad \omega = \sqrt{g / z_c}\]</div>
+<ul>
+<li>x：质心的水平位置；p：ZMP 的位置；ω：固有频率。</li>
+<li>读法：<strong>质心在 ZMP 哪一边，就往哪一边加速</strong>，离得越远加速越猛。</li>
+</ul>
+<p><strong>例子</strong>：质心高 0.8 m，<span class="arithmatex">\(\omega = \sqrt{9.8/0.8} =\)</span> <strong>3.5</strong> /s。想让质心（此刻在 0）以 1 m/s² 往前加速，ZMP 要放在 <span class="arithmatex">\(p = x - \ddot x/\omega^2 = 0 - 1/12.25 =\)</span> <strong>−0.082 m</strong>（质心后面 8 cm）。想往前走，就得让 ZMP 落在身后，像扫帚往前倒。</p>
+<p><strong>一句话</strong>：质心离 ZMP 多远，就往外加速多猛；ZMP 是控制质心的旋钮。</p>
+<h3 id="2026-11-20_1">第三步：偏离会指数发散（2026-11-20）</h3>
+<p><strong>类比：扫帚一旦歪了，倒得越来越快。</strong></p>
+<p>ZMP 固定在 p 时，方程的解是</p>
+<div class="arithmatex">\[x(t) = p + (x_0 - p)\cosh(\omega t) + \frac{v_0}{\omega}\sinh(\omega t)\]</div>
+<p><strong>例子</strong>：质心比 ZMP 偏前 5 cm、静止起步（ω = 3.5）：</p>
+<table>
+<thead>
+<tr>
+<th>t</th>
+<th>0.1 s</th>
+<th>0.3 s</th>
+<th>0.5 s</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>质心位置</td>
+<td>0.053 m</td>
+<td>0.080 m</td>
+<td>0.148 m</td>
+</tr>
+<tr>
+<td>速度</td>
+<td>0.06 m/s</td>
+<td>0.22 m/s</td>
+<td>0.49 m/s</td>
+</tr>
+</tbody>
+</table>
+<p>半秒之内偏差变成 3 倍。cosh 是指数增长：这就是「不稳定」。ZMP 又只能在脚底下动，脚底就那么大，所以光靠脚底使劲救不回来，<strong>必须迈步</strong>，把支撑多边形挪过去。</p>
+<p><strong>一句话</strong>：质心偏离 ZMP 按 cosh 发散，脚底挪不够，就得迈步。</p>
+<h3 id="2026-11-20_2">第四步：捕获点：往哪迈一步能停下（2026-11-20）</h3>
+<p><strong>类比：骑车刹车前，你本能地知道「得在前面哪里放脚」。</strong></p>
+<p>在解里令 t → ∞ 时 x 不发散，需要 <span class="arithmatex">\(p = x_0 + v_0/\omega\)</span>。这个点叫<strong>捕获点</strong>：</p>
+<div class="arithmatex">\[\xi = x + \frac{\dot x}{\omega}\]</div>
+<p><strong>例子</strong>：质心在 0、往前 0.5 m/s，<span class="arithmatex">\(\xi = 0 + 0.5/3.5 =\)</span> <strong>0.143 m</strong>。把脚（ZMP）踩在 0.143 m 处，2 秒后质心停在 0.143、速度约 0：正好停在脚正上方。</p>
+<p>经典人形行走就是这样分层的（原文 L57–L62）：先规划落脚点 → 再规划 ZMP 轨迹（在每只脚底下）→ 用 LIPM 反推质心轨迹（Kajita 2003 的预观控制，未下载）→ 最后用逆运动学和全身控制算关节。RL 策略（第 1–11 章）把这几层压成一个网络，自己学会什么时候迈、迈多远。</p>
+<p><strong>一句话</strong>：捕获点 = 位置 + 速度 / ω，脚踩在那里就能停住。</p>
+<h3 id="_2">动画演示：线性倒立摆的发散与捕获点</h3>
+<p><img alt="LIPM：质心离开 ZMP 就发散，踩在捕获点上就停住" src="../animations/13-lipm-zmp.gif" /></p>
+<p>可交互版：<a href="../animations/13-lipm-zmp.html">animations/13-lipm-zmp.html</a>（滑块：质心高度、初始速度；按钮：迈到捕获点）。</p>
+<p><strong>怎么看</strong>：</p>
+<ol>
+<li>侧视图：圆点是质心，竖线连到脚（ZMP），灰色是脚底的支撑区（第一、二步）。</li>
+<li>第一段：脚不动，质心越倒越快，下方曲线是 cosh 形状（第三步）。</li>
+<li>第二段：在中途按捕获点 ξ 迈一步，质心减速、停在新脚正上方（第四步）。拖质心高度看 ω 怎么变。</li>
+</ol>
+<h2 id="_3">练习与作答记录</h2>
+<p><strong>题 1</strong>（第二步）：质心高 1.0 m，ω 是多少？想让质心以 2 m/s² 往前加速，ZMP 要在质心后面多远？</p>
+<p><strong>作答</strong>：（待作答）</p>
+<p><strong>题 2</strong>（第三步）：如果把方程改成 <span class="arithmatex">\(\ddot x = -\omega^2(x-p)\)</span>（符号反过来），质心会怎么动？生活里什么东西是这样动的？</p>
+<p><strong>作答</strong>：（待作答）</p>
+<p><strong>题 3</strong>（第四步）：质心在 0、速度 0.8 m/s、质心高 0.8 m，捕获点在哪？如果最大步长只有 0.2 m，一步能停住吗？</p>
+<p><strong>作答</strong>：（待作答）</p>
+<h2 id="_4">口诀</h2>
+<blockquote>
+<p>公交车上压前脚，地面托你那一点叫 ZMP，只能在脚底；<br />
+人压成一个点，质心在 ZMP 哪边就往哪边加速；<br />
+歪了按 cosh 倒，脚底挪不够就得迈步；<br />
+位置加速度除以 ω，踩在捕获点就停住。</p>
+</blockquote>
+<h2 id="_5">本章复习卡片</h2>
+<p>M25（ZMP 方程 ẍ = ω²(x − p)，ω = √(g/z_c)，为什么 ZMP 必须在支撑多边形里）、M26（LIPM 的指数发散与捕获点 ξ = x + ẋ/ω）</p>
+<h2 id="_6">附录 · 延伸阅读</h2>
+<blockquote>
+<p>留给以后深入学习用，不影响本章主线。★ 是建议先读的。</p>
+</blockquote>
+<h3 id="_7">推荐阅读</h3>
+<table>
+<thead>
+<tr>
+<th>读什么</th>
+<th>读哪里</th>
+<th>读它为了什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>★ Underactuated · Humanoids</td>
+<td><code>robot-motion-rl/materials/text/underactuated-humanoids.txt</code> L30–L47、L57–L72</td>
+<td>ZMP 的推导、分层规划、可跑的落脚点示例</td>
+</tr>
+<tr>
+<td>★ 运控细化笔记 §5.3</td>
+<td><code>robot-system-architecture/notes/02-motion-control-deep-dive.md</code></td>
+<td>简化模型：把几十个关节压成一个点或一个刚体（附动画）</td>
+</tr>
+<tr>
+<td>Kajita et al. 2003（ZMP 预观控制）</td>
+<td>未下载（ICRA 2003）</td>
+<td>LIPM + ZMP 生成步态的经典方法</td>
+</tr>
+<tr>
+<td>Pratt et al. 2006（Capture Point）</td>
+<td>未下载</td>
+<td>捕获点的原始提出</td>
+</tr>
+<tr>
+<td>学习计划 MC-M3</td>
+<td>study-plan.md</td>
+<td>自己生成 2D 步行的质心轨迹</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_8">数学原理</h3>
+<ul>
+<li><strong>二阶线性微分方程</strong>：<span class="arithmatex">\(\ddot y = \omega^2 y\)</span> 的解是 <span class="arithmatex">\(y = A\cosh\omega t + B\sinh\omega t\)</span>，其中 <span class="arithmatex">\(\cosh\)</span> 随 t 指数增长。</li>
+<li><strong>双曲函数的导数</strong>：<span class="arithmatex">\((\cosh\omega t)' = \omega\sinh\omega t\)</span>，<span class="arithmatex">\((\sinh\omega t)' = \omega\cosh\omega t\)</span>。</li>
+</ul>
+<h3 id="_9">公式清单</h3>
+<table>
+<thead>
+<tr>
+<th>公式</th>
+<th>意思</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span class="arithmatex">\(\ddot x = \omega^2(x-p)\)</span>，<span class="arithmatex">\(\omega = \sqrt{g/z_c}\)</span></td>
+<td>LIPM / ZMP 方程</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(p = x - \ddot x/\omega^2\)</span></td>
+<td>想要某个加速度时 ZMP 放哪</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(x(t) = p + (x_0-p)\cosh\omega t + \frac{v_0}{\omega}\sinh\omega t\)</span></td>
+<td>ZMP 固定时的解</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(\xi = x + \dot x/\omega\)</span></td>
+<td>捕获点</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_10">代码对照：把本章的数字用代码算一遍</h3>
+<blockquote>
+<p>用 Python + NumPy 把讲义里讲过的数算一遍，不算练习题。代码在仓库本地 <code>robot-motion-rl/solutions/chapter-code/ch13_lipm_zmp.py</code>，配套测试 <code>tests/test_ch12_18.py</code>，notebook 在 <code>notebooks/ch13_lipm_zmp.ipynb</code>。Mac 上直接能跑，不需要 GPU：</p>
+<p><code>bash  
+cd robot-motion-rl/solutions/chapter-code  
+uv run python ch13_lipm_zmp.py  
+uv run pytest tests/test_ch12_18.py</code></p>
+</blockquote>
+<p><strong>讲义 ↔ 代码</strong>（质心高度、偏移、速度都是编的）：</p>
+<table>
+<thead>
+<tr>
+<th>讲义</th>
+<th>公式</th>
+<th>写法</th>
+<th>跑出来</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>第二步 ω</td>
+<td>√(g/z_c)</td>
+<td><code>omega(0.8)</code></td>
+<td>3.5</td>
+</tr>
+<tr>
+<td>第二步 ZMP</td>
+<td>x − ẍ/ω²</td>
+<td><code>zmp_from_accel(0, 1, w)</code></td>
+<td>−0.0816</td>
+</tr>
+<tr>
+<td>第三步 发散</td>
+<td>cosh 解</td>
+<td><code>lipm_state(0.05, 0, 0, w, t)</code></td>
+<td>0.053、0.080、0.148 m</td>
+</tr>
+<tr>
+<td>第四步 捕获点</td>
+<td>x + ẋ/ω</td>
+<td><code>capture_point(0, 0.5, w)</code></td>
+<td>0.1429；2 s 后速度 ≈ 0</td>
+</tr>
+</tbody>
+</table>
+<p><strong>关键几行</strong>：</p>
+<pre><code class="language-python">w = np.sqrt(g / z_c)                                     # 固有频率
+x = p + (x0 - p) * np.cosh(w * t) + v0 / w * np.sinh(w * t)   # ZMP 固定时的解
+xi = x + v / w                                           # 捕获点：脚踩这里就停住
+</code></pre>
+<p><strong>代码里才看得到的 1 件事</strong>：</p>
+<ul>
+<li>踩在捕获点上 2 秒后速度是 0.0005 而不是精确的 0：解里还剩一个按 <span class="arithmatex">\(e^{-\omega t}\)</span> 衰减的项（<span class="arithmatex">\(e^{-7} \approx 0.0009\)</span>），时间越长越接近 0。</li>
+</ul>
+<p><strong>自己改一改</strong>（不影响练习答案）：</p>
+<ul>
+<li>把脚踩在捕获点前面 2 cm，看质心会往回倒还是继续向前。</li>
+<li>打印 t = 0 到 1 s 的 x(t)，看 cosh 的形状。</li>
+</ul><nav class="pager"><a href="12-lqr.html">← 第 12 章 · LQR：模型已知、线性、二次代价时，Bellman 方程有闭式解</a><a href="14-convex-mpc.html">第 14 章 · 单刚体凸 MPC 与 WBC：四足怎么「算」出每只脚该推多大力 →</a></nav>
+</main>
+<footer>来自个人学习仓库的对话讲义，含练习作答记录。源码：<a href="https://github.com/wikieden/robot-motion-rl">github.com/wikieden/robot-motion-rl</a>。更多讲义书：<a href="https://wikieden.github.io/ai-books/">AI 算法图解讲义（合集）</a></footer>
+</body></html>

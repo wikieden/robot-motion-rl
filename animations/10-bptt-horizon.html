@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>视野与 critic</title><link rel="stylesheet" href="anim.css"></head>
+<body><main>
+<h1>第 10 章 · 视野 H：梯度连乘会爆炸或消失，critic 补上视野外的奖励</h1>
+<p class="sub">配套讲义：<a href="../lessons/10-bptt-critic.html">第 10 章 · 在想象里训练：BPTT 只看 32 步，critic 补上后面</a> 第一至三步。「第 40 步才拿到站稳的奖励」是编的例子；a^H 的数和讲义第一步的表一致。<br>缩写：BPTT = Backpropagation Through Time（反向传播 / 穿过 / 时间）；H：想象视野；a：每步状态对上一步状态的导数（一维雅可比）；critic V：估计视野之外还能拿多少回报。</p>
+<div class="panel"><svg id="sv" viewBox="0 0 680 400"></svg></div>
+<div class="stats">
+<div class="stat"><div class="l">视野 H</div><div class="v" id="s0">8</div></div>
+<div class="stat"><div class="l">a^H（梯度连乘）</div><div class="v" id="s1">–</div></div>
+<div class="stat"><div class="l">看得到第 40 步的奖励？</div><div class="v" id="s2">–</div></div>
+</div>
+<div class="row ctl"><label>每步导数 a</label><input type="range" id="aa" min="0.8" max="1.2" step="0.01" value="1.1"><span id="aav">1.1</span></div>
+<div class="row ctl"><label>视野 H（拖动后停在这里）</label><input type="range" id="hh" min="1" max="128" step="1" value="32"><span id="hhv">32</span></div>
+<div class="row ctl"><button id="cr" class="on">critic：开</button></div>
+<div class="row"><button id="play">▶ 播放</button><button id="step">→ 单步</button><button id="reset">↺ 从头开始</button></div>
+<p class="note">看点：① 上方一排格子是想象的时间步（画到 64 步），蓝色是 H 步视野，第 40 格的★是「摔倒后站稳」的奖励（第三步）。② 关掉 critic、H &lt; 40 时★是灰的：BPTT 看不到它，策略学不会「现在吃点亏，几秒后站稳」；打开 critic，视野末端的绿箭头把★的价值带回来（第二步）。③ 下方柱子是 a^H（对数坐标，中线 = 1）：a = 1.1 时 H 越大越爆炸，a = 0.9 时越小越消失（第一步）。播放时 H 从 8 涨到 128。</p>
+</main>
+<script src="anim.js"></script>
+<script>
+const sv=$('sv');const X0=40,CELLS=64,CW=600/CELLS,TOP=40,CH=34;
+const cells=[];for(let i=0;i<CELLS;i++)cells.push(el('rect',{x:X0+i*CW+0.5,y:TOP,width:CW-1,height:CH,fill:'var(--bg)',stroke:'var(--line)','stroke-width':0.5},sv));
+txt('想象的时间步 →',{x:X0,y:TOP-10,class:'m'},sv);
+const star=txt('★',{x:X0+40*CW+CW/2,y:TOP+CH+22,'text-anchor':'middle','font-size':20},sv);
+txt('第 40 步：站稳的奖励',{x:X0+40*CW+CW/2,y:TOP+CH+42,'text-anchor':'middle',class:'m'},sv);
+const defs=el('defs',{},sv),mk=el('marker',{id:'ah',viewBox:'0 0 10 10',refX:9,refY:5,markerWidth:7,markerHeight:7,orient:'auto'},defs);el('path',{d:'M0,0 L10,5 L0,10 z',fill:'var(--good)'},mk);
+const arc=el('path',{fill:'none',stroke:'var(--good)','stroke-width':2,'marker-end':'url(#ah)'},sv);
+const arcT=txt('',{class:'m',fill:'var(--good)'},sv);
+const PX=60,PW=560,PT=170,PH=190,LMIN=-6,LMAX=6,PY=v=>PT+PH-(clamp(Math.log10(v),LMIN,LMAX)-LMIN)/(LMAX-LMIN)*PH;
+el('rect',{x:PX,y:PT,width:PW,height:PH,fill:'var(--bg)',stroke:'var(--line)'},sv);
+[1e-6,1e-3,1,1e3,1e6].forEach(v=>{txt(v>=1?String(v):v.toExponential(0),{x:PX-6,y:PY(v)+4,'text-anchor':'end',class:'m'},sv);el('line',{x1:PX,x2:PX+PW,y1:PY(v),y2:PY(v),stroke:'var(--line)','stroke-width':v===1?1.2:0.4},sv)});
+txt('a^H（对数坐标）',{x:PX,y:PT-8,class:'m'},sv);
+const curve=el('polyline',{fill:'none',stroke:'var(--muted)','stroke-width':1.4,'stroke-dasharray':'4 3'},sv);
+const hdot=el('circle',{r:6,fill:'var(--warm)'},sv);
+txt('H',{x:PX+PW,y:PT+PH+16,'text-anchor':'end',class:'m'},sv);[1,32,64,128].forEach(h=>txt(h,{x:PX+(h-1)/127*PW,y:PT+PH+16,'text-anchor':'middle',class:'m'},sv));
+let H,critic=true;
+function draw(){const a=+$('aa').value;$('aav').textContent=a;$('hhv').textContent=H;
+  cells.forEach((c,i)=>c.setAttribute('fill',i<H?'var(--accent-bg)':'var(--bg)'));
+  const sees=H>40||critic;star.setAttribute('fill',sees?'var(--amber)':'var(--line)');
+  if(critic&&H<=40){const x1=X0+Math.min(H,CELLS)*CW,x2=X0+40*CW+CW/2;arc.setAttribute('d',`M${x2},${TOP-2} C${x2},${TOP-24} ${x1},${TOP-24} ${x1},${TOP-2}`);arc.setAttribute('opacity',1);arcT.setAttribute('x',(x1+x2)/2);arcT.setAttribute('y',TOP-24);arcT.textContent='V(s_H) 把它带回来'}else{arc.setAttribute('opacity',0);arcT.textContent=''}
+  const p=[];for(let h=1;h<=128;h++)p.push(`${PX+(h-1)/127*PW},${PY(a**h)}`);curve.setAttribute('points',p.join(' '));
+  hdot.setAttribute('cx',PX+(H-1)/127*PW);hdot.setAttribute('cy',PY(a**H));
+  $('s0').textContent=H;$('s1').textContent=(a**H).toPrecision(3);$('s2').textContent=sees?'看得到':'看不到';$('cr').textContent='critic：'+(critic?'开':'关');$('cr').classList.toggle('on',critic)}
+$('aa').oninput=draw;$('hh').oninput=()=>{ANIM.stop();H=+$('hh').value;draw()};
+$('cr').onclick=()=>{critic=!critic;draw()};
+let phase;
+function reset(){H=8;critic=false;phase=0;draw()}
+function next(){if(phase===0){if(H<128){H=Math.min(128,H+6);draw();return true}phase=1;critic=true;H=16;draw();return true}
+  if(phase===1){if(H<40){H+=4;draw();return true}phase=2;return false}return false}
+setupPlayer({captureSeed:1,reset,next},220);
+</script><a href="https://wikieden.github.io/ai-books/" style="position:fixed;right:12px;bottom:12px;z-index:99;padding:4px 10px;border-radius:14px;background:rgba(127,127,127,.18);color:inherit;font:13px/1.6 system-ui,sans-serif;text-decoration:none">← 全部讲义书</a>
+</body></html>

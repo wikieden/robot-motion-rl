@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>第 18 章 · 上真机：执行器网络、动作修正量与 sim2sim 检查 · 机器人运控与强化学习</title>
+<style>
+:root{--bg:#fbfbfa;--fg:#1f2328;--mute:#5d6470;--line:#e3e5e8;--card:#fff;--acc:#2f6fdf;--code:#f2f3f5;--quote:#f4f6fa}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15181d;--fg:#e4e7ec;--mute:#9aa3b2;--line:#2c323b;--card:#1c2026;--acc:#7aa7ff;--code:#22272f;--quote:#1b2029}}
+:root[data-theme="dark"]{--bg:#15181d;--fg:#e4e7ec;--mute:#9aa3b2;--line:#2c323b;--card:#1c2026;--acc:#7aa7ff;--code:#22272f;--quote:#1b2029}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.75 -apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Helvetica Neue",sans-serif}
+a{color:var(--acc)}
+header.top{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+header.top .in{max-width:860px;margin:0 auto;padding:10px 16px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;font-size:14px}
+header.top .brand{font-weight:600;color:var(--fg);text-decoration:none;margin-right:auto}
+header.top a{text-decoration:none}
+main{max-width:860px;margin:0 auto;padding:24px 16px 72px;overflow-wrap:anywhere}
+h1{font-size:28px;line-height:1.35;margin:8px 0 16px} h2{font-size:22px;margin:40px 0 12px;padding-top:8px;border-top:1px solid var(--line)} h3{font-size:18px;margin:28px 0 8px}
+img{max-width:100%;height:auto;border-radius:8px;border:1px solid var(--line);background:#fff}
+blockquote{margin:16px 0;padding:10px 16px;background:var(--quote);border-left:3px solid var(--acc);border-radius:4px;color:var(--mute)}
+blockquote p{margin:4px 0}
+code{background:var(--code);padding:1px 5px;border-radius:4px;font-size:.9em}
+pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto} pre code{padding:0;background:none}
+table{border-collapse:collapse;display:block;overflow-x:auto;max-width:100%;margin:12px 0;font-size:15px}
+th,td{border:1px solid var(--line);padding:6px 10px;vertical-align:top} th{background:var(--code)}
+details{border:1px solid var(--line);border-radius:8px;padding:6px 12px;margin:8px 0;background:var(--card)}
+details[open]{padding-bottom:10px} summary{cursor:pointer;color:var(--acc);font-weight:500}
+mjx-container{overflow-x:auto;overflow-y:hidden;max-width:100%}
+.btn{display:inline-block;margin:4px 8px 4px 0;padding:6px 14px;border:1px solid var(--acc);border-radius:999px;text-decoration:none;font-size:14px}
+.pager{display:flex;justify-content:space-between;gap:12px;margin-top:48px;padding-top:16px;border-top:1px solid var(--line);font-size:15px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin:16px 0}
+.card{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden;color:inherit;text-decoration:none}
+.card:hover{border-color:var(--acc)} .card img{border:0;border-bottom:1px solid var(--line);border-radius:0;aspect-ratio:16/10;object-fit:contain;width:100%}
+.card .no{color:var(--mute);font-size:13px;padding:8px 12px 0} .card .t{padding:0 12px 12px;font-weight:500;line-height:1.5}
+.lead{font-size:17px;color:var(--mute)}
+footer{max-width:860px;margin:0 auto;padding:0 16px 40px;color:var(--mute);font-size:13px}
+</style>
+<script>window.MathJax={tex:{inlineMath:[["\\(","\\)"]],displayMath:[["\\[","\\]"],["$$","$$"]],processEscapes:true,processEnvironments:true}};</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js"></script>
+</head><body>
+<header class="top"><div class="in">
+<a class="brand" href="../index.html">机器人运控与强化学习</a>
+<a href="../lessons/index.html">讲义目录</a>
+<a href="../animations/index.html">动画</a>
+<a href="../review.html">复习卡片</a>
+<a href="../lessons/appendix-glossary.html">缩写表</a>
+<a href="https://wikieden.github.io/ai-books/">← 全部讲义书</a>
+</div></header>
+<main>
+<h1 id="18-sim2sim">第 18 章 · 上真机：执行器网络、动作修正量与 sim2sim 检查</h1><p><a class="btn" href="../animations/18-deploy.html">▶ 打开本章可交互动画</a></p>
+<blockquote>
+<p>本章回答：仿真训好的策略上真机前，还要过哪几道关？电机和仿真里不一样怎么办？ASAP 说的「动作修正量」是什么？为什么要先在另一个仿真器里跑一遍（sim2sim）？<br />
+讲解日期：2026-11-20 · 上一章：<a href="../lessons/17-shac.html">第 17 章 SHAC 与可微仿真</a> · 下一章：无（全书完）<br />
+对应原文：ANYmal 敏捷运动（<code>papers/anymal-agile-1901.08652.txt</code> L149：第二步训练一个执行器网络 actuator net，L229：理想执行器模型 vs 执行器网络的对比）；ASAP（<code>papers/asap-2502.01143.txt</code> L35–L38 两阶段框架，L68–L72 图 2：预训练 → 采真机轨迹 → 训动作修正模型 → 微调 → 部署时去掉修正模型）；SuperMimic 附录 F.1（<code>papers/supermimic-2610.28480.txt</code> L961：评测用确定性物理、无随机化）；运控细化笔记 §6.4、§8–§9<br />
+本章缩写：sim2sim = simulation to simulation（仿真 / 到 / 仿真：换一个仿真器验证）；ASAP = Aligning Simulation and Real-World Physics（对齐 / 仿真与真实 / 物理）；Δa：动作修正量（delta action，读 "delta a"）；SysID = System Identification（系统 / 辨识：从数据里估物理参数）；latency：延迟。全部缩写见 <a href="../lessons/appendix-glossary.html">附录 · 缩写与术语表</a></p>
+</blockquote>
+<h2 id="_1">讲解</h2>
+<h3 id="2026-11-20">第一步：差距从哪来（2026-11-20）</h3>
+<p><strong>类比：在驾校的模拟器上学会开车，换成真车：油门更灵、刹车更软、方向盘有虚位。</strong></p>
+<p>第 4 章讲了用域随机化「扛住」差距。本章讲怎么「缩小」差距。常见来源：</p>
+<table>
+<thead>
+<tr>
+<th>来源</th>
+<th>例子</th>
+<th>对策</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>执行器</td>
+<td>电机响应慢、有摩擦、力矩饱和不一样</td>
+<td>执行器网络（第二步）、低 PD 增益（第 1 章）</td>
+</tr>
+<tr>
+<td>动力学参数</td>
+<td>质量、质心、摩擦不准</td>
+<td>域随机化（第 4 章）、系统辨识、动作修正（第三步）</td>
+</tr>
+<tr>
+<td>延迟</td>
+<td>传感器到电机有 10–30 ms</td>
+<td>训练时加延迟随机化</td>
+</tr>
+<tr>
+<td>传感</td>
+<td>IMU 噪声、编码器零点</td>
+<td>观测噪声（第 2 章表）、标定随机化（第 4 章）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>一句话</strong>：差距主要来自电机、物理参数、延迟和传感器；DR 是扛，本章的办法是补。</p>
+<h3 id="2026-11-20_1">第二步：执行器网络：把电机学成一个网络（2026-11-20）</h3>
+<p><strong>类比：没法给真车的发动机写出精确公式，就记录「踩多少油门 → 实际出多少力」，学一张表。</strong></p>
+<p>ANYmal（2019，L149）的做法：在真机上记录电机的指令和实际力矩，训练一个小网络（执行器网络）来预测「给这个指令、这个状态下电机实际出多少力」，再把它放进仿真器，代替理想的电机模型。L229 对比了用理想电机模型和用执行器网络训练的策略：后者上真机表现明显更好。</p>
+<p>第 1 章说过，仿真和真机的 Kp、Kd、饱和、延迟必须一致；执行器网络是把这件事做到数据级别的精确。</p>
+<p><strong>一句话</strong>：电机写不准公式，就用真机数据学一个电机模型塞进仿真器。</p>
+<h3 id="asap2026-11-20">第三步：ASAP：学一个「动作修正量」（2026-11-20）</h3>
+<p><strong>类比：模拟器里方向盘打 30° 真车只转 24°，那就在模拟器里自动把你的 30° 换成 24°，让模拟器的手感和真车一样。</strong></p>
+<p>ASAP（2025，L35–L38、L68–L72）分四步：</p>
+<ol>
+<li>在仿真里预训练动作跟踪策略（第 2–5 章）；</li>
+<li>把策略放到真机上跑，记录真机轨迹；</li>
+<li>训练一个<strong>动作修正模型</strong> <span class="arithmatex">\(\Delta a(s, a)\)</span>：让仿真器执行 <span class="arithmatex">\(a + \Delta a\)</span> 后的状态，尽量贴近真机执行 a 后的状态；</li>
+<li>把修正模型放进仿真器（相当于改了仿真的物理），在里面微调策略；部署时去掉修正模型，直接用微调后的策略。</li>
+</ol>
+<p><strong>玩具例子</strong>（编的）：仿真 <span class="arithmatex">\(x' = x + a\)</span>；真机电机弱 20%、还有 0.05 的摩擦：<span class="arithmatex">\(x' = x + 0.8a - 0.05\)</span>。</p>
+<table>
+<thead>
+<tr>
+<th>a</th>
+<th>仿真走</th>
+<th>真机走</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>0.00</td>
+<td>−0.05</td>
+</tr>
+<tr>
+<td>0.5</td>
+<td>0.50</td>
+<td>0.35</td>
+</tr>
+<tr>
+<td>1.0</td>
+<td>1.00</td>
+<td>0.75</td>
+</tr>
+</tbody>
+</table>
+<p>用这些数据拟合线性修正 <span class="arithmatex">\(\Delta a = c_1 a + c_0\)</span>：最小二乘得 <span class="arithmatex">\(\Delta a = -0.2a - 0.05\)</span>。验证：a = 1 时仿真执行 1 − 0.25 = 0.75，走 0.75，和真机一样。</p>
+<p>和第 4 章 DR 的区别：DR 让策略在一堆「可能的物理」上都还行（偏保守，ASAP 原文 L85 提到 DR 容易让策略过于保守）；ASAP 用真机数据把仿真<strong>对齐</strong>到真实的那一个物理上，再在上面练。</p>
+<p><strong>一句话</strong>：学 Δa 让仿真「手感」等于真机，在对齐后的仿真里微调，部署时去掉 Δa。</p>
+<h3 id="sim2sim-2026-11-20">第四步：sim2sim 与上机检查清单（2026-11-20）</h3>
+<p><strong>类比：新车上路前先在另一个试车场跑一圈。</strong></p>
+<p>训练用的仿真器（MuJoCo Warp、Isaac Gym）为了快会做一些近似。上真机前，先把策略放进<strong>另一个</strong>更精确的仿真器（比如 CPU 版 MuJoCo）跑一遍：如果换个仿真器就摔，真机几乎肯定也摔。SuperMimic 附录 F.1（L961）评测时也用了「确定性物理、不加随机化」的统一设置，把策略和训练时的随机性分开看。</p>
+<p><strong>延迟换算</strong>：控制周期 20 ms（50 Hz）时，延迟 5 ms 或 20 ms 都相当于晚 1 个周期，30 ms 就晚 2 个周期。训练时要在这个范围里随机化。</p>
+<p>上机前检查（综合第 1–4 章和运控细化笔记 §8–§9）：</p>
+<table>
+<thead>
+<tr>
+<th>检查</th>
+<th>要点</th>
+<th>回看</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>接口一致</td>
+<td>Kp、Kd、动作缩放、力矩饱和和仿真一模一样</td>
+<td>第 1 章</td>
+</tr>
+<tr>
+<td>观测一致</td>
+<td>关节顺序、单位、坐标系、默认姿态 q⁰</td>
+<td>第 2 章</td>
+</tr>
+<tr>
+<td>随机化覆盖</td>
+<td>摩擦、质量、标定、延迟都在训练范围内</td>
+<td>第 4 章</td>
+</tr>
+<tr>
+<td>sim2sim</td>
+<td>换仿真器、去掉随机化也能稳定完成</td>
+<td>本章</td>
+</tr>
+<tr>
+<td>安全</td>
+<td>关节限位、急停、吊架保护，先低速后高速</td>
+<td>机器人架构讲义第 10 章</td>
+</tr>
+</tbody>
+</table>
+<p><strong>一句话</strong>：先换仿真器跑一遍，再逐项核对接口、观测、随机化、延迟、安全，才上真机。</p>
+<h3 id="_2">动画演示：动作修正量对齐仿真和真机</h3>
+<p><img alt="ASAP：加上动作修正量后，仿真轨迹贴上真机轨迹" src="../animations/18-deploy.gif" /></p>
+<p>可交互版：<a href="../animations/18-deploy.html">animations/18-deploy.html</a>（滑块：真机电机强度、摩擦偏差、延迟；开关：动作修正模型）。</p>
+<p><strong>怎么看</strong>：</p>
+<ol>
+<li>黑线是真机轨迹，红线是原始仿真，蓝线是加了动作修正量 Δa 的仿真；同一串动作指令（第三步）。</li>
+<li>打开修正后，蓝线贴上黑线；关掉就和红线一样越跑越偏。</li>
+<li>拖「延迟」：真机的反应晚几个周期，线性修正补不了这一项，需要训练时做延迟随机化（第四步）。</li>
+</ol>
+<h2 id="_3">练习与作答记录</h2>
+<p><strong>题 1</strong>（第一步）：真机的 IMU 装歪了 2°，这属于第一步表格里哪一类差距？第 4 章和本章哪种办法能处理它？</p>
+<p><strong>作答</strong>：（待作答）</p>
+<p><strong>题 2</strong>（第三步）：真机变成 <span class="arithmatex">\(x' = x + 1.1a + 0.02\)</span>，仿真仍是 <span class="arithmatex">\(x' = x + a\)</span>。线性动作修正 <span class="arithmatex">\(\Delta a = c_1 a + c_0\)</span> 的 <span class="arithmatex">\(c_1\)</span>、<span class="arithmatex">\(c_0\)</span> 应该是多少？</p>
+<p><strong>作答</strong>：（待作答）</p>
+<p><strong>题 3</strong>（第四步）：控制频率改成 100 Hz（周期 10 ms），25 ms 延迟相当于晚几个周期？为什么频率越高，同样的延迟越「难扛」？</p>
+<p><strong>作答</strong>：（待作答）</p>
+<h2 id="_4">口诀</h2>
+<blockquote>
+<p>模拟器学会真车开：电机、参数、延迟、传感四处差；<br />
+电机写不准就学一个网络，塞回仿真里；<br />
+方向盘打三十真车转二十四，学个 Δa 把手感对齐，练完再拿掉；<br />
+换个试车场先跑一圈，接口观测随机延迟安全，逐项核对再上机。</p>
+</blockquote>
+<h2 id="_5">本章复习卡片</h2>
+<p>M35（sim2real 差距的四个来源与对策；执行器网络）、M36（ASAP 的四步与动作修正量；和域随机化的区别；sim2sim）</p>
+<h2 id="_6">附录 · 延伸阅读</h2>
+<blockquote>
+<p>留给以后深入学习用，不影响本章主线。★ 是建议先读的。</p>
+</blockquote>
+<h3 id="_7">推荐阅读</h3>
+<table>
+<thead>
+<tr>
+<th>读什么</th>
+<th>读哪里</th>
+<th>读它为了什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>★ ASAP</td>
+<td><code>papers/asap-2502.01143.txt</code> L35–L38、L68–L85</td>
+<td>动作修正量的完整流程与动机</td>
+</tr>
+<tr>
+<td>★ 运控细化笔记 §6.4、§8–§9</td>
+<td><code>robot-system-architecture/notes/02-motion-control-deep-dive.md</code></td>
+<td>部署流程、评测指标、常见问题排查</td>
+</tr>
+<tr>
+<td>ANYmal 敏捷运动</td>
+<td><code>papers/anymal-agile-1901.08652.txt</code> L149、L229</td>
+<td>执行器网络</td>
+</tr>
+<tr>
+<td>人形真机 RL</td>
+<td><code>papers/humanoid-realworld-rl-2303.03381.txt</code></td>
+<td>人形从仿真到真机的完整案例</td>
+</tr>
+<tr>
+<td>机器人架构讲义第 9–10 章</td>
+<td><code>robot-system-architecture/notes/lessons/09-sim-data-deploy.md</code>、<code>10-safety-and-cases.md</code></td>
+<td>仿真、数据、部署和安全</td>
+</tr>
+<tr>
+<td>学习计划 MC-M19</td>
+<td>study-plan.md</td>
+<td>G1 通用跟踪器 + sim2sim 的综合项目</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_8">数学原理</h3>
+<ul>
+<li><strong>线性最小二乘</strong>：把 <span class="arithmatex">\(\Delta a = c_1 a + c_0\)</span> 写成矩阵形式 <span class="arithmatex">\([a, 1]\,[c_1, c_0]^\top = y\)</span>，用 <code>np.linalg.lstsq</code> 求最贴近的系数。</li>
+<li><strong>向上取整</strong>：延迟周期数 = ⌈延迟 / 控制周期⌉。</li>
+</ul>
+<h3 id="_9">公式清单</h3>
+<table>
+<thead>
+<tr>
+<th>公式</th>
+<th>意思</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span class="arithmatex">\(\text{sim}(s, a + \Delta a(s,a)) \approx \text{real}(s, a)\)</span></td>
+<td>ASAP 的目标</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(\Delta a = c_1 a + c_0\)</span></td>
+<td>玩具例子里的线性修正</td>
+</tr>
+<tr>
+<td>延迟周期 <span class="arithmatex">\(= \lceil \text{latency}/\text{period}\rceil\)</span></td>
+<td>延迟换算</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_10">代码对照：把本章的数字用代码算一遍</h3>
+<blockquote>
+<p>用 Python + NumPy 把讲义里讲过的数算一遍，不算练习题。代码在仓库本地 <code>robot-motion-rl/solutions/chapter-code/ch18_deploy.py</code>，配套测试 <code>tests/test_ch12_18.py</code>，notebook 在 <code>notebooks/ch18_deploy.ipynb</code>。Mac 上直接能跑，不需要 GPU：</p>
+<p><code>bash  
+cd robot-motion-rl/solutions/chapter-code  
+uv run python ch18_deploy.py  
+uv run pytest tests/test_ch12_18.py</code></p>
+</blockquote>
+<p><strong>讲义 ↔ 代码</strong>（仿真和真机的公式是编的）：</p>
+<table>
+<thead>
+<tr>
+<th>讲义</th>
+<th>公式</th>
+<th>写法</th>
+<th>跑出来</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>第三步 差距</td>
+<td>sim vs real</td>
+<td><code>sim_step</code>、<code>real_step</code></td>
+<td>a = 1：1.00 vs 0.75</td>
+</tr>
+<tr>
+<td>第三步 修正</td>
+<td>最小二乘</td>
+<td><code>fit_delta_action([0, …, 1])</code></td>
+<td>Δa = −0.2a − 0.05</td>
+</tr>
+<tr>
+<td>第四步 延迟</td>
+<td>⌈延迟/周期⌉</td>
+<td><code>delay_steps(ms)</code></td>
+<td>5、20、30 ms → 1、1、2</td>
+</tr>
+</tbody>
+</table>
+<p><strong>关键几行</strong>：</p>
+<pre><code class="language-python">target = real_step(0, a) - sim_step(0, a)            # 想让仿真多走（或少走）多少
+design = np.stack([a, np.ones_like(a)], axis=1)      # Δa = c1·a + c0
+c1, c0 = np.linalg.lstsq(design, target, rcond=None)[0]
+</code></pre>
+<p><strong>代码里才看得到的 1 件事</strong>：</p>
+<ul>
+<li>玩具里仿真是 <span class="arithmatex">\(x' = x + a\)</span>，所以「要补的位移」和「要补的动作」数值相同；真实的 ASAP 修正模型是一个以状态和动作为输入的神经网络，用强化学习训练，让仿真轨迹贴近真机轨迹。</li>
+</ul>
+<p><strong>自己改一改</strong>（不影响练习答案）：</p>
+<ul>
+<li>给 <code>real_step</code> 加一点噪声，看拟合出来的 c1、c0 偏多少。</li>
+<li>让真机的摩擦和速度有关（比如 −0.05 − 0.1·x），看线性修正还够不够用。</li>
+</ul><nav class="pager"><a href="17-shac.html">← 第 17 章 · 可微仿真与 SHAC：SuperMimic 之前，解析梯度是怎么来的</a><span></span></nav>
+</main>
+<footer>来自个人学习仓库的对话讲义，含练习作答记录。源码：<a href="https://github.com/wikieden/robot-motion-rl">github.com/wikieden/robot-motion-rl</a>。更多讲义书：<a href="https://wikieden.github.io/ai-books/">AI 算法图解讲义（合集）</a></footer>
+</body></html>

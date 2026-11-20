@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>按回报重置</title><link rel="stylesheet" href="anim.css"></head>
+<body><main>
+<h1>第 5 章 · 按回报重置：难段多练，学会后回落</h1>
+<p class="sub">配套讲义：<a href="../lessons/05-imitation-sampling.html">第 5 章 · 动作模仿：从哪开始练、什么时候喊停、难的地方多练</a> 第四步。规则取自 SuperMimic 附录 D.1：50% 均匀 + 40% softmax(−温度·G_b/G_max) + 10% 过去的权重。10 段动作和它们的学习速度是编的（<strong>示意</strong>）。<br>缩写：G_b：第 b 段的回报估计（b = bin，分箱）；G_max：最大可能回报；softmax：把一组数变成和为 1 的概率。</p>
+<div class="panel"><svg id="sv" viewBox="0 0 680 400"></svg></div>
+<div class="stats">
+<div class="stat"><div class="l">训练轮次</div><div class="v" id="s0">0</div></div>
+<div class="stat"><div class="l">第 4 段被抽到的概率</div><div class="v" id="s1">–</div></div>
+<div class="stat"><div class="l">第 7 段被抽到的概率</div><div class="v" id="s2">–</div></div>
+</div>
+<div class="row ctl"><label>温度</label><input type="range" id="tp" min="1" max="40" step="1" value="25"><span id="tpv">25</span></div>
+<div class="row ctl"><label>均匀部分比例</label><input type="range" id="un" min="0" max="0.9" step="0.05" value="0.5"><span id="unv">0.5</span></div>
+<div class="row"><button id="play">▶ 播放</button><button id="step">→ 单步</button><button id="reset">↺ 从头开始</button></div>
+<p class="note">看点：① 上排柱子是 10 段各自的回报 G_b/G_max。第 4、7 段是难动作（比如空翻），一开始很低。② 下排是重置分布：softmax 把最差的段权重放大，难段被抽得多，回报就涨得快。③ 难段学会后，下排回落到接近均匀；「过去的权重」那 10% 让它们仍比别的段高一点，免得忘。④ 拖温度：越大越「全押最差的」，越小越平均；拖均匀比例看保底的作用。</p>
+</main>
+<script src="anim.js"></script>
+<script>
+const sv=$('sv');const B=10,X0=70,BW=56,T1=30,H1=140,T2=230,H2=130,N=40;
+const X=i=>X0+i*BW;
+txt('各段回报 G_b / G_max',{x:X0,y:T1-8},sv);txt('重置分布（被抽到的概率）',{x:X0,y:T2-8},sv);
+el('line',{x1:X0,x2:X0+B*BW,y1:T1+H1,y2:T1+H1,stroke:'var(--line)'},sv);el('line',{x1:X0,x2:X0+B*BW,y1:T2+H2,y2:T2+H2,stroke:'var(--line)'},sv);
+const tb=[],bot=[];for(let i=0;i<B;i++){tb.push(el('rect',{x:X(i)+6,width:BW-12,fill:'var(--accent)'},sv));bot.push(el('rect',{x:X(i)+6,width:BW-12,fill:'var(--warm)'},sv));txt(i+1,{x:X(i)+BW/2,y:T2+H2+16,'text-anchor':'middle',class:'m'},sv)}
+const uniL=el('line',{x1:X0,x2:X0+B*BW,stroke:'var(--muted)','stroke-dasharray':'4 3'},sv);
+const uniT=txt('',{x:X0+B*BW+4,class:'m'},sv);
+let g,past,t;
+const HARD=[3,6];
+function softmax(x){const m=Math.max(...x),e=x.map(v=>Math.exp(v-m)),s=e.reduce((a,b)=>a+b,0);return e.map(v=>v/s)}
+function dist(){const T=+$('tp').value,u=+$('un').value,h=softmax(g.map(v=>-T*v)),pw=past.map(v=>v/past.reduce((a,b)=>a+b,0)),rest=1-u;return{p:g.map((_,i)=>u/B+rest*0.8*h[i]+rest*0.2*pw[i]),h}}
+function reset(){$('tpv').textContent=$('tp').value;$('unv').textContent=$('un').value;g=Array.from({length:B},(_,i)=>HARD.includes(i)?0.15:0.85);past=Array(B).fill(1/B);t=0;draw()}
+function next(){if(t>=N)return false;const {p,h}=dist();g=g.map((v,i)=>{const cap=HARD.includes(i)?0.9:0.92;return v+(cap-v)*Math.min(1,p[i]*1.6)});past=past.map((v,i)=>0.9*v+0.1*h[i]);t++;draw();return true}
+function draw(){const {p}=dist(),pm=0.7;
+  g.forEach((v,i)=>{tb[i].setAttribute('y',T1+H1-v*H1);tb[i].setAttribute('height',v*H1);tb[i].setAttribute('fill',HARD.includes(i)?'var(--purple)':'var(--accent)')});
+  p.forEach((v,i)=>{const h=Math.min(1,v/pm)*H2;bot[i].setAttribute('y',T2+H2-h);bot[i].setAttribute('height',h)});
+  const uy=T2+H2-(1/B)/pm*H2;uniL.setAttribute('y1',uy);uniL.setAttribute('y2',uy);uniT.setAttribute('y',uy+4);uniT.textContent='均匀 0.1';
+  $('s0').textContent=t;$('s1').textContent=p[3].toFixed(3);$('s2').textContent=p[6].toFixed(3)}
+['tp','un'].forEach(k=>$(k).oninput=()=>{$(k+'v').textContent=$(k).value;ANIM.stop();ANIM.reset(0)});
+setupPlayer({captureSeed:1,reset,next},220);
+</script><a href="https://wikieden.github.io/ai-books/" style="position:fixed;right:12px;bottom:12px;z-index:99;padding:4px 10px;border-radius:14px;background:rgba(127,127,127,.18);color:inherit;font:13px/1.6 system-ui,sans-serif;text-decoration:none">← 全部讲义书</a>
+</body></html>

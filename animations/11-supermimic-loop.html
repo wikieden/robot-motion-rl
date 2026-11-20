@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SuperMimic 训练循环</title><link rel="stylesheet" href="anim.css"></head>
+<body><main>
+<h1>第 11 章 · SuperMimic 的三步循环：采数据 → 拟合 world model → 想象里改策略</h1>
+<p class="sub">配套讲义：<a href="../lessons/11-supermimic.html">第 11 章 · SuperMimic 全流程：三步循环、关键超参、结果和怎么选路线</a>；另见运控调研 第 5.1 节。循环依据 <code>supermimic-2610.28480.txt</code> 第 207–214 行（Figure 2、Algorithm A.1）。下面两张曲线图是<strong>示意</strong>：上图表达「边训边拟合」的设计意图；下图「冻结模型」是 model-based RL 的通病 model exploitation（策略钻模型的空子，MBPO 论文讨论过，即 SuperMimic 引用的 [24]），<strong>不是 SuperMimic 论文里的实验</strong>。<br>缩写：BPTT = Backpropagation Through Time（反向传播 / 穿过 / 时间）；MBPO = Model-Based Policy Optimization（基于模型的 / 策略 / 优化）；world model（世界模型）= 学出来的「物理模拟器」，输入当前状态和动作，预测下一状态。</p>
+<div class="panel"><svg id="sv" viewBox="0 0 680 470"></svg></div>
+<div class="stats">
+<div class="stat"><div class="l">迭代</div><div class="v" id="st">0</div></div>
+<div class="stat"><div class="l">边训边拟合：真实回报</div><div class="v" id="s1">–</div></div>
+<div class="stat"><div class="l">冻结模型：真实 / 想象回报</div><div class="v" id="s2">–</div></div>
+</div>
+<div class="row ctl"><label>下图在第几轮冻结 world model</label><input type="range" id="fz" min="2" max="30" step="1" value="8"><span id="fzv">8</span></div>
+<div class="row"><button id="play">▶ 播放</button><button id="step">→ 单步</button><button id="reset">↺ 换一组随机数</button></div>
+<p class="note">看点：① 上方三个框是每一轮都要走一遍的三步，高亮的是当前这一步。① 采数据：当前策略在仿真里跑（动作加一点噪声），转移存进回放缓冲区 replay buffer；满了以后新数据覆盖最旧的。② 拟合：用缓冲区里的 8 步窗口训练 world model。③ 改策略：冻住 world model，在里面想象 32 步，用 BPTT 求解析梯度更新策略，critic 估计 32 步之后的回报。② 上图（边训边拟合）：每轮都用新策略采到的新数据修模型，模型误差一路下降，想象回报（虚线）和仿真里的真实回报（实线）贴在一起。③ 下图（冻结模型）：从某一轮起不再拟合。策略继续在旧模型里优化，会走到模型没见过、预测错的状态，在那里「想象」出高回报；虚线越涨越高，实线反而掉下来。④ 拖滑块改冻结时机：冻得越早，模型越不准，掉得越早越狠。物理不依赖采数据的策略，所以旧数据对拟合模型一直有效，这也是 SuperMimic 敢用回放缓冲区的原因。</p>
+</main>
+<script src="anim.js"></script>
+<script>
+const sv=$('sv');const N=40;
+const BOX=[{x:20,t:'① 采数据',s:'策略在仿真里跑，存进缓冲区'},{x:245,t:'② 拟合 world model',s:'8 步窗口，自回归预测'},{x:470,t:'③ 想象 + BPTT',s:'冻住模型，想象 32 步求梯度'}];
+const defs=el('defs',{},sv);const mk=el('marker',{id:'ah',viewBox:'0 0 10 10',refX:9,refY:5,markerWidth:7,markerHeight:7,orient:'auto'},defs);el('path',{d:'M0,0 L10,5 L0,10 z',fill:'var(--muted)'},mk);
+const boxes=BOX.map(B=>{const r=el('rect',{x:B.x,y:20,width:190,height:62,rx:10,fill:'var(--bg)',stroke:'var(--line)','stroke-width':1.5},sv);txt(B.t,{x:B.x+95,y:45,'text-anchor':'middle'},sv);txt(B.s,{x:B.x+95,y:68,'text-anchor':'middle',class:'m'},sv);return r});
+el('line',{x1:212,y1:51,x2:242,y2:51,stroke:'var(--muted)','stroke-width':1.5,'marker-end':'url(#ah)'},sv);
+el('line',{x1:437,y1:51,x2:467,y2:51,stroke:'var(--muted)','stroke-width':1.5,'marker-end':'url(#ah)'},sv);
+el('path',{d:'M565,84 C565,112 115,112 115,86',fill:'none',stroke:'var(--muted)','stroke-width':1.5,'stroke-dasharray':'4 3','marker-end':'url(#ah)'},sv);
+txt('下一轮',{x:340,y:99,'text-anchor':'middle',class:'m'},sv);
+txt('回放缓冲区',{x:20,y:132,class:'m'},sv);
+el('rect',{x:96,y:121,width:200,height:14,rx:3,fill:'var(--bg)',stroke:'var(--line)'},sv);
+const buf=el('rect',{x:96,y:121,width:0,height:14,rx:3,fill:'var(--teal)',opacity:0.6},sv);
+const bufT=txt('',{x:304,y:132,class:'m'},sv);
+const charts=[{name:'边训边拟合（SuperMimic 的做法）',top:160},{name:'冻结模型（对照：model exploitation 示意）',top:320}];
+const CX=60,CW=600,CH=110;
+charts.forEach(C=>{
+  txt(C.name,{x:CX,y:C.top-6},sv);
+  el('rect',{x:CX,y:C.top,width:CW,height:CH,fill:'var(--bg)',stroke:'var(--line)'},sv);
+  [0,0.5,1].forEach(v=>txt(v.toFixed(1),{x:CX-6,y:C.top+CH-v*CH+4,'text-anchor':'end',class:'m'},sv));
+  C.real=el('polyline',{fill:'none',stroke:'var(--accent)','stroke-width':2.2},sv);
+  C.img=el('polyline',{fill:'none',stroke:'var(--accent)','stroke-width':1.8,'stroke-dasharray':'5 4'},sv);
+  C.err=el('polyline',{fill:'none',stroke:'var(--amber)','stroke-width':1.6},sv);
+  C.fz=el('line',{y1:C.top,y2:C.top+CH,stroke:'var(--bad)','stroke-dasharray':'3 3'},sv);
+  C.fzT=txt('',{y:C.top+14,class:'m',fill:'var(--bad)'},sv);
+});
+txt('实线 = 仿真里的真实回报　虚线 = world model 里想象出的回报　橙线 = world model 预测误差',{x:CX,y:462,class:'m'},sv);
+let it,ph,FZ,S;
+function readCtl(){FZ=+$('fz').value;$('fzv').textContent=FZ}
+$('fz').oninput=()=>{readCtl();ANIM.stop();ANIM.reset(Date.now())};
+function simulate(){
+  // 两条曲线一次算完，播放时逐轮揭开
+  S=[{R:[0.05],I:[0.1],E:[0.9]},{R:[0.05],I:[0.1],E:[0.9]}];
+  for(let k=1;k<=N;k++){
+    const a=S[0];const e=0.07+(a.E[k-1]-0.07)*0.86+0.01*gauss();a.E.push(Math.max(0.05,e));
+    const r=a.R[k-1]+0.075*(0.92-a.R[k-1])*(1-0.6*e)+0.006*gauss();a.R.push(clamp(r,0,1));a.I.push(clamp(r+0.12*e+0.01*gauss(),0,1));
+    const b=S[1];
+    if(k<FZ){b.E.push(a.E[k]);b.R.push(a.R[k]);b.I.push(a.I[k]);continue}
+    const d=k-FZ,e0=b.E[FZ-1],eb=e0+0.018*d*(0.5+e0);b.E.push(Math.min(1,eb));
+    const im=b.I[k-1]+0.08*(1-b.I[k-1])+0.004*gauss();b.I.push(clamp(im,0,1));
+    const peak=b.R[FZ-1],rr=peak+0.25*(1-peak)*(1-Math.exp(-d/3))-0.006*Math.pow(d,1.2)*(0.4+e0)+0.008*gauss();b.R.push(clamp(rr,0,1));
+  }
+}
+function reset(sd){seed(sd);readCtl();simulate();it=0;ph=0;draw()}
+function next(){if(it>=N)return false;ph++;if(ph>2){ph=0;it++}draw();return true}
+const P=(C,k,v)=>`${CX+k/N*CW},${C.top+CH-v*CH}`;
+function draw(){
+  boxes.forEach((b,i)=>{const on=i===ph&&it<N;b.setAttribute('fill',on?'var(--accent-bg)':'var(--bg)');b.setAttribute('stroke',on?'var(--accent)':'var(--line)')});
+  const fill=Math.min(1,(it+ (ph>0?1:0))/12);buf.setAttribute('width',200*fill);
+  bufT.textContent=fill>=1?'已满：新数据覆盖最旧的（旧数据对拟合模型依然有效）':`装入 ${(fill*100).toFixed(0)}%`;
+  charts.forEach((C,ci)=>{const s=S[ci],ks=[...Array(it+1).keys()];
+    C.real.setAttribute('points',ks.map(k=>P(C,k,s.R[k])).join(' '));C.img.setAttribute('points',ks.map(k=>P(C,k,s.I[k])).join(' '));C.err.setAttribute('points',ks.map(k=>P(C,k,s.E[k])).join(' '));
+    const show=ci===1&&it>=FZ;const x=CX+FZ/N*CW;C.fz.setAttribute('x1',show?x:-99);C.fz.setAttribute('x2',show?x:-99);C.fzT.setAttribute('x',x+4);C.fzT.textContent=show?`第 ${FZ} 轮起不再拟合`:''});
+  $('st').textContent=it;$('s1').textContent=S[0].R[it].toFixed(2);$('s2').textContent=`${S[1].R[it].toFixed(2)} / ${S[1].I[it].toFixed(2)}`}
+setupPlayer({captureSeed:4,reset,next},120);
+</script><a href="https://wikieden.github.io/ai-books/" style="position:fixed;right:12px;bottom:12px;z-index:99;padding:4px 10px;border-radius:14px;background:rgba(127,127,127,.18);color:inherit;font:13px/1.6 system-ui,sans-serif;text-decoration:none">← 全部讲义书</a>
+</body></html>

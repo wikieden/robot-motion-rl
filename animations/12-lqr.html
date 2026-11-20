@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LQR 拉回不稳定系统</title><link rel="stylesheet" href="anim.css"></head>
+<body><main>
+<h1>第 12 章 · LQR：Riccati 迭代算出 K，把不稳定系统拉回来</h1>
+<p class="sub">配套讲义：<a href="../lessons/12-lqr.html">第 12 章 · LQR：模型已知、线性、二次代价时，Bellman 方程有闭式解</a> 第三、四步。一维系统 x' = a·x + b·u（b = 1），默认 a = 1.1、q = 1、r = 1，和讲义一致。<br>缩写：LQR = Linear Quadratic Regulator（线性 / 二次 / 调节器）；q、r：偏离、用力的代价权重；P：价值函数 V(x) = P·x² 的系数；K：反馈增益（u = −K·x）。</p>
+<div class="panel"><svg id="sv" viewBox="0 0 680 400"></svg></div>
+<div class="stats">
+<div class="stat"><div class="l">步数</div><div class="v" id="s0">0</div></div>
+<div class="stat"><div class="l">P / K</div><div class="v" id="s1">–</div></div>
+<div class="stat"><div class="l">闭环系数 a − K</div><div class="v" id="s2">–</div></div>
+</div>
+<div class="row ctl"><label>q</label><input type="range" id="qq" min="0.1" max="10" step="0.1" value="1"><span id="qqv">1</span></div>
+<div class="row ctl"><label>r</label><input type="range" id="rr" min="0.1" max="10" step="0.1" value="1"><span id="rrv">1</span></div>
+<div class="row ctl"><label>a</label><input type="range" id="aa" min="0.8" max="1.5" step="0.05" value="1.1"><span id="aav">1.1</span></div>
+<div class="row"><button id="play">▶ 播放</button><button id="step">→ 单步</button><button id="reset">↺ 从头开始</button></div>
+<p class="note">看点：① 左下柱子是 Riccati 迭代里 P 的变化：1 → 1.605 → 1.746 → … → 1.774，几步就平了（第三步）。② 上图从 x = 1 出发：灰线不加控制（a &gt; 1 越跑越远），蓝线是 LQR 闭环，每步乘 a − K（第三步）。③ 右下橙柱是每步用的力 u = −K·x。拖 r 变大：K 变小、回得慢、用力小；拖 q 变大：K 变大、回得快、用力猛（第四步）。</p>
+</main>
+<script src="anim.js"></script>
+<script>
+const sv=$('sv');const X0=60,W=600,T1=20,H1=200,N=12;
+const X=t=>X0+t/N*W,Y=v=>T1+H1-(clamp(v,-0.2,3)+0.2)/3.2*H1;
+el('rect',{x:X0,y:T1,width:W,height:H1,fill:'var(--bg)',stroke:'var(--line)'},sv);
+[0,1,2,3].forEach(v=>txt(v,{x:X0-6,y:Y(v)+4,'text-anchor':'end',class:'m'},sv));
+el('line',{x1:X0,x2:X0+W,y1:Y(0),y2:Y(0),stroke:'var(--line)'},sv);
+txt('状态 x（灰：不控制　蓝：LQR）',{x:X0,y:T1-6,class:'m'},sv);
+const open=el('polyline',{fill:'none',stroke:'var(--muted)','stroke-width':1.8,'stroke-dasharray':'5 4'},sv);
+const closed=el('polyline',{fill:'none',stroke:'var(--accent)','stroke-width':2.4},sv);
+const PT=260,PH=110,PX=60,PW=280,UX=380,UW=280;
+el('rect',{x:PX,y:PT,width:PW,height:PH,fill:'var(--bg)',stroke:'var(--line)'},sv);txt('Riccati 迭代：P',{x:PX,y:PT-6,class:'m'},sv);
+el('rect',{x:UX,y:PT,width:UW,height:PH,fill:'var(--bg)',stroke:'var(--line)'},sv);txt('每步用的力 u = −K·x',{x:UX,y:PT-6,class:'m'},sv);
+const pb=[],ub=[];for(let i=0;i<N;i++){pb.push(el('rect',{x:PX+4+i*(PW-8)/N,width:(PW-8)/N-3,fill:'var(--purple)'},sv));ub.push(el('rect',{x:UX+4+i*(UW-8)/N,width:(UW-8)/N-3,fill:'var(--amber)'},sv))}
+let t,P,K,ph,a,q,r;
+function solve(){a=+$('aa').value;q=+$('qq').value;r=+$('rr').value;ph=[q];let p=q;for(let i=0;i<200;i++){p=q+a*a*p-(a*p)**2/(r+p);if(i<N-1)ph.push(p)}P=p;K=a*p/(r+p)}
+function readCtl(){['qq','rr','aa'].forEach(k=>$(k+'v').textContent=$(k).value)}
+['qq','rr','aa'].forEach(k=>$(k).oninput=()=>{readCtl();ANIM.stop();ANIM.reset(0)});
+function reset(){readCtl();solve();t=0;draw()}
+function next(){if(t>=N)return false;t++;draw();return true}
+function draw(){const xo=[],xc=[];let x1=1,x2=1;for(let i=0;i<=t;i++){xo.push(`${X(i)},${Y(x1)}`);xc.push(`${X(i)},${Y(x2)}`);x1*=a;x2*=(a-K)}
+  open.setAttribute('points',xo.join(' '));closed.setAttribute('points',xc.join(' '));
+  const pm=Math.max(...ph)*1.1;pb.forEach((b,i)=>{const h=i<=t?ph[i]/pm*(PH-10):0;b.setAttribute('y',PT+PH-h);b.setAttribute('height',h)});
+  let xx=1;ub.forEach((b,i)=>{const u=K*xx;xx*=(a-K);const h=i<t?Math.min(1,Math.abs(u)/1.5)*(PH-10):0;b.setAttribute('y',PT+PH-h);b.setAttribute('height',h)});
+  $('s0').textContent=t;$('s1').textContent=P.toFixed(3)+' / '+K.toFixed(3);$('s2').textContent=(a-K).toFixed(3)}
+setupPlayer({captureSeed:1,reset,next},500);
+</script><a href="https://wikieden.github.io/ai-books/" style="position:fixed;right:12px;bottom:12px;z-index:99;padding:4px 10px;border-radius:14px;background:rgba(127,127,127,.18);color:inherit;font:13px/1.6 system-ui,sans-serif;text-decoration:none">← 全部讲义书</a>
+</body></html>

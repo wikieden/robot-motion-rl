@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>第 2 章 · 把动作跟踪写成 MDP：看什么、做什么、怎么打分、什么时候算摔 · 机器人运控与强化学习</title>
+<style>
+:root{--bg:#fbfbfa;--fg:#1f2328;--mute:#5d6470;--line:#e3e5e8;--card:#fff;--acc:#2f6fdf;--code:#f2f3f5;--quote:#f4f6fa}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15181d;--fg:#e4e7ec;--mute:#9aa3b2;--line:#2c323b;--card:#1c2026;--acc:#7aa7ff;--code:#22272f;--quote:#1b2029}}
+:root[data-theme="dark"]{--bg:#15181d;--fg:#e4e7ec;--mute:#9aa3b2;--line:#2c323b;--card:#1c2026;--acc:#7aa7ff;--code:#22272f;--quote:#1b2029}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.75 -apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Helvetica Neue",sans-serif}
+a{color:var(--acc)}
+header.top{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+header.top .in{max-width:860px;margin:0 auto;padding:10px 16px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;font-size:14px}
+header.top .brand{font-weight:600;color:var(--fg);text-decoration:none;margin-right:auto}
+header.top a{text-decoration:none}
+main{max-width:860px;margin:0 auto;padding:24px 16px 72px;overflow-wrap:anywhere}
+h1{font-size:28px;line-height:1.35;margin:8px 0 16px} h2{font-size:22px;margin:40px 0 12px;padding-top:8px;border-top:1px solid var(--line)} h3{font-size:18px;margin:28px 0 8px}
+img{max-width:100%;height:auto;border-radius:8px;border:1px solid var(--line);background:#fff}
+blockquote{margin:16px 0;padding:10px 16px;background:var(--quote);border-left:3px solid var(--acc);border-radius:4px;color:var(--mute)}
+blockquote p{margin:4px 0}
+code{background:var(--code);padding:1px 5px;border-radius:4px;font-size:.9em}
+pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto} pre code{padding:0;background:none}
+table{border-collapse:collapse;display:block;overflow-x:auto;max-width:100%;margin:12px 0;font-size:15px}
+th,td{border:1px solid var(--line);padding:6px 10px;vertical-align:top} th{background:var(--code)}
+details{border:1px solid var(--line);border-radius:8px;padding:6px 12px;margin:8px 0;background:var(--card)}
+details[open]{padding-bottom:10px} summary{cursor:pointer;color:var(--acc);font-weight:500}
+mjx-container{overflow-x:auto;overflow-y:hidden;max-width:100%}
+.btn{display:inline-block;margin:4px 8px 4px 0;padding:6px 14px;border:1px solid var(--acc);border-radius:999px;text-decoration:none;font-size:14px}
+.pager{display:flex;justify-content:space-between;gap:12px;margin-top:48px;padding-top:16px;border-top:1px solid var(--line);font-size:15px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin:16px 0}
+.card{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden;color:inherit;text-decoration:none}
+.card:hover{border-color:var(--acc)} .card img{border:0;border-bottom:1px solid var(--line);border-radius:0;aspect-ratio:16/10;object-fit:contain;width:100%}
+.card .no{color:var(--mute);font-size:13px;padding:8px 12px 0} .card .t{padding:0 12px 12px;font-weight:500;line-height:1.5}
+.lead{font-size:17px;color:var(--mute)}
+footer{max-width:860px;margin:0 auto;padding:0 16px 40px;color:var(--mute);font-size:13px}
+</style>
+<script>window.MathJax={tex:{inlineMath:[["\\(","\\)"]],displayMath:[["\\[","\\]"],["$$","$$"]],processEscapes:true,processEnvironments:true}};</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js"></script>
+</head><body>
+<header class="top"><div class="in">
+<a class="brand" href="../index.html">机器人运控与强化学习</a>
+<a href="../lessons/index.html">讲义目录</a>
+<a href="../animations/index.html">动画</a>
+<a href="../review.html">复习卡片</a>
+<a href="../lessons/appendix-glossary.html">缩写表</a>
+<a href="https://wikieden.github.io/ai-books/">← 全部讲义书</a>
+</div></header>
+<main>
+<h1 id="2-mdp">第 2 章 · 把动作跟踪写成 MDP：看什么、做什么、怎么打分、什么时候算摔</h1><p><a class="btn" href="../animations/02-reward-kernel.html">▶ 打开本章可交互动画</a></p>
+<blockquote>
+<p>本章回答：要让人形机器人模仿一段人类动作，强化学习需要的「状态、动作、奖励、终止」分别是什么？为什么奖励用 exp(−误差²/σ²) 这种形状？<br />
+讲解日期：2026-11-20 · 上一章：<a href="../lessons/01-layers-pd.html">第 1 章 三层与 PD</a> · 下一章：<a href="../lessons/03-ppo-recipe.html">第 3 章 PPO 运控配方</a><br />
+对应原文：SuperMimic §3.1（<code>papers/supermimic-2610.28480.txt</code> L204–L230）、附录 A（L672–L715，表 A.1–A.3）；BeyondMimic 的动作跟踪设定（<code>papers/beyondmimic-2508.08241.txt</code>）<br />
+本章缩写：MDP = Markov Decision Process（马尔可夫 / 决策 / 过程，《从零学强化学习》第 5 章）；POMDP = Partially Observable MDP（部分 / 可观测的 MDP：只看得到一部分状态）；IMU = Inertial Measurement Unit（惯性 / 测量 / 单元：测角速度和加速度）；σ：奖励核的宽度（读 "sigma"）；dt：控制周期（这里 0.02 s）。全部缩写见 <a href="../lessons/appendix-glossary.html">附录 · 缩写与术语表</a></p>
+</blockquote>
+<h2 id="_1">讲解</h2>
+<h3 id="2026-11-20">第一步：观测：机器人能「感觉」到什么（2026-11-20）</h3>
+<p><strong>类比：闭着眼睛跳舞。</strong> 你看不到自己，但能感觉到每个关节弯多少、转多快、身体往哪边倒、刚才手脚是怎么动的。</p>
+<p>SuperMimic 的观测（原文 L672–L689，表 A.1）只有<strong>本体感知</strong>，全是真机上传感器拿得到的：</p>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>维度</th>
+<th>来自</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>关节位置 <span class="arithmatex">\(q - q^0\)</span>（相对默认姿态）</td>
+<td>29</td>
+<td>关节编码器</td>
+</tr>
+<tr>
+<td>关节速度 <span class="arithmatex">\(\dot q\)</span></td>
+<td>29</td>
+<td>编码器差分</td>
+</tr>
+<tr>
+<td>躯干角速度</td>
+<td>3</td>
+<td>IMU</td>
+</tr>
+<tr>
+<td>重力在躯干坐标系里的方向</td>
+<td>3</td>
+<td>IMU（算出「往哪边倒」）</td>
+</tr>
+<tr>
+<td>上一步动作 <span class="arithmatex">\(a_{t-1}\)</span></td>
+<td>29</td>
+<td>自己记着</td>
+</tr>
+</tbody>
+</table>
+<p>每帧 29 + 29 + 3 + 3 + 29 = <strong>93</strong> 维，取最近 10 帧，共 <strong>930</strong> 维。G1 机器人有 29 个关节，所以动作也是 29 维（第 1 章的设定值）。</p>
+<p>只看得到一部分状态（比如看不到地面摩擦、看不到自己的绝对位置），所以严格说是 <strong>POMDP</strong>；用 10 帧历史来补。</p>
+<p><strong>一句话</strong>：策略只用真机拿得到的本体感知，10 帧历史补上看不见的部分。</p>
+<h3 id="2026-11-20_1">第二步：目标：要模仿的那段动作（2026-11-20）</h3>
+<p><strong>类比：跟着舞蹈老师跳。</strong> 你不只看老师现在的姿势，还会瞄一眼他接下来要做什么。</p>
+<p>目标 <span class="arithmatex">\(g_t\)</span> 从参考动作（动捕数据重定向到 G1 上）里读：SuperMimic 用<strong>未来 K = 10 帧</strong>参考姿态（原文 L689；BeyondMimic 只用当前 1 帧）。策略的输入是「观测 + 目标」，输出是 29 个关节的设定值：<span class="arithmatex">\(a_t = \pi_\theta(o_t, g_t)\)</span>。</p>
+<p><strong>一句话</strong>：输入 = 我现在怎样 + 老师接下来要怎样，输出 = 29 个关节往哪使劲。</p>
+<h3 id="exp22-2026-11-20">第三步：奖励：exp(−误差²/σ²) 的「核」（2026-11-20）</h3>
+<p><strong>类比：射箭的靶。</strong> 正中靶心 10 分，偏一点 9 分，偏很多 0 分，但不会扣成负数。</p>
+<p>每一项跟踪误差 e 都放进同一个形状：</p>
+<div class="arithmatex">\[k(e) = \exp\!\left(-\frac{e^2}{\sigma^2}\right)\]</div>
+<ul>
+<li>e：误差（位置误差单位 m，朝向误差单位 rad）。</li>
+<li>σ：宽度，「多大的误差算偏得厉害」。e = σ 时得分 <span class="arithmatex">\(e^{-1} \approx 0.368\)</span>。</li>
+</ul>
+<p><strong>例子</strong>（刚体位置项，σ = 0.3 m）：</p>
+<table>
+<thead>
+<tr>
+<th>误差 e</th>
+<th>0</th>
+<th>0.1</th>
+<th>0.3</th>
+<th>0.6</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>得分</td>
+<td>1.000</td>
+<td>0.895</td>
+<td>0.368</td>
+<td>0.018</td>
+</tr>
+</tbody>
+</table>
+<p>为什么不用 −e²？因为 −e² 无下界：一次大失误能扣成 −100，把整批数据的梯度都拽过去；exp 核把每项限制在 [0, 1]，误差大了只是「这项拿不到分」，各项加起来也好比较。</p>
+<p>SuperMimic 表 A.2 的奖励（沿用 BeyondMimic，去掉了自碰撞惩罚）：</p>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>σ</th>
+<th>权重</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>各刚体位置</td>
+<td>0.3 m</td>
+<td>1.0</td>
+</tr>
+<tr>
+<td>各刚体朝向</td>
+<td>0.4 rad</td>
+<td>1.0</td>
+</tr>
+<tr>
+<td>各刚体线速度</td>
+<td>1.0 m/s</td>
+<td>1.0</td>
+</tr>
+<tr>
+<td>各刚体角速度</td>
+<td>3.14 rad/s</td>
+<td>1.0</td>
+</tr>
+<tr>
+<td>根部（骨盆）位置 / 朝向</td>
+<td>0.3 / 0.4</td>
+<td>各 0.5</td>
+</tr>
+<tr>
+<td>动作平滑 <span class="arithmatex">\(\|a_t - a_{t-1}\|^2\)</span></td>
+<td>—</td>
+<td>−0.1</td>
+</tr>
+<tr>
+<td>关节超限</td>
+<td>—</td>
+<td>−2</td>
+</tr>
+</tbody>
+</table>
+<p>每一项最后都乘控制周期 dt = 0.02 s（原文表 A.6 注）。</p>
+<p><strong>例子</strong>（误差是编的）：位置 0.1、朝向 0.2、线速度 0.5、角速度 1.0、根部位置 0.1、根部朝向 0.2，动作变化 (0.2, −0.1)，没超限：</p>
+<ul>
+<li>任务项 = 0.895 + 0.779 + 0.779 + 0.904 + 0.5×0.895 + 0.5×0.779 ≈ <strong>4.193</strong></li>
+<li>正则项 = −0.1 × (0.04 + 0.01) = <strong>−0.005</strong></li>
+<li>乘 dt：r = (4.193 − 0.005) × 0.02 ≈ <strong>0.0838</strong></li>
+</ul>
+<p><strong>一句话</strong>：每项误差进一个 exp 核拿 0 到 1 分，加权求和、减掉正则、乘 dt。</p>
+<h3 id="2026-11-20_2">第四步：终止：什么时候算「摔了」（2026-11-20）</h3>
+<p><strong>类比：跳舞跳到一半摔在地上，这一曲就不算了。</strong></p>
+<p>SuperMimic 的终止条件（原文 L704–L708）：根部高度偏离参考超过 0.25 m，或倾斜误差超过 0.8。倾斜误差 = 参考和机器人骨盆坐标系里「重力方向 z 分量」之差的绝对值。参考直立时，机器人倾斜 θ 度，误差 = |1 − cos θ|：</p>
+<table>
+<thead>
+<tr>
+<th>倾斜</th>
+<th>30°</th>
+<th>60°</th>
+<th>78°</th>
+<th>90°</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>误差</td>
+<td>0.134</td>
+<td>0.5</td>
+<td>0.792</td>
+<td>1.0</td>
+</tr>
+</tbody>
+</table>
+<p>所以 0.8 大约对应 <strong>78°</strong>（原文原话：0.8 at about 78°）。</p>
+<p>终止的作用：一旦终止，后面的奖励全都拿不到。每步奖励都是正的（核 ≥ 0），所以「活得越久分越多」，策略自然学会别摔。</p>
+<p><strong>一句话</strong>：偏太远、倒太狠就结束，后面的正奖励全没了，这就是「别摔」的信号。</p>
+<h3 id="_2">动画演示：奖励核的形状</h3>
+<p><img alt="exp 奖励核：误差越大得分越少，但不会变负" src="../animations/02-reward-kernel.gif" /></p>
+<p>可交互版：<a href="../animations/02-reward-kernel.html">animations/02-reward-kernel.html</a>（滑块：σ、误差 e）。</p>
+<p><strong>怎么看</strong>：</p>
+<ol>
+<li>曲线是 <span class="arithmatex">\(k(e) = \exp(-e^2/\sigma^2)\)</span>，红点是当前误差拿到的分（第三步）。</li>
+<li>虚线是 −e² 的对照：误差一大就扣成很大的负数，exp 核则停在 0。</li>
+<li>拖 σ：σ 越小越「严格」，同样的误差得分更低。</li>
+</ol>
+<h2 id="_3">练习与作答记录</h2>
+<p><strong>题 1</strong>（第一步）：如果机器人有 23 个关节，观测每帧多少维？取 5 帧历史是多少维？</p>
+<p><strong>作答</strong>：（待作答）</p>
+<p><strong>题 2</strong>（第三步）：朝向项 σ = 0.4 rad。误差 0.4 和 0.8 时各得多少分？为什么奖励核比 −e² 更不容易「一次失误毁掉整批梯度」？</p>
+<p><strong>作答</strong>：（待作答）</p>
+<p><strong>题 3</strong>（第四步）：倾斜阈值从 0.8 改成 0.5，参考直立时大约对应多少度？阈值太严会让哪类动作很难学（举一个例子）？</p>
+<p><strong>作答</strong>：（待作答）</p>
+<h2 id="_4">口诀</h2>
+<blockquote>
+<p>闭眼跳舞靠本体：关节、速度、IMU、上一步，十帧历史补看不见；<br />
+跟着老师看十帧，输出二十九个设定值；<br />
+误差进核零到一，加权求和乘 dt；<br />
+偏高倒斜就终止，正分拿不到，自然学会别摔。</p>
+</blockquote>
+<h2 id="_5">本章复习卡片</h2>
+<p>M03（奖励核 exp(−e²/σ²)，e = σ 时 0.368，为什么不用 −e²）、M04（终止条件与「正奖励 + 提前终止 = 别摔」）</p>
+<h2 id="_6">附录 · 延伸阅读</h2>
+<blockquote>
+<p>留给以后深入学习用，不影响本章主线。★ 是建议先读的。</p>
+</blockquote>
+<h3 id="_7">推荐阅读</h3>
+<table>
+<thead>
+<tr>
+<th>读什么</th>
+<th>读哪里</th>
+<th>读它为了什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>★ SuperMimic 附录 A</td>
+<td><code>papers/supermimic-2610.28480.txt</code> L672–L715，表 A.1–A.3</td>
+<td>观测、动作、奖励、终止、域随机化的完整清单</td>
+</tr>
+<tr>
+<td>★ DeepMimic §5</td>
+<td><code>papers/deepmimic-1804.02717.txt</code> L276 起（States and Actions）、奖励设计</td>
+<td>exp 跟踪核的出处</td>
+</tr>
+<tr>
+<td>BeyondMimic</td>
+<td><code>papers/beyondmimic-2508.08241.txt</code></td>
+<td>人形动作跟踪的标准奖励与终止</td>
+</tr>
+<tr>
+<td>《从零学强化学习》第 5 章</td>
+<td><code>cs285-deep-rl/notes/lessons/05-mdp.md</code></td>
+<td>MDP 的定义</td>
+</tr>
+<tr>
+<td>运控调研 §1</td>
+<td>survey-ppo-grpo-supermimic.md §1</td>
+<td>同一张 MDP 表，和 LLM RL 的对比</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_8">数学原理</h3>
+<ul>
+<li><strong>高斯核</strong>：<span class="arithmatex">\(\exp(-e^2/\sigma^2)\)</span> 和正态分布同形，处处可导，在 e = 0 附近梯度平缓、远处趋于 0。</li>
+<li><strong>重力投影</strong>：把世界坐标系的重力方向 (0, 0, −1) 用旋转矩阵转到躯干坐标系，z 分量就是 cos(倾斜角)。</li>
+</ul>
+<h3 id="_9">公式清单</h3>
+<table>
+<thead>
+<tr>
+<th>公式</th>
+<th>意思</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span class="arithmatex">\(k(e) = \exp(-e^2/\sigma^2)\)</span></td>
+<td>跟踪奖励核</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(r_t = \big(\sum_i w_i k(e_i) - 0.1\|a_t-a_{t-1}\|^2 - 2\cdot\text{超限}\big)\cdot dt\)</span></td>
+<td>每步奖励</td>
+</tr>
+<tr>
+<td>$e_{tilt} =</td>
+<td>1 - \cos\theta</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(a_t = \pi_\theta(o_t, g_t)\)</span></td>
+<td>目标条件策略</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_10">代码对照：把本章的数字用代码算一遍</h3>
+<blockquote>
+<p>用 Python + NumPy 把讲义里讲过的数算一遍，不算练习题。代码在仓库本地 <code>robot-motion-rl/solutions/chapter-code/ch02_tracking_mdp.py</code>，配套测试 <code>tests/test_ch01_06.py</code>，notebook 在 <code>notebooks/ch02_tracking_mdp.ipynb</code>。Mac 上直接能跑，不需要 GPU：</p>
+<p><code>bash  
+cd robot-motion-rl/solutions/chapter-code  
+uv run python ch02_tracking_mdp.py  
+uv run pytest tests/test_ch01_06.py</code></p>
+</blockquote>
+<p><strong>讲义 ↔ 代码</strong>（误差是编的，σ 和权重取自 SuperMimic 表 A.2）：</p>
+<table>
+<thead>
+<tr>
+<th>讲义</th>
+<th>公式</th>
+<th>写法</th>
+<th>跑出来</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>第一步 观测</td>
+<td>93 × 10</td>
+<td><code>obs_dim()</code></td>
+<td>930</td>
+</tr>
+<tr>
+<td>第三步 奖励核</td>
+<td><span class="arithmatex">\(\exp(-e^2/\sigma^2)\)</span></td>
+<td><code>kernel(e, 0.3)</code></td>
+<td>1.000、0.895、0.368、0.018</td>
+</tr>
+<tr>
+<td>第四步 倾斜</td>
+<td>$</td>
+<td>1-\cos\theta</td>
+<td>$</td>
+</tr>
+<tr>
+<td>第三步 总奖励</td>
+<td>加权 + 正则 × dt</td>
+<td><code>tracking_reward(...)</code></td>
+<td>任务 4.193，正则 −0.005，r = 0.0838</td>
+</tr>
+</tbody>
+</table>
+<p><strong>关键几行</strong>：</p>
+<pre><code class="language-python">def kernel(err, sigma):
+    return float(np.exp(-(err**2) / sigma**2))      # 误差 0 → 1，误差 = σ → 0.368
+task = kernel(pos_err, 0.3) + kernel(ori_err, 0.4) + ...   # 各刚体项权重 1，根部两项权重 0.5
+reg = -0.1 * np.sum(np.square(da)) - 2.0 * joint_violation # 动作平滑 + 关节超限
+return (task + reg) * dt                                   # 每项都乘控制周期 0.02 s
+</code></pre>
+<p><strong>代码里才看得到的 2 件事</strong>：</p>
+<ul>
+<li>论文里每个刚体项是「先对所有被跟踪刚体的误差平方求平均，再进核」；代码为了好算，直接给一个平均后的误差。</li>
+<li>角速度项的 σ 是 3.14（约 π rad/s），所以角速度误差 1.0 几乎不扣分（0.904），这一项其实很宽松。</li>
+</ul>
+<p><strong>自己改一改</strong>（不影响练习答案）：</p>
+<ul>
+<li>把位置项 σ 从 0.3 改成 0.1，看同样 0.1 m 的误差得分掉到多少。</li>
+<li>把 dt 去掉，看每步奖励的量级变化（为什么各项要乘 dt：让奖励和控制频率无关）。</li>
+</ul><nav class="pager"><a href="01-layers-pd.html">← 第 1 章 · 运控的三层与 PD 目标接口：策略不直接给力矩</a><a href="03-ppo-recipe.html">第 3 章 · 运控里的 PPO 配方：高斯策略、几千个环境、按 KL 调学习率 →</a></nav>
+</main>
+<footer>来自个人学习仓库的对话讲义，含练习作答记录。源码：<a href="https://github.com/wikieden/robot-motion-rl">github.com/wikieden/robot-motion-rl</a>。更多讲义书：<a href="https://wikieden.github.io/ai-books/">AI 算法图解讲义（合集）</a></footer>
+</body></html>

@@ -1,0 +1,543 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>机器人运控与强化学习 · 讲义目录 · 机器人运控与强化学习</title>
+<style>
+:root{--bg:#fbfbfa;--fg:#1f2328;--mute:#5d6470;--line:#e3e5e8;--card:#fff;--acc:#2f6fdf;--code:#f2f3f5;--quote:#f4f6fa}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15181d;--fg:#e4e7ec;--mute:#9aa3b2;--line:#2c323b;--card:#1c2026;--acc:#7aa7ff;--code:#22272f;--quote:#1b2029}}
+:root[data-theme="dark"]{--bg:#15181d;--fg:#e4e7ec;--mute:#9aa3b2;--line:#2c323b;--card:#1c2026;--acc:#7aa7ff;--code:#22272f;--quote:#1b2029}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.75 -apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Helvetica Neue",sans-serif}
+a{color:var(--acc)}
+header.top{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+header.top .in{max-width:860px;margin:0 auto;padding:10px 16px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;font-size:14px}
+header.top .brand{font-weight:600;color:var(--fg);text-decoration:none;margin-right:auto}
+header.top a{text-decoration:none}
+main{max-width:860px;margin:0 auto;padding:24px 16px 72px;overflow-wrap:anywhere}
+h1{font-size:28px;line-height:1.35;margin:8px 0 16px} h2{font-size:22px;margin:40px 0 12px;padding-top:8px;border-top:1px solid var(--line)} h3{font-size:18px;margin:28px 0 8px}
+img{max-width:100%;height:auto;border-radius:8px;border:1px solid var(--line);background:#fff}
+blockquote{margin:16px 0;padding:10px 16px;background:var(--quote);border-left:3px solid var(--acc);border-radius:4px;color:var(--mute)}
+blockquote p{margin:4px 0}
+code{background:var(--code);padding:1px 5px;border-radius:4px;font-size:.9em}
+pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto} pre code{padding:0;background:none}
+table{border-collapse:collapse;display:block;overflow-x:auto;max-width:100%;margin:12px 0;font-size:15px}
+th,td{border:1px solid var(--line);padding:6px 10px;vertical-align:top} th{background:var(--code)}
+details{border:1px solid var(--line);border-radius:8px;padding:6px 12px;margin:8px 0;background:var(--card)}
+details[open]{padding-bottom:10px} summary{cursor:pointer;color:var(--acc);font-weight:500}
+mjx-container{overflow-x:auto;overflow-y:hidden;max-width:100%}
+.btn{display:inline-block;margin:4px 8px 4px 0;padding:6px 14px;border:1px solid var(--acc);border-radius:999px;text-decoration:none;font-size:14px}
+.pager{display:flex;justify-content:space-between;gap:12px;margin-top:48px;padding-top:16px;border-top:1px solid var(--line);font-size:15px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin:16px 0}
+.card{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden;color:inherit;text-decoration:none}
+.card:hover{border-color:var(--acc)} .card img{border:0;border-bottom:1px solid var(--line);border-radius:0;aspect-ratio:16/10;object-fit:contain;width:100%}
+.card .no{color:var(--mute);font-size:13px;padding:8px 12px 0} .card .t{padding:0 12px 12px;font-weight:500;line-height:1.5}
+.lead{font-size:17px;color:var(--mute)}
+footer{max-width:860px;margin:0 auto;padding:0 16px 40px;color:var(--mute);font-size:13px}
+</style>
+<script>window.MathJax={tex:{inlineMath:[["\\(","\\)"]],displayMath:[["\\[","\\]"],["$$","$$"]],processEscapes:true,processEnvironments:true}};</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js"></script>
+</head><body>
+<header class="top"><div class="in">
+<a class="brand" href="../index.html">机器人运控与强化学习</a>
+<a href="../lessons/index.html">讲义目录</a>
+<a href="../animations/index.html">动画</a>
+<a href="../review.html">复习卡片</a>
+<a href="../lessons/appendix-glossary.html">缩写表</a>
+<a href="https://wikieden.github.io/ai-books/">← 全部讲义书</a>
+</div></header>
+<main>
+<h1 id="_1">机器人运控与强化学习 · 讲义目录</h1>
+<blockquote>
+<p>英文名 RL for Robot Motion Control。《从零学强化学习》的续篇。<br />
+18 章（第一部分 11 章 + 第二部分 7 章）· 18 个动画（GIF + 可交互页面）· 36 张复习卡片 · 覆盖 SuperMimic（arXiv 2610.28480）全文，legged_gym、DeepMimic、BeyondMimic、SONIC、GRPO 相关论文的运控主线，以及 Underactuated Robotics 的 LQR / 人形 / 轨迹优化、凸 MPC + WBIC、MPPI、AMP、SHAC、ASAP</p>
+</blockquote>
+<h2 id="_2">这本书讲什么</h2>
+<p>从「策略到底输出什么」讲起：运控的三层和 PD 目标接口，把模仿人类动作写成 MDP，PPO 在几千个并行机器人上的配方，仿真到真机，动作模仿的采样技巧；再看清两件事：GRPO 为什么不适合底层运控，PPO 为什么「动作越多越要堆算力」；最后用两种梯度、可微 world model、BPTT + critic 三章，一步步拼出 SuperMimic：1 张 GPU 训 3 小时，超过 128 张 GPU 训 7 天的跟踪器。第二部分（第 12–18 章）补上两样东西：经典控制这条路（LQR、线性倒立摆与 ZMP、凸 MPC + WBC、iLQR 与 MPPI），作为理解「学习在省什么」的参照；以及学习路线的三块拼图（AMP 风格奖励、SHAC 可微仿真、上真机）。</p>
+<ul>
+<li><strong>适合谁</strong>：读完《从零学强化学习》（至少第 20–24 章：策略梯度、baseline、GAE、PPO、GRPO）的人。机器人只要知道「关节、电机、传感器」；PD 控制、高斯分布、重参数化、链式法则、线性化、双曲函数、雅可比都在用到的那一章现场补。</li>
+<li><strong>读完能做什么</strong>：读懂 SuperMimic、BeyondMimic、legged_gym 的方法和超参表；解释为什么一个人形跟踪器要那样设计奖励、终止、重置和梯度；对一个运控问题判断该用 PPO、GRPO、MPC 还是可微 world model；自己推 LQR 的 Riccati 迭代、ZMP 和捕获点、摩擦锥约束；动手做 学习计划 的 MC-M8（手写 PPO）、MC-M12（GRPO 对照）、MC-M16（小规模 SuperMimic）。</li>
+<li><strong>怎么读</strong>：按章顺序读。每章先看讲解和动画，再自己做练习，最后用复习卡片隔几天考自己。</li>
+</ul>
+<h2 id="_3">讲解的特点</h2>
+<ul>
+<li><strong>一次一小步</strong>：每个概念按「白话类比 → 公式（每个符号说清楚怎么读）→ 小数字亲手算一遍」讲。</li>
+<li><strong>每章一个动画</strong>：PD 跟踪、奖励核、高斯比率、域随机化、重置分布、信用分配、算力账、两种梯度、world model 滚动、BPTT 视野、三步循环、LQR、倒立摆与捕获点、滚动优化、MPPI、AMP、接触导数、动作修正量，都能播放、单步、拖滑块。</li>
+<li><strong>对照原文</strong>：讲到论文的地方标本地文本行号（如 SuperMimic L278–L281），论文文本在 <code>cs285-deep-rl/materials/text/papers/</code>。</li>
+<li><strong>算账不含糊</strong>：SuperMimic「省 1000 倍」怎么算、哪里不公平、扣掉后还剩多少（第 7 章）；玩具例子出了和讲义说法矛盾的数，就改例子，不改结论。</li>
+<li><strong>术语不设门槛</strong>：缩写第一次出现就给英文全称并逐词解释，全书缩写见 <a href="../lessons/appendix-glossary.html">缩写与术语表</a>。</li>
+<li><strong>每章都有代码对照</strong>：只用 NumPy，Mac 上直接跑，配测试核对和讲义一致；只算讲过的例子，不提前给练习答案。</li>
+<li><strong>每章收尾有口诀</strong>：全部口诀汇总在本页末尾。</li>
+</ul>
+<h2 id="_4">示例动画</h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><img alt="低增益 PD" src="../animations/01-pd-layers.gif" /></td>
+<td><img alt="GRPO vs PPO 信用分配" src="../animations/06-grpo-vs-ppo-credit.gif" /></td>
+<td><img alt="两种梯度" src="../animations/08-score-vs-pathwise.gif" /></td>
+</tr>
+<tr>
+<td><strong>第 1 章</strong> 低增益 PD：目标角其实是力矩旋钮 · <a href="../lessons/01-layers-pd.html">讲义</a> · <a href="../animations/01-pd-layers.html">▶ 交互</a></td>
+<td><strong>第 6 章</strong> GRPO 整条打分，惩罚摊薄；PPO 逐步打分，惩罚落在踩错那步 · <a href="../lessons/06-grpo-credit.html">讲义</a> · <a href="../animations/06-grpo-vs-ppo-credit.html">▶ 交互</a></td>
+<td><strong>第 8 章</strong> 采样梯度弯弯绕绕，解析梯度几乎直线 · <a href="../lessons/08-two-gradients.html">讲义</a> · <a href="../animations/08-score-vs-pathwise.html">▶ 交互</a></td>
+</tr>
+<tr>
+<td><img alt="算力账" src="../animations/07-gpu-hours.gif" /></td>
+<td><img alt="视野与 critic" src="../animations/10-bptt-horizon.gif" /></td>
+<td><img alt="三步循环" src="../animations/11-supermimic-loop.gif" /></td>
+</tr>
+<tr>
+<td><strong>第 7 章</strong> 21504 vs 3 GPU 时，扣掉数据和硬件还剩 564 倍 · <a href="../lessons/07-scaling-cost.html">讲义</a> · <a href="../animations/07-gpu-hours.html">▶ 交互</a></td>
+<td><strong>第 10 章</strong> 视野越长梯度越不稳，critic 补上视野外 · <a href="../lessons/10-bptt-critic.html">讲义</a> · <a href="../animations/10-bptt-horizon.html">▶ 交互</a></td>
+<td><strong>第 11 章</strong> 采数据 → 拟合模型 → 想象里改策略 · <a href="../lessons/11-supermimic.html">讲义</a> · <a href="../animations/11-supermimic-loop.html">▶ 交互</a></td>
+</tr>
+</tbody>
+</table>
+<p>可交互页面要用本地服务打开才能拖滑块：<code>.claude/launch.json</code> 里的 <code>robot-motion-rl-animations</code>（端口 8354），见 <a href="../animations/index.html">animations/README.md</a>。</p>
+<h2 id="_5">其他入口</h2>
+<ul>
+<li><a href="../review.html">复习卡片</a>：M01–M36，每章 2 张。</li>
+<li>运控调研：同一主题的综述版（PPO 配方、GRPO 实证、SuperMimic 精读、高效学习清单）。</li>
+<li>学习计划：阶段 0–I、里程碑 MC-M0–MC-M19。</li>
+<li>代码对照：solutions/chapter-code/。</li>
+</ul>
+<h2 id="_6">全书地图</h2>
+<pre><code>《从零学强化学习》第 20–24 章：策略梯度 → baseline → GAE → PPO → GRPO
+        │
+第 1 章 三层与 PD 接口 ──► 第 2 章 动作跟踪的 MDP ──► 第 3 章 PPO 运控配方
+        │                                                │
+        └──► 第 4 章 仿真到真机 ◄────────────────────────┘
+                     │
+             第 5 章 动作模仿与采样
+                     │
+        ┌────────────┴─────────────┐
+第 6 章 GRPO 不适合底层运控   第 7 章 规模化的代价（PPO 扩数据 = 扩算力）
+                                   │
+                         第 8 章 两种梯度（似然比 vs 解析）
+                                   │
+                         第 9 章 可微 world model
+                                   │
+                         第 10 章 BPTT + critic
+                                   │
+                         第 11 章 SuperMimic 全流程
+
+第二部分：经典控制作参照 + 学习路线补全
+第 12 章 LQR ──► 第 13 章 LIPM + ZMP ──► 第 14 章 凸 MPC + WBC ──► 第 15 章 iLQR + MPPI
+      （第 1 章的 PD 之上）                  （占第 1 章「中层」的位置）    （第 8 章两种梯度的在线版）
+第 16 章 AMP（接第 5 章）　第 17 章 SHAC（接第 10 章）　第 18 章 上真机（接第 4 章）
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>步</th>
+<th>做什么</th>
+<th>为什么</th>
+<th>在第几章</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>定接口</td>
+<td>策略 50 Hz 输出设定值，PD 1 kHz 出力矩</td>
+<td>策略不直接管电机；低增益下设定值是力矩代理</td>
+<td>1</td>
+</tr>
+<tr>
+<td>写 MDP</td>
+<td>本体感知 + 未来参考 → 29 个设定值；exp 核奖励；高度 / 倾斜终止</td>
+<td>把「像人一样动」变成可优化的分数</td>
+<td>2</td>
+</tr>
+<tr>
+<td>训练</td>
+<td>高斯策略 + PPO，几千环境并行，按 KL 调学习率</td>
+<td>并行抵消 PPO 的低样本效率</td>
+<td>3</td>
+</tr>
+<tr>
+<td>上真机</td>
+<td>域随机化、非对称 critic、teacher-student、sim context</td>
+<td>仿真参数和真机不一样</td>
+<td>4</td>
+</tr>
+<tr>
+<td>练难点</td>
+<td>RSI、提前终止、按回报重置</td>
+<td>动作库大、难点在中间</td>
+<td>5</td>
+</tr>
+<tr>
+<td>选算法</td>
+<td>长时域稠密奖励用 PPO，一次决策一个分才用 GRPO</td>
+<td>信用分配</td>
+<td>6</td>
+</tr>
+<tr>
+<td>看瓶颈</td>
+<td>每条动作都重新摸索同一副身体的物理</td>
+<td>PPO 扩数据就是扩算力</td>
+<td>7</td>
+</tr>
+<tr>
+<td>换梯度</td>
+<td>似然比 → 解析梯度</td>
+<td>每个样本带回方向，方差小</td>
+<td>8</td>
+</tr>
+<tr>
+<td>学模型</td>
+<td>确定性、以 ξ 为条件、8 步自回归、生存权重</td>
+<td>仿真器不可导</td>
+<td>9</td>
+</tr>
+<tr>
+<td>想象训练</td>
+<td>32 步 BPTT + critic + 梯度双重裁剪</td>
+<td>长视野会爆炸，短视野要 critic</td>
+<td>10</td>
+</tr>
+<tr>
+<td>拼起来</td>
+<td>采数据 → 拟合 → 想象改策略，每轮都转</td>
+<td>三个提速因素相乘</td>
+<td>11</td>
+</tr>
+<tr>
+<td>对照：有模型时</td>
+<td>LQR 闭式解；ZMP 与捕获点；凸 MPC 30 Hz + WBC 500 Hz；iLQR / MPPI 在线优化</td>
+<td>看清 RL 在省什么、付什么</td>
+<td>12–15</td>
+</tr>
+<tr>
+<td>补全学习路线</td>
+<td>风格奖励（AMP）、可微仿真（SHAC）、执行器网络 / 动作修正 / sim2sim</td>
+<td>没参考片段、梯度从哪来、怎么上真机</td>
+<td>16–18</td>
+</tr>
+</tbody>
+</table>
+<h2 id="_7">目录</h2>
+<table>
+<thead>
+<tr>
+<th>章</th>
+<th>主题</th>
+<th>一句话精要</th>
+<th>动画</th>
+<th>卡片</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>第一部分</strong></td>
+<td><strong>从 PPO 到 SuperMimic</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>1</td>
+<td><a href="../lessons/01-layers-pd.html">三层与 PD 目标接口</a></td>
+<td>策略 50 Hz 给设定值，PD 1 kHz 出力矩；低增益时设定值是力矩旋钮</td>
+<td><a href="../animations/01-pd-layers.html">01</a></td>
+<td>M01–M02</td>
+<td>正文 ✅，练习待作答</td>
+</tr>
+<tr>
+<td>2</td>
+<td><a href="../lessons/02-tracking-mdp.html">把动作跟踪写成 MDP</a></td>
+<td>930 维本体感知 + 10 帧参考；exp(−e²/σ²) 奖励核；偏高倒斜就终止</td>
+<td><a href="../animations/02-reward-kernel.html">02</a></td>
+<td>M03–M04</td>
+<td>正文 ✅，练习待作答</td>
+</tr>
+<tr>
+<td>3</td>
+<td><a href="../lessons/03-ppo-recipe.html">PPO 运控配方</a></td>
+<td>高斯策略的 log 概率与比率；4096 × 24 一批；KL 自适应学习率</td>
+<td><a href="../animations/03-gauss-ratio.html">03</a></td>
+<td>M05–M06</td>
+<td>正文 ✅，练习待作答</td>
+</tr>
+<tr>
+<td>4</td>
+<td><a href="../lessons/04-sim2real.html">从仿真到真机</a></td>
+<td>域随机化买的是稳；特权信息给 critic 或 teacher；ξ 喂给模型</td>
+<td><a href="../animations/04-domain-rand.html">04</a></td>
+<td>M07–M08</td>
+<td>正文 ✅，练习待作答</td>
+</tr>
+<tr>
+<td>5</td>
+<td><a href="../lessons/05-imitation-sampling.html">动作模仿与采样</a></td>
+<td>RSI 从中间开局；摔了就停；50/40/10 按回报重置</td>
+<td><a href="../animations/05-reset-sampling.html">05</a></td>
+<td>M09–M10</td>
+<td>正文 ✅，练习待作答</td>
+</tr>
+<tr>
+<td>6</td>
+<td><a href="../lessons/06-grpo-credit.html">GRPO 为什么不适合底层运控</a></td>
+<td>整条打分 vs 逐步打分；惩罚摊成 1/T；GRPO 留给 VLA 微调</td>
+<td><a href="../animations/06-grpo-vs-ppo-credit.html">06</a></td>
+<td>M11–M12</td>
+<td>正文 ✅，练习待作答</td>
+</tr>
+<tr>
+<td>7</td>
+<td><a href="../lessons/07-scaling-cost.html">规模化的代价</a></td>
+<td>21504 vs 3 GPU 时；扣掉后仍 564×；PPO 加卡不变聪明</td>
+<td><a href="../animations/07-gpu-hours.html">07</a></td>
+<td>M13–M14</td>
+<td>正文 ✅，练习待作答</td>
+</tr>
+<tr>
+<td>8</td>
+<td><a href="../lessons/08-two-gradients.html">两种梯度</a></td>
+<td>似然比只看分，解析沿路求导；同一模型里省 64 倍</td>
+<td><a href="../animations/08-score-vs-pathwise.html">08</a></td>
+<td>M15–M16</td>
+<td>正文 ✅，练习待作答</td>
+</tr>
+<tr>
+<td>9</td>
+<td><a href="../lessons/09-world-model.html">可微 world model</a></td>
+<td>已知随机性当输入；8 步自回归纠偏；生存权重让摔倒可导</td>
+<td><a href="../animations/09-wm-rollout.html">09</a></td>
+<td>M17–M18</td>
+<td>正文 ✅，练习待作答</td>
+</tr>
+<tr>
+<td>10</td>
+<td><a href="../lessons/10-bptt-critic.html">在想象里训练</a></td>
+<td>雅可比连乘会爆炸；32 步 BPTT + critic；梯度双重裁剪</td>
+<td><a href="../animations/10-bptt-horizon.html">10</a></td>
+<td>M19–M20</td>
+<td>正文 ✅，练习待作答</td>
+</tr>
+<tr>
+<td>11</td>
+<td><a href="../lessons/11-supermimic.html">SuperMimic 全流程</a></td>
+<td>三步循环、一次迭代的账、三个提速因素、局限与选路线</td>
+<td><a href="../animations/11-supermimic-loop.html">11</a></td>
+<td>M21–M22</td>
+<td>正文 ✅，练习待作答</td>
+</tr>
+<tr>
+<td><strong>第二部分</strong></td>
+<td><strong>经典控制作参照 + 学习路线补全</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>12</td>
+<td><a href="../lessons/12-lqr.html">LQR</a></td>
+<td>线性 + 二次时 Bellman 有闭式解；Riccati 迭代；q 管偏离、r 管用力</td>
+<td><a href="../animations/12-lqr.html">12</a></td>
+<td>M23–M24</td>
+<td>正文 ✅，练习待作答</td>
+</tr>
+<tr>
+<td>13</td>
+<td><a href="../lessons/13-lipm-zmp.html">线性倒立摆与 ZMP</a></td>
+<td>ẍ = ω²(x − p)；按 cosh 发散；捕获点 ξ = x + ẋ/ω</td>
+<td><a href="../animations/13-lipm-zmp.html">13</a></td>
+<td>M25–M26</td>
+<td>正文 ✅，练习待作答</td>
+</tr>
+<tr>
+<td>14</td>
+<td><a href="../lessons/14-convex-mpc.html">单刚体凸 MPC 与 WBC</a></td>
+<td>机身当砖头；摩擦锥锁住 μg；滚动优化；τ = Jᵀf</td>
+<td><a href="../animations/14-convex-mpc.html">14</a></td>
+<td>M27–M28</td>
+<td>正文 ✅，练习待作答</td>
+</tr>
+<tr>
+<td>15</td>
+<td><a href="../lessons/15-ilqr-mppi.html">iLQR 与 MPPI</a></td>
+<td>沿轨迹线性化 + LQR 反推；撒序列 + exp(−代价/λ) 加权；在线 vs 离线</td>
+<td><a href="../animations/15-ilqr-mppi.html">15</a></td>
+<td>M29–M30</td>
+<td>正文 ✅，练习待作答</td>
+</tr>
+<tr>
+<td>16</td>
+<td><a href="../lessons/16-amp.html">AMP</a></td>
+<td>判别器打分当风格奖励；r_S = max(0, 1 − 0.25(D−1)²)；任务风格各一半</td>
+<td><a href="../animations/16-amp.html">16</a></td>
+<td>M31–M32</td>
+<td>正文 ✅，练习待作答</td>
+</tr>
+<tr>
+<td>17</td>
+<td><a href="../lessons/17-shac.html">SHAC 与可微仿真</a></td>
+<td>硬接触导数跳变、softplus 磨平；32 步窗口 + critic；梯度从仿真器还是模型来</td>
+<td><a href="../animations/17-shac.html">17</a></td>
+<td>M33–M34</td>
+<td>正文 ✅，练习待作答</td>
+</tr>
+<tr>
+<td>18</td>
+<td><a href="../lessons/18-deploy.html">上真机</a></td>
+<td>四类差距；执行器网络；ASAP 动作修正量；sim2sim 与上机清单</td>
+<td><a href="../animations/18-deploy.html">18</a></td>
+<td>M35–M36</td>
+<td>正文 ✅，练习待作答</td>
+</tr>
+<tr>
+<td>附录</td>
+<td><a href="../lessons/appendix-glossary.html">缩写与术语表</a></td>
+<td>全书缩写、记号、论文名</td>
+<td>—</td>
+<td>—</td>
+<td>✅</td>
+</tr>
+</tbody>
+</table>
+<h2 id="_8">后续大纲</h2>
+<p>全书 18 章正文已写完。接下来按学习的进度：</p>
+<ul>
+<li>各章练习作答后，把答错、卡住的地方补成卡片（M37 起）。</li>
+<li>学习计划的动手里程碑（MC-M0–MC-M19）做完后，把实验结果补进对应章节的「自己改一改」或附录。</li>
+<li>SuperMimic 若公开代码，补一章「读源码」，对照第 9–11 章。</li>
+</ul>
+<h2 id="_9">口诀汇总</h2>
+<p><strong>第 1 章</strong></p>
+<blockquote>
+<p>高层想、中层定、底层出力：VLA 几赫兹、策略五十赫兹、PD 一千赫兹；<br />
+弹簧拉向目标、阻尼刹住速度，力矩到顶就截平；<br />
+增益调低关节软，负载压出一截差，目标角变成力矩钮。</p>
+</blockquote>
+<p><strong>第 2 章</strong></p>
+<blockquote>
+<p>闭眼跳舞靠本体：关节、速度、IMU、上一步，十帧历史补看不见；<br />
+跟着老师看十帧，输出二十九个设定值；<br />
+误差进核零到一，加权求和乘 dt；<br />
+偏高倒斜就终止，正分拿不到，自然学会别摔。</p>
+</blockquote>
+<p><strong>第 3 章</strong></p>
+<blockquote>
+<p>连续动作投飞镖：瞄准 μ、手抖 σ，log 概率三项加；<br />
+比率 log 相减再 exp，过了一点二就剪平；<br />
+四千个环境二十四步，切四份看五遍；<br />
+KL 超两倍降一点五，低一半升一点五。</p>
+</blockquote>
+<p><strong>第 4 章</strong></p>
+<blockquote>
+<p>冰上学会地毯摔，只练一处只会一处；<br />
+每局换个参数练，处处过得去，买的是稳不是最优；<br />
+教练知道地滑不滑：给 critic 看，或 teacher 教 student；<br />
+已知的随机告诉模型，模型就能是确定的。</p>
+</blockquote>
+<p><strong>第 5 章</strong></p>
+<blockquote>
+<p>跳舞照视频，奖励就好写；<br />
+难处在中间，随机开局才练得到；<br />
+摔了就喊停，躺着的样本不要；<br />
+一半均匀保底，四成押最差，一成照顾学会的。</p>
+</blockquote>
+<p><strong>第 6 章</strong></p>
+<blockquote>
+<p>同题答几遍，组平均当 baseline，整条共享一个分；<br />
+踩空一脚晃几下才摔，错在那一脚，不在后面晃；<br />
+critic 看出局面何时变坏，惩罚落在那一步；<br />
+长时域稠密奖励用 PPO，成功失败一个分才轮到 GRPO。</p>
+</blockquote>
+<p><strong>第 7 章</strong></p>
+<blockquote>
+<p>扩动作两条路：专家蒸馏有损，通用策略烧卡；<br />
+一百二十八卡七天两万一，一卡三时，差七千；<br />
+扣掉数据二点三、硬件五点五，还剩五百多；<br />
+同一副身体，PPO 每条重摸一遍，加卡不变聪明。</p>
+</blockquote>
+<p><strong>第 8 章</strong></p>
+<blockquote>
+<p>调糖两办法：冲几杯尝分数，或按公式求导数；<br />
+似然比只看分，黑箱能用，方差大，靠样本压；<br />
+解析沿路求导，每个样本带方向，要环境可微；<br />
+同一模型比一比，解析省六十四倍。</p>
+</blockquote>
+<p><strong>第 9 章</strong></p>
+<blockquote>
+<p>收音机拆不开，听反应画近似图，同一副身体一个模型；<br />
+知道的随机当输入、在外加，推搡学不了就去掉；<br />
+闭眼走路误差滚，八步自回归逼它纠偏；<br />
+摔倒变概率，生存权重连乘，开关变旋钮。</p>
+</blockquote>
+<p><strong>第 10 章</strong></p>
+<blockquote>
+<p>多米诺连乘，H 长就爆炸或消失；<br />
+前三十二步精确求导，后面交给 critic 估；<br />
+没有 critic 只看眼前，推一把就站不稳；<br />
+确定策略没噪声可压，梯度先缩总量再截单个。</p>
+</blockquote>
+<p><strong>第 11 章</strong></p>
+<blockquote>
+<p>上路采数据、更新车感、躺床上演练，三步每轮都转；<br />
+旧数据照样能用，物理不看是谁采的；<br />
+缓冲四百万、每轮想十三万，一共四百多亿步；<br />
+共享模型、想象快、梯度准，三样乘起来就是几百倍。</p>
+</blockquote>
+<p><strong>第 12 章</strong></p>
+<blockquote>
+<p>院子当平地，平衡点附近拉直线；<br />
+二次代价配线性模型，价值是抛物线、策略是一条直线；<br />
+Riccati 反复代，几步就收敛，P 是价值、K 是策略；<br />
+q 在乎偏离、r 舍不得用力，离平衡点远了就不灵。</p>
+</blockquote>
+<p><strong>第 13 章</strong></p>
+<blockquote>
+<p>公交车上压前脚，地面托你那一点叫 ZMP，只能在脚底；<br />
+人压成一个点，质心在 ZMP 哪边就往哪边加速；<br />
+歪了按 cosh 倒，脚底挪不够就得迈步；<br />
+位置加速度除以 ω，踩在捕获点就停住。</p>
+</blockquote>
+<p><strong>第 14 章</strong></p>
+<blockquote>
+<p>机身当砖头，只算每只脚推多大，问题变凸；<br />
+只推不拉、不能太斜，摩擦锥把加速度锁在 μg；<br />
+看一段、走一步、再重看，三十赫兹滚着解；<br />
+力乘雅可比转置变力矩，WBC 五百赫兹顾全身。</p>
+</blockquote>
+<p><strong>第 15 章</strong></p>
+<blockquote>
+<p>不练本能现规划，求一串控制量；<br />
+iLQR 沿轨迹线性化，LQR 往回推，三遍就收敛；<br />
+MPPI 撒一把，exp 负代价除 λ 加权平均，不要导数好并行；<br />
+在线现算是 MPC，离线学好是 RL。</p>
+</blockquote>
+<p><strong>第 16 章</strong></p>
+<blockquote>
+<p>跟踪逐帧照视频，AMP 只求看着像；<br />
+裁判把真的推向一、假的推向负一，分不清时就像了；<br />
+一减四分之一 (D−1)²，截到零，D 越近一分越高；<br />
+任务风格各一半，互相牵制不跑偏。</p>
+</blockquote>
+<p><strong>第 17 章</strong></p>
+<blockquote>
+<p>收音机给了电路图，仿真器自己出导数；<br />
+脚在空中导数零，一碰地跳到负一千，策略学不会踩；<br />
+softplus 把台阶磨成坡，导数连续，代价是隔空有力；<br />
+SHAC 对真仿真求导要磨平，SuperMimic 对学的模型求导随便用。</p>
+</blockquote>
+<p><strong>第 18 章</strong></p>
+<blockquote>
+<p>模拟器学会真车开：电机、参数、延迟、传感四处差；<br />
+电机写不准就学一个网络，塞回仿真里；<br />
+方向盘打三十真车转二十四，学个 Δa 把手感对齐，练完再拿掉；<br />
+换个试车场先跑一圈，接口观测随机延迟安全，逐项核对再上机。</p>
+</blockquote>
+</main>
+<footer>来自个人学习仓库的对话讲义，含练习作答记录。源码：<a href="https://github.com/wikieden/robot-motion-rl">github.com/wikieden/robot-motion-rl</a>。更多讲义书：<a href="https://wikieden.github.io/ai-books/">AI 算法图解讲义（合集）</a></footer>
+</body></html>

@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AMP 风格奖励</title><link rel="stylesheet" href="anim.css"></head>
+<body><main>
+<h1>第 16 章 · AMP：策略的动作分布靠近动作库，风格奖励随之上升</h1>
+<p class="sub">配套讲义：<a href="../lessons/16-amp.html">第 16 章 · AMP：不逐帧跟踪，只要求「动作像人」</a> 第二至四步。r_S = max(0, 1 − 0.25(D − 1)²) 和 w_G = w_S = 0.5 取自 AMP 论文式 7、式 4；左图的点云和训练过程是<strong>示意</strong>。<br>缩写：AMP = Adversarial Motion Priors（对抗式 / 动作 / 先验）；D：判别器输出（动作库 → +1，策略 → −1）；r_G、r_S：任务奖励、风格奖励。</p>
+<div class="panel"><svg id="sv" viewBox="0 0 680 400"></svg></div>
+<div class="stats">
+<div class="stat"><div class="l">训练轮次</div><div class="v" id="s0">0</div></div>
+<div class="stat"><div class="l">策略样本平均 D</div><div class="v" id="s1">–</div></div>
+<div class="stat"><div class="l">风格 / 总奖励</div><div class="v" id="s2">–</div></div>
+</div>
+<div class="row ctl"><label>任务奖励权重 w_G（w_S = 1 − w_G）</label><input type="range" id="wg" min="0" max="1" step="0.05" value="0.5"><span id="wgv">0.5</span></div>
+<div class="row ctl"><label>D（拖动后停在这里）</label><input type="range" id="dd" min="-2" max="3" step="0.05" value="-1"><span id="ddv">-1</span></div>
+<div class="row"><button id="play">▶ 播放</button><button id="step">→ 单步</button><button id="reset">↺ 换一组随机数</button></div>
+<p class="note">看点：① 左图灰点是动作库里的状态转移特征，蓝点是策略做出来的；播放时蓝点向灰点靠拢（第二步，示意）。② 中图是 r_S 随 D 的曲线，红点是策略样本的平均 D：一开始被判别器认出来（D ≈ −1），风格奖励接近 0；越来越像以后 D 往 1 走（第三步）。③ 右图三根柱子：任务奖励（示意中保持 0.7）、风格奖励、加权总奖励；拖 w_G 看两者此消彼长（第四步）。</p>
+</main>
+<script src="anim.js"></script>
+<script>
+const sv=$('sv');const N=40;
+const A={x:20,y:30,w:220,h:300},B={x:280,y:30,w:220,h:300},C={x:540,y:30,w:120,h:300};
+[A,B,C].forEach(p=>el('rect',{x:p.x,y:p.y,width:p.w,height:p.h,fill:'var(--bg)',stroke:'var(--line)'},sv));
+txt('状态转移特征（示意）',{x:A.x,y:A.y-8,class:'m'},sv);txt('r_S = max(0, 1 − 0.25(D−1)²)',{x:B.x,y:B.y-8,class:'m'},sv);txt('奖励',{x:C.x,y:C.y-8,class:'m'},sv);
+const gA=el('g',{},sv);
+const BX=d=>B.x+(d+2)/5*B.w,BY=r=>B.y+B.h-r*B.h*0.9;
+const rs=d=>Math.max(0,1-0.25*(d-1)**2);
+const pts=[];for(let i=0;i<=100;i++){const d=-2+i/100*5;pts.push(`${BX(d)},${BY(rs(d))}`)}el('polyline',{points:pts.join(' '),fill:'none',stroke:'var(--accent)','stroke-width':2.2},sv);
+[-2,-1,0,1,2,3].forEach(d=>txt(d,{x:BX(d),y:B.y+B.h+16,'text-anchor':'middle',class:'m'},sv));txt('D',{x:B.x+B.w,y:B.y+B.h+32,'text-anchor':'end',class:'m'},sv);
+const dot=el('circle',{r:7,fill:'var(--bad)'},sv);
+const names=['任务','风格','总'],cols=['var(--teal)','var(--purple)','var(--accent)'];
+const bars=names.map((n,i)=>{txt(n,{x:C.x+12+i*36+12,y:C.y+C.h+16,'text-anchor':'middle',class:'m'},sv);return el('rect',{x:C.x+12+i*36,width:24,fill:cols[i]},sv)});
+let it,real,pol,dval,auto;
+function reset(sd){seed(sd);$('wgv').textContent=$('wg').value;real=Array.from({length:60},()=>[0.65+0.12*gauss(),0.35+0.12*gauss()]);pol=Array.from({length:60},()=>[0.25+0.1*gauss(),0.75+0.1*gauss()]);it=0;dval=-1;draw()}
+function next(){if(it>=N)return false;it++;const s=Math.min(1,it/N);pol=pol.map(([x,y])=>[x+(0.65-x)*0.08+0.004*gauss(),y+(0.35-y)*0.08+0.004*gauss()]);dval=-1+1.9*(1-Math.exp(-3*s));draw();return true}
+function draw(){clear(gA);const P=(p,c)=>el('circle',{cx:A.x+p[0]*A.w,cy:A.y+p[1]*A.h,r:3.2,fill:c,opacity:0.65},gA);real.forEach(p=>P(p,'var(--muted)'));pol.forEach(p=>P(p,'var(--accent)'));
+  dot.setAttribute('cx',BX(dval));dot.setAttribute('cy',BY(rs(dval)));
+  const wg=+$('wg').value,rg=0.7,r=rs(dval),tot=wg*rg+(1-wg)*r;[rg,r,tot].forEach((v,i)=>{const h=v*C.h*0.9;bars[i].setAttribute('y',C.y+C.h-h);bars[i].setAttribute('height',h)});
+  $('s0').textContent=it;$('s1').textContent=dval.toFixed(2);$('s2').textContent=r.toFixed(2)+' / '+tot.toFixed(2)}
+$('wg').oninput=()=>{$('wgv').textContent=$('wg').value;draw()};
+$('dd').oninput=()=>{ANIM.stop();dval=+$('dd').value;$('ddv').textContent=dval;draw()};
+setupPlayer({captureSeed:2,reset,next},160);
+</script><a href="https://wikieden.github.io/ai-books/" style="position:fixed;right:12px;bottom:12px;z-index:99;padding:4px 10px;border-radius:14px;background:rgba(127,127,127,.18);color:inherit;font:13px/1.6 system-ui,sans-serif;text-decoration:none">← 全部讲义书</a>
+</body></html>

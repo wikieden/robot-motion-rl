@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MPPI 采样与加权</title><link rel="stylesheet" href="anim.css"></head>
+<body><main>
+<h1>第 15 章 · MPPI：撒一把随机序列，按 exp(−代价/λ) 加权平均</h1>
+<p class="sub">配套讲义：<a href="../lessons/15-ilqr-mppi.html">第 15 章 · iLQR 与 MPPI：不训练策略，每次现算一条轨迹</a> 第三步。系统 x' = x + 0.1·(sin x + u)，从 0 走到 π，30 步，代价 Σ(x − π)² + 0.1u²，和讲义一致；页面里的随机数和代码不同，收敛曲线只是同一个过程的另一次运行。<br>缩写：MPPI = Model Predictive Path Integral（模型预测 / 路径 / 积分）；λ：温度，越小越只听最好的那几条；iLQR = iterative LQR（迭代 / LQR）。</p>
+<div class="panel"><svg id="sv" viewBox="0 0 680 400"></svg></div>
+<div class="stats">
+<div class="stat"><div class="l">轮次</div><div class="v" id="s0">0</div></div>
+<div class="stat"><div class="l">当前总代价</div><div class="v" id="s1">–</div></div>
+<div class="stat"><div class="l">权重最大的一条占</div><div class="v" id="s2">–</div></div>
+</div>
+<div class="row ctl"><label>λ</label><input type="range" id="lm" min="0.2" max="20" step="0.2" value="1"><span id="lmv">1</span></div>
+<div class="row ctl"><label>采样条数</label><input type="range" id="kk" min="4" max="128" step="4" value="64"><span id="kkv">64</span></div>
+<div class="row ctl"><label>噪声 σ</label><input type="range" id="sg" min="0.2" max="3" step="0.1" value="1"><span id="sgv">1</span></div>
+<div class="row"><button id="play">▶ 播放</button><button id="step">→ 单步</button><button id="reset">↺ 换一组随机数</button></div>
+<p class="note">看点：① 左图细线是这一轮的候选轨迹，颜色越深权重越大；粗蓝线是加权平均后的新轨迹，绿色虚线是目标 π（第三步）。② 右图是每轮的总代价，灰虚线是 iLQR 的收敛值 23.73（第二步）。③ 拖 λ：调小只听最好的几条（「权重最大的一条」接近 100%），调大接近简单平均、收敛变慢。</p>
+</main>
+<script src="anim.js"></script>
+<script>
+const sv=$('sv');const T=30,DT=0.1;const LX=50,LW=380,LT=20,LH=330,RX=470,RW=190;
+const LXp=t=>LX+t/T*LW,LYp=x=>LT+LH-clamp((x+1)/5,0,1)*LH;
+el('rect',{x:LX,y:LT,width:LW,height:LH,fill:'var(--bg)',stroke:'var(--line)'},sv);el('rect',{x:RX,y:LT,width:RW,height:LH,fill:'var(--bg)',stroke:'var(--line)'},sv);
+txt('状态 x 随时间（30 步）',{x:LX,y:LT-6,class:'m'},sv);txt('每轮总代价（对数）',{x:RX,y:LT-6,class:'m'},sv);
+el('line',{x1:LX,x2:LX+LW,y1:LYp(Math.PI),y2:LYp(Math.PI),stroke:'var(--good)','stroke-dasharray':'5 4'},sv);txt('π',{x:LX+LW+4,y:LYp(Math.PI)+4,fill:'var(--good)'},sv);
+const RY=c=>LT+LH-(Math.log10(clamp(c,10,400))-1)/(Math.log10(400)-1)*LH;
+[10,30,100,300].forEach(c=>txt(c,{x:RX-4,y:RY(c)+4,'text-anchor':'end',class:'m'},sv));
+el('line',{x1:RX,x2:RX+RW,y1:RY(23.73),y2:RY(23.73),stroke:'var(--muted)','stroke-dasharray':'4 3'},sv);
+const gS=el('g',{},sv);const mean=el('polyline',{fill:'none',stroke:'var(--accent)','stroke-width':3},sv);const cl=el('polyline',{fill:'none',stroke:'var(--warm)','stroke-width':2},sv);
+const f=(x,u)=>x+DT*(Math.sin(x)+u);
+function roll(us){const xs=[0];for(const u of us)xs.push(f(xs[xs.length-1],u));return xs}
+function cost(xs,us){let c=0;for(let i=1;i<xs.length;i++)c+=(xs[i]-Math.PI)**2;for(const u of us)c+=0.1*u*u;return c}
+let us,it,hist,samples;
+function reset(sd){seed(sd);['lm','kk','sg'].forEach(id=>$(id+'v').textContent=$(id).value);us=Array(T).fill(0);it=0;samples=[];hist=[cost(roll(us),us)];draw()}
+function next(){if(it>=10)return false;const K=+$('kk').value,s=+$('sg').value,lam=+$('lm').value;
+  const eps=[],S=[];for(let k=0;k<K;k++){const e=Array.from({length:T},()=>s*gauss());const u2=us.map((v,i)=>v+e[i]);eps.push(e);S.push(cost(roll(u2),u2))}
+  const mn=Math.min(...S);let w=S.map(v=>Math.exp(-(v-mn)/lam));const sw=w.reduce((a,b)=>a+b,0);w=w.map(v=>v/sw);
+  samples=eps.map((e,k)=>({xs:roll(us.map((v,i)=>v+e[i])),w:w[k]}));
+  us=us.map((v,i)=>v+w.reduce((a,wk,k)=>a+wk*eps[k][i],0));it++;hist.push(cost(roll(us),us));draw(Math.max(...w));return true}
+function draw(wmax){clear(gS);const top=samples.slice().sort((a,b)=>a.w-b.w);const mw=Math.max(1e-9,...top.map(s=>s.w));
+  top.forEach(s=>el('polyline',{points:s.xs.map((x,i)=>`${LXp(i)},${LYp(x)}`).join(' '),fill:'none',stroke:'var(--purple)','stroke-width':1,opacity:0.08+0.8*s.w/mw},gS));
+  mean.setAttribute('points',roll(us).map((x,i)=>`${LXp(i)},${LYp(x)}`).join(' '));
+  cl.setAttribute('points',hist.map((c,i)=>`${RX+i/10*RW},${RY(c)}`).join(' '));
+  $('s0').textContent=it;$('s1').textContent=hist[hist.length-1].toFixed(1);$('s2').textContent=wmax?(wmax*100).toFixed(0)+'%':'–'}
+['lm','kk','sg'].forEach(id=>$(id).oninput=()=>{ANIM.stop();ANIM.reset(Date.now())});
+setupPlayer({captureSeed:3,reset,next},700);
+</script><a href="https://wikieden.github.io/ai-books/" style="position:fixed;right:12px;bottom:12px;z-index:99;padding:4px 10px;border-radius:14px;background:rgba(127,127,127,.18);color:inherit;font:13px/1.6 system-ui,sans-serif;text-decoration:none">← 全部讲义书</a>
+</body></html>

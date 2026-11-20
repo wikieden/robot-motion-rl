@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>第 9 章 · 可微 world model：学一个能求导的「物理模拟器」 · 机器人运控与强化学习</title>
+<style>
+:root{--bg:#fbfbfa;--fg:#1f2328;--mute:#5d6470;--line:#e3e5e8;--card:#fff;--acc:#2f6fdf;--code:#f2f3f5;--quote:#f4f6fa}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15181d;--fg:#e4e7ec;--mute:#9aa3b2;--line:#2c323b;--card:#1c2026;--acc:#7aa7ff;--code:#22272f;--quote:#1b2029}}
+:root[data-theme="dark"]{--bg:#15181d;--fg:#e4e7ec;--mute:#9aa3b2;--line:#2c323b;--card:#1c2026;--acc:#7aa7ff;--code:#22272f;--quote:#1b2029}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.75 -apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Helvetica Neue",sans-serif}
+a{color:var(--acc)}
+header.top{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+header.top .in{max-width:860px;margin:0 auto;padding:10px 16px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;font-size:14px}
+header.top .brand{font-weight:600;color:var(--fg);text-decoration:none;margin-right:auto}
+header.top a{text-decoration:none}
+main{max-width:860px;margin:0 auto;padding:24px 16px 72px;overflow-wrap:anywhere}
+h1{font-size:28px;line-height:1.35;margin:8px 0 16px} h2{font-size:22px;margin:40px 0 12px;padding-top:8px;border-top:1px solid var(--line)} h3{font-size:18px;margin:28px 0 8px}
+img{max-width:100%;height:auto;border-radius:8px;border:1px solid var(--line);background:#fff}
+blockquote{margin:16px 0;padding:10px 16px;background:var(--quote);border-left:3px solid var(--acc);border-radius:4px;color:var(--mute)}
+blockquote p{margin:4px 0}
+code{background:var(--code);padding:1px 5px;border-radius:4px;font-size:.9em}
+pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto} pre code{padding:0;background:none}
+table{border-collapse:collapse;display:block;overflow-x:auto;max-width:100%;margin:12px 0;font-size:15px}
+th,td{border:1px solid var(--line);padding:6px 10px;vertical-align:top} th{background:var(--code)}
+details{border:1px solid var(--line);border-radius:8px;padding:6px 12px;margin:8px 0;background:var(--card)}
+details[open]{padding-bottom:10px} summary{cursor:pointer;color:var(--acc);font-weight:500}
+mjx-container{overflow-x:auto;overflow-y:hidden;max-width:100%}
+.btn{display:inline-block;margin:4px 8px 4px 0;padding:6px 14px;border:1px solid var(--acc);border-radius:999px;text-decoration:none;font-size:14px}
+.pager{display:flex;justify-content:space-between;gap:12px;margin-top:48px;padding-top:16px;border-top:1px solid var(--line);font-size:15px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin:16px 0}
+.card{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden;color:inherit;text-decoration:none}
+.card:hover{border-color:var(--acc)} .card img{border:0;border-bottom:1px solid var(--line);border-radius:0;aspect-ratio:16/10;object-fit:contain;width:100%}
+.card .no{color:var(--mute);font-size:13px;padding:8px 12px 0} .card .t{padding:0 12px 12px;font-weight:500;line-height:1.5}
+.lead{font-size:17px;color:var(--mute)}
+footer{max-width:860px;margin:0 auto;padding:0 16px 40px;color:var(--mute);font-size:13px}
+</style>
+<script>window.MathJax={tex:{inlineMath:[["\\(","\\)"]],displayMath:[["\\[","\\]"],["$$","$$"]],processEscapes:true,processEnvironments:true}};</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js"></script>
+</head><body>
+<header class="top"><div class="in">
+<a class="brand" href="../index.html">机器人运控与强化学习</a>
+<a href="../lessons/index.html">讲义目录</a>
+<a href="../animations/index.html">动画</a>
+<a href="../review.html">复习卡片</a>
+<a href="../lessons/appendix-glossary.html">缩写表</a>
+<a href="https://wikieden.github.io/ai-books/">← 全部讲义书</a>
+</div></header>
+<main>
+<h1 id="9-world-model">第 9 章 · 可微 world model：学一个能求导的「物理模拟器」</h1><p><a class="btn" href="../animations/09-wm-rollout.html">▶ 打开本章可交互动画</a></p>
+<blockquote>
+<p>本章回答：解析梯度要可微的环境，真实仿真器不可微，怎么办？SuperMimic 的 world model 为什么可以是确定性的？为什么用 8 步窗口自回归地训练，而不是只预测下一步？摔倒这种「突然结束」怎么变得可导？<br />
+讲解日期：2026-11-20 · 上一章：<a href="../lessons/08-two-gradients.html">第 8 章 两种梯度</a> · 下一章：<a href="../lessons/10-bptt-critic.html">第 10 章 在想象里训练</a><br />
+对应原文：SuperMimic §3.1（<code>papers/supermimic-2610.28480.txt</code> L219–L230：确定性策略、动作噪声、生存权重）、§3.2（L237–L256，式 1）、§4.2「One model amortizes」（L405–L409）、附录 A（L711：去掉推搡扰动）<br />
+本章缩写：WM = World Model（世界 / 模型：学出来的环境动力学）；f_ω：动力学网络（ω 读 "omega"，是它的参数）；ŝ：模型预测的状态（hat 记号 ^ 表示「模型的版本」）；ξ：sim context，这一局的随机化参数（第 4 章）；k：训练窗口长度（这里 8）；d̂：预测的终止概率；c_t：生存权重；BCE = Binary Cross-Entropy（二元 / 交叉熵）；MLP = Multilayer Perceptron（多层 / 感知机）。全部缩写见 <a href="../lessons/appendix-glossary.html">附录 · 缩写与术语表</a></p>
+</blockquote>
+<h2 id="_1">讲解</h2>
+<h3 id="2026-11-20">第一步：为什么要学一个，而不是直接对仿真器求导（2026-11-20）</h3>
+<p><strong>类比：你没法拆开一台老式收音机看电路，但可以听它对每个旋钮的反应，自己画一张「旋钮 → 声音」的近似图，再在图上算「往哪拧更好」。</strong></p>
+<p>真实的刚体仿真器（MuJoCo Warp）有两个问题：接触是突变的（脚一碰地，速度瞬间变），导数要么不存在要么很大；很多实现本身不支持求导。SuperMimic 的办法（§3.2）：从仿真器记录下来的转移 <span class="arithmatex">\((s_t, a_t, s_{t+1})\)</span> 里，学一个<strong>可微的替代模型</strong></p>
+<div class="arithmatex">\[\hat s_{t+1} = f_\omega(\hat s_t, a_t, \xi)\]</div>
+<p>再配上奖励头、观测头、终止头（奖励能直接写公式的就不学）。<span class="arithmatex">\(f_\omega\)</span> 是一个 3 层、每层 2048 宽的 MLP（附录表 A.4）。</p>
+<p>它的好处是第 7 章说的：<strong>所有动作都由同一副身体执行</strong>，一个模型学的是这副身体的物理，动作库从 1 小时扩到 264 小时，8 步预测误差始终在 0.007–0.011（L405–L409）。新动作只是给同一套物理多提供证据。</p>
+<p><strong>一句话</strong>：仿真器不可导，就从它的数据里学一个可导的近似；物理是共享的，一个模型就够。</p>
+<h3 id="2026-11-20_1">第二步：确定性模型：已知的随机性直接告诉它（2026-11-20）</h3>
+<p><strong>类比：天气预报员如果知道今天有冷空气南下，就不用给出「可能冷可能热」的模糊预报，直接说「降温 5 度」。</strong></p>
+<p>仿真里的随机性来源都是已知的（L241–L246）：</p>
+<table>
+<thead>
+<tr>
+<th>随机性</th>
+<th>SuperMimic 怎么处理</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>每局的摩擦、标定、质心（ξ）</td>
+<td>作为模型<strong>输入</strong>（第 4 章）</td>
+</tr>
+<tr>
+<td>传感器噪声</td>
+<td>模型预测<strong>无噪声</strong>观测 ō，噪声在模型外面按已知分布加</td>
+</tr>
+<tr>
+<td>采数据时的动作噪声 ε ~ N(0, 0.1²)</td>
+<td>存进缓冲区的是加了噪声后<strong>实际执行</strong>的动作，模型用它训练（L219–L223）</td>
+</tr>
+<tr>
+<td>推一把（根部速度突变）</td>
+<td><strong>去掉</strong>：确定性模型学不了这种突变（附录 A，L711）</td>
+</tr>
+</tbody>
+</table>
+<p>所以模型可以是确定性的：同样的 <span class="arithmatex">\((s, a, \xi)\)</span> 永远给出同样的下一状态。确定性模型好学、好求导。动作噪声只为让模型见过更宽范围的动作，策略本身是确定性的（第 10 章）。</p>
+<p><strong>一句话</strong>：知道的随机性当输入或在外面加，模型就不用学分布，可以是一个确定的函数。</p>
+<h3 id="k-2026-11-20">第三步：误差会滚大：k 步自回归训练（2026-11-20）</h3>
+<p><strong>类比：闭眼走路。每步偏一点点，走 1 步没事，走 30 步就离路线很远了。</strong></p>
+<p>想象的时候，模型要<strong>吃自己的预测</strong>往前滚：<span class="arithmatex">\(\hat s_1 = f(s_0)\)</span>，<span class="arithmatex">\(\hat s_2 = f(\hat s_1)\)</span>……每步的小误差会累积。</p>
+<p><strong>玩具例子</strong>（编的）：真实系统 <span class="arithmatex">\(x_{t+1} = 0.95\,x_t\)</span>，模型学成 <span class="arithmatex">\(0.97\,x_t\)</span>（每步只差 0.02），起点 <span class="arithmatex">\(x_0 = 1\)</span>：</p>
+<table>
+<thead>
+<tr>
+<th>滚几步</th>
+<th>1</th>
+<th>8</th>
+<th>32</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>误差</td>
+<td>0.020</td>
+<td>0.120</td>
+<td>0.184</td>
+</tr>
+</tbody>
+</table>
+<p>只训练「预测下一步」（1 步损失）时，这个模型的损失是 0.0004，看起来很准；但 8 步自回归损失（从真实起点出发、一路用自己的预测、8 步误差平方加起来）是 <strong>0.0532</strong>，大了 133 倍，问题一下就暴露了。</p>
+<p>SuperMimic 用 <strong>k = 8</strong> 的自回归窗口训练（式 1，L248–L251）：</p>
+<div class="arithmatex">\[\mathcal L_{WM}(\omega) = \mathbb E_{\mathcal B}\sum_{j=1}^{k}\Big[\|\hat s_j - s_j\|^2 + (\hat r_j - r_j)^2 + \|\hat{\bar o}_j - \bar o_j\|^2 + \text{BCE}(\hat d_j, d_j)\Big]\]</div>
+<p>四项分别管状态、奖励、观测、终止。因为训练时就让模型「吃自己的预测」，它学会了纠正自己的偏差。论文说想象 32 步甚至更长都稳定（L262–L264 附近），虽然只用 8 步窗口训练。</p>
+<p><strong>一句话</strong>：想象时模型吃自己的预测，误差会滚大；训练时就按 8 步自回归算损失，逼它学会不跑偏。</p>
+<h3 id="2026-11-20_2">第四步：生存权重：让「摔倒」也能求导（2026-11-20）</h3>
+<p><strong>类比：不是「活着 = 1、摔了 = 0」的开关，而是「还有几成把握站着」的旋钮。</strong></p>
+<p>仿真器的终止是硬的（0 或 1），不可导。world model 预测一个终止<strong>概率</strong> <span class="arithmatex">\(\hat d_t \in [0, 1]\)</span>，回报里每步乘一个生存权重（L224–L230）：</p>
+<div class="arithmatex">\[c_0 = 1,\qquad c_{t+1} = c_t\,(1 - \hat d_{t+1})\]</div>
+<p><strong>例子</strong>：<span class="arithmatex">\(\hat d_1, \hat d_2, \hat d_3 = 0, 0.1, 0.5\)</span>：</p>
+<table>
+<thead>
+<tr>
+<th>t</th>
+<th>0</th>
+<th>1</th>
+<th>2</th>
+<th>3</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>c_t</td>
+<td>1</td>
+<td>1</td>
+<td>0.9</td>
+<td>0.45</td>
+</tr>
+</tbody>
+</table>
+<p>每步奖励都是 1 时，前三步的加权回报 = 1 + 1 + 0.9 = <strong>2.9</strong>。策略稍微改一下动作，d̂ 平滑地变，c 和回报也平滑地变，梯度就能告诉它「这样改会不会更容易摔」。</p>
+<p><strong>一句话</strong>：终止概率连乘成生存权重，摔倒从开关变成旋钮，就能求导了。</p>
+<h3 id="_2">动画演示：误差在想象里怎么滚大</h3>
+<p><img alt="模型自己滚：误差随步数累积，8 步窗口训练后纠偏" src="../animations/09-wm-rollout.gif" /></p>
+<p>可交互版：<a href="../animations/09-wm-rollout.html">animations/09-wm-rollout.html</a>（滑块：模型系数误差、窗口长度 k）。</p>
+<p><strong>怎么看</strong>：</p>
+<ol>
+<li>黑线是真实轨迹，红线是「只训 1 步」的模型自己滚出来的，蓝线是「8 步窗口训练」的模型（第三步）。</li>
+<li>阴影是 8 步训练窗口；红线在窗口里就开始偏，越往后越远。</li>
+<li>下方小图是生存权重 c_t：每步按 d̂ 打折，柱子越来越矮（第四步）。</li>
+</ol>
+<h2 id="_3">练习与作答记录</h2>
+<p><strong>题 1</strong>（第二步）：如果要用真机数据来训练 world model，传感器噪声和摩擦都不再已知，第二步表格里哪几条做法会失效？你会怎么改？</p>
+<p><strong>作答</strong>：（待作答）</p>
+<p><strong>题 2</strong>（第三步）：真实系统 <span class="arithmatex">\(x_{t+1} = 0.9x_t\)</span>，模型学成 <span class="arithmatex">\(0.92x_t\)</span>，<span class="arithmatex">\(x_0 = 1\)</span>。算滚 1 步和 4 步的误差。</p>
+<p><strong>作答</strong>：（待作答）</p>
+<p><strong>题 3</strong>（第四步）：<span class="arithmatex">\(\hat d_1, \hat d_2, \hat d_3, \hat d_4 = 0.2, 0.2, 0.5, 1.0\)</span>。写出 <span class="arithmatex">\(c_0\)</span> 到 <span class="arithmatex">\(c_4\)</span>。</p>
+<p><strong>作答</strong>：（待作答）</p>
+<h2 id="_4">口诀</h2>
+<blockquote>
+<p>收音机拆不开，听反应画近似图，同一副身体一个模型；<br />
+知道的随机当输入、在外加，推搡学不了就去掉；<br />
+闭眼走路误差滚，八步自回归逼它纠偏；<br />
+摔倒变概率，生存权重连乘，开关变旋钮。</p>
+</blockquote>
+<h2 id="_5">本章复习卡片</h2>
+<p>M17（world model 为什么能是确定性的：ξ 作输入、噪声外加、去掉推搡）、M18（k 步自回归损失与生存权重）</p>
+<h2 id="_6">附录 · 延伸阅读</h2>
+<blockquote>
+<p>留给以后深入学习用，不影响本章主线。★ 是建议先读的。</p>
+</blockquote>
+<h3 id="_7">推荐阅读</h3>
+<table>
+<thead>
+<tr>
+<th>读什么</th>
+<th>读哪里</th>
+<th>读它为了什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>★ SuperMimic §3.1–§3.2</td>
+<td><code>papers/supermimic-2610.28480.txt</code> L204–L256</td>
+<td>确定性模型、式 1 原文</td>
+</tr>
+<tr>
+<td>★ SuperMimic §4.2</td>
+<td>同上 L401–L442</td>
+<td>一个模型摊销整个动作库、想象比仿真快 10–62 倍</td>
+</tr>
+<tr>
+<td>RWM</td>
+<td><code>papers/rwm-2501.10100.txt</code></td>
+<td>另一种神经仿真器，在里面跑 PPO 上真机</td>
+</tr>
+<tr>
+<td>DreamerV3</td>
+<td><code>papers/dreamerv3-2301.04104.txt</code></td>
+<td>隐空间 world model 的代表</td>
+</tr>
+<tr>
+<td>《CIS 6280 世界模型》</td>
+<td><code>cis6280-world-models/</code></td>
+<td>世界模型的更一般框架</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_8">数学原理</h3>
+<ul>
+<li><strong>自回归滚动</strong>：<span class="arithmatex">\(\hat x_k = f(f(\cdots f(x_0)))\)</span>，线性时 <span class="arithmatex">\(\hat x_k = a^k x_0\)</span>，误差 <span class="arithmatex">\(|(\hat a^k - a^k)x_0|\)</span>。</li>
+<li><strong>二元交叉熵</strong>：<span class="arithmatex">\(\text{BCE}(\hat d, d) = -[d\log\hat d + (1-d)\log(1-\hat d)]\)</span>，用来训练终止概率。</li>
+<li><strong>连乘的导数</strong>：<span class="arithmatex">\(c_t = \prod (1-\hat d_i)\)</span> 对每个 <span class="arithmatex">\(\hat d_i\)</span> 都可导，所以梯度能传到「哪一步更容易摔」。</li>
+</ul>
+<h3 id="_9">公式清单</h3>
+<table>
+<thead>
+<tr>
+<th>公式</th>
+<th>意思</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span class="arithmatex">\(\hat s_{t+1} = f_\omega(\hat s_t, a_t, \xi)\)</span></td>
+<td>确定性、以 ξ 为条件的动力学</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(\mathcal L_{WM} = \sum_{j\le k}[\text{状态} + \text{奖励} + \text{观测} + \text{BCE}]\)</span></td>
+<td>k 步自回归损失（式 1）</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(c_{t+1} = c_t(1 - \hat d_{t+1})\)</span></td>
+<td>生存权重</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_10">代码对照：把本章的数字用代码算一遍</h3>
+<blockquote>
+<p>用 Python + NumPy 把讲义里讲过的数算一遍，不算练习题。代码在仓库本地 <code>robot-motion-rl/solutions/chapter-code/ch09_world_model.py</code>，配套测试 <code>tests/test_ch07_11.py</code>，notebook 在 <code>notebooks/ch09_world_model.ipynb</code>。Mac 上直接能跑，不需要 GPU：</p>
+<p><code>bash  
+cd robot-motion-rl/solutions/chapter-code  
+uv run python ch09_world_model.py  
+uv run pytest tests/test_ch07_11.py</code></p>
+</blockquote>
+<p><strong>讲义 ↔ 代码</strong>（玩具系统和 d̂ 是编的）：</p>
+<table>
+<thead>
+<tr>
+<th>讲义</th>
+<th>公式</th>
+<th>写法</th>
+<th>跑出来</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>第三步 误差滚大</td>
+<td>$</td>
+<td>0.97^k - 0.95^k</td>
+<td>$</td>
+</tr>
+<tr>
+<td>第三步 损失</td>
+<td><span class="arithmatex">\(\sum_{j\le k}(\hat x_j - x_j)^2\)</span></td>
+<td><code>k_step_loss(..., 1)</code>、<code>(..., 8)</code></td>
+<td>0.0004、0.0532</td>
+</tr>
+<tr>
+<td>第四步 生存权重</td>
+<td><span class="arithmatex">\(c_{t+1} = c_t(1-\hat d)\)</span></td>
+<td><code>survival_weights([0, 0.1, 0.5])</code></td>
+<td>[1, 1, 0.9, 0.45]</td>
+</tr>
+</tbody>
+</table>
+<p><strong>关键几行</strong>：</p>
+<pre><code class="language-python">xh = x0 * a_model ** np.arange(k + 1)     # 模型从真实起点出发，一路吃自己的预测
+x = x0 * a_true ** np.arange(k + 1)       # 真实轨迹
+loss = np.sum((xh[1:] - x[1:]) ** 2)      # k 步自回归损失
+c.append(c[-1] * (1 - d))                 # 生存权重连乘
+</code></pre>
+<p><strong>代码里才看得到的 2 件事</strong>：</p>
+<ul>
+<li>误差滚到 32 步只有 0.184，没有一直变大：因为 0.95 和 0.97 都小于 1，两条轨迹最后都衰减到 0。真实的机器人动力学不会这么「自己收敛」，所以 SuperMimic 要靠 k 步训练和 critic（第 10 章）把视野控制住。</li>
+<li>生存权重列表比 d̂ 多一个（<span class="arithmatex">\(c_0 = 1\)</span> 不打折），所以 <code>[0, 0.1, 0.5]</code> 对应 4 个 c。</li>
+</ul>
+<p><strong>自己改一改</strong>（不影响练习答案）：</p>
+<ul>
+<li>把真实系数改成 1.01（不稳定的系统），看误差滚 32 步变成多少。</li>
+<li>用 1 步损失和 8 步损失分别「拟合」：在 0.90 到 1.00 之间扫模型系数，给真实数据加一点噪声，看两种损失选出的系数哪个滚 32 步更准。</li>
+</ul><nav class="pager"><a href="08-two-gradients.html">← 第 8 章 · 两种梯度：「试了打分」的似然比梯度 vs 「顺着公式求导」的解析梯度</a><a href="10-bptt-critic.html">第 10 章 · 在想象里训练：BPTT 只看 32 步，critic 补上后面 →</a></nav>
+</main>
+<footer>来自个人学习仓库的对话讲义，含练习作答记录。源码：<a href="https://github.com/wikieden/robot-motion-rl">github.com/wikieden/robot-motion-rl</a>。更多讲义书：<a href="https://wikieden.github.io/ai-books/">AI 算法图解讲义（合集）</a></footer>
+</body></html>

@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>第 4 章 · 从仿真到真机：域随机化、特权信息与 teacher-student · 机器人运控与强化学习</title>
+<style>
+:root{--bg:#fbfbfa;--fg:#1f2328;--mute:#5d6470;--line:#e3e5e8;--card:#fff;--acc:#2f6fdf;--code:#f2f3f5;--quote:#f4f6fa}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15181d;--fg:#e4e7ec;--mute:#9aa3b2;--line:#2c323b;--card:#1c2026;--acc:#7aa7ff;--code:#22272f;--quote:#1b2029}}
+:root[data-theme="dark"]{--bg:#15181d;--fg:#e4e7ec;--mute:#9aa3b2;--line:#2c323b;--card:#1c2026;--acc:#7aa7ff;--code:#22272f;--quote:#1b2029}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.75 -apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Helvetica Neue",sans-serif}
+a{color:var(--acc)}
+header.top{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+header.top .in{max-width:860px;margin:0 auto;padding:10px 16px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;font-size:14px}
+header.top .brand{font-weight:600;color:var(--fg);text-decoration:none;margin-right:auto}
+header.top a{text-decoration:none}
+main{max-width:860px;margin:0 auto;padding:24px 16px 72px;overflow-wrap:anywhere}
+h1{font-size:28px;line-height:1.35;margin:8px 0 16px} h2{font-size:22px;margin:40px 0 12px;padding-top:8px;border-top:1px solid var(--line)} h3{font-size:18px;margin:28px 0 8px}
+img{max-width:100%;height:auto;border-radius:8px;border:1px solid var(--line);background:#fff}
+blockquote{margin:16px 0;padding:10px 16px;background:var(--quote);border-left:3px solid var(--acc);border-radius:4px;color:var(--mute)}
+blockquote p{margin:4px 0}
+code{background:var(--code);padding:1px 5px;border-radius:4px;font-size:.9em}
+pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto} pre code{padding:0;background:none}
+table{border-collapse:collapse;display:block;overflow-x:auto;max-width:100%;margin:12px 0;font-size:15px}
+th,td{border:1px solid var(--line);padding:6px 10px;vertical-align:top} th{background:var(--code)}
+details{border:1px solid var(--line);border-radius:8px;padding:6px 12px;margin:8px 0;background:var(--card)}
+details[open]{padding-bottom:10px} summary{cursor:pointer;color:var(--acc);font-weight:500}
+mjx-container{overflow-x:auto;overflow-y:hidden;max-width:100%}
+.btn{display:inline-block;margin:4px 8px 4px 0;padding:6px 14px;border:1px solid var(--acc);border-radius:999px;text-decoration:none;font-size:14px}
+.pager{display:flex;justify-content:space-between;gap:12px;margin-top:48px;padding-top:16px;border-top:1px solid var(--line);font-size:15px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin:16px 0}
+.card{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden;color:inherit;text-decoration:none}
+.card:hover{border-color:var(--acc)} .card img{border:0;border-bottom:1px solid var(--line);border-radius:0;aspect-ratio:16/10;object-fit:contain;width:100%}
+.card .no{color:var(--mute);font-size:13px;padding:8px 12px 0} .card .t{padding:0 12px 12px;font-weight:500;line-height:1.5}
+.lead{font-size:17px;color:var(--mute)}
+footer{max-width:860px;margin:0 auto;padding:0 16px 40px;color:var(--mute);font-size:13px}
+</style>
+<script>window.MathJax={tex:{inlineMath:[["\\(","\\)"]],displayMath:[["\\[","\\]"],["$$","$$"]],processEscapes:true,processEnvironments:true}};</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js"></script>
+</head><body>
+<header class="top"><div class="in">
+<a class="brand" href="../index.html">机器人运控与强化学习</a>
+<a href="../lessons/index.html">讲义目录</a>
+<a href="../animations/index.html">动画</a>
+<a href="../review.html">复习卡片</a>
+<a href="../lessons/appendix-glossary.html">缩写表</a>
+<a href="https://wikieden.github.io/ai-books/">← 全部讲义书</a>
+</div></header>
+<main>
+<h1 id="4-teacher-student">第 4 章 · 从仿真到真机：域随机化、特权信息与 teacher-student</h1><p><a class="btn" href="../animations/04-domain-rand.html">▶ 打开本章可交互动画</a></p>
+<blockquote>
+<p>本章回答：仿真里训好的策略，为什么一上真机就摔？「域随机化」是在随机什么，它的代价是什么？只在训练时能看到的信息（比如真实摩擦）怎么用上？<br />
+讲解日期：2026-11-20 · 上一章：<a href="../lessons/03-ppo-recipe.html">第 3 章 PPO 运控配方</a> · 下一章：<a href="../lessons/05-imitation-sampling.html">第 5 章 动作模仿与采样</a><br />
+对应原文：SuperMimic 附录 A「Sim context and domain randomization」（<code>papers/supermimic-2610.28480.txt</code> L711–L715，表 A.3）、§3.2（L241–L246）；ANYmal 野外地形（<code>papers/anymal-terrain-2010.11251.txt</code>）；RMA（<code>papers/rma-2107.04034.txt</code>）<br />
+本章缩写：sim2real = simulation to reality（仿真 / 到 / 真实）；DR = Domain Randomization（域 / 随机化：训练时随机改仿真参数）；μ：这里是摩擦系数（读 "mu"，和第 3 章的高斯均值不是一个东西）；ξ：仿真上下文（读 "xi"），即这一局用的随机化参数；RMA = Rapid Motor Adaptation（快速 / 运动 / 适应）；E[·]：期望（求平均）。全部缩写见 <a href="../lessons/appendix-glossary.html">附录 · 缩写与术语表</a></p>
+</blockquote>
+<h2 id="_1">讲解</h2>
+<h3 id="2026-11-20">第一步：现实差距：仿真和真机差在哪（2026-11-20）</h3>
+<p><strong>类比：在冰场上学会的滑步，到了地毯上就不灵了。</strong></p>
+<p>仿真器的物理参数是人填的：摩擦、质量、质心、关节标定、电机响应、延迟……真机上这些都有误差，而且每台机器人、每块地面都不一样。策略如果只在一套参数上练，学到的是「这套参数下的最优」，换一套就可能摔。这叫 <strong>sim-to-real gap（现实差距）</strong>。</p>
+<p><strong>玩具例子</strong>（编的，整章都用它）：动作 a 推一个箱子，推出去的效果 = a × μ（μ 是摩擦系数），目标是效果正好等于 1，奖励 = −(a·μ − 1)²（等于 1 时得 0，最高）。</p>
+<p>仿真里摩擦常用默认值 1.0（SuperMimic 附录 F.1 评测时脚底摩擦就取 1.0，<code>supermimic-2610.28480.txt</code> L961）。只在 μ = 1.0 上训，最优 a = 1/1.0 = <strong>1.0</strong>。真机地面 μ = 0.4 时，效果 = 0.4，奖励 = <strong>−0.36</strong>。</p>
+<p><strong>一句话</strong>：只在一套参数上练，学到的是那套参数的最优，换个地面就不对了。</p>
+<h3 id="2026-11-20_1">第二步：域随机化：每一局换一套参数（2026-11-20）</h3>
+<p><strong>类比：在冰场、地毯、水泥地轮流练，不追求在某一块上最好，求哪块都过得去。</strong></p>
+<p>训练时每个 episode 随机抽一套参数。SuperMimic 表 A.3（原文 L711–L715 附近）：</p>
+<table>
+<thead>
+<tr>
+<th>随机化什么</th>
+<th>分布</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>摩擦系数</td>
+<td>U[0.3, 1.2]</td>
+</tr>
+<tr>
+<td>关节标定偏差</td>
+<td>U[−0.01, 0.01] rad</td>
+</tr>
+<tr>
+<td>躯干质心偏移</td>
+<td>x ±0.025、y ±0.05、z ±0.05 m</td>
+</tr>
+</tbody>
+</table>
+<p>（U[a, b] 是 a 到 b 之间均匀分布。）它还特意<strong>去掉了</strong> BeyondMimic 的「推一把」扰动，原因第 9 章再讲。</p>
+<p><strong>玩具例子</strong>：μ ~ U[0.3, 1.2]，最大化平均奖励 <span class="arithmatex">\(\mathbb E[-(a\mu-1)^2]\)</span>。对 a 求导令其为 0：</p>
+<div class="arithmatex">\[a^* = \frac{\mathbb E[\mu]}{\mathbb E[\mu^2]} = \frac{0.75}{0.63} \approx 1.190\]</div>
+<p>（<span class="arithmatex">\(\mathbb E[\mu] = (0.3+1.2)/2 = 0.75\)</span>，<span class="arithmatex">\(\mathbb E[\mu^2] = (1.2^3 - 0.3^3)/(3 \times 0.9) = 0.63\)</span>。）</p>
+<p>真机 μ = 0.4 时，效果 0.476，奖励 <strong>−0.274</strong>，比只训 1.0 的 −0.36 好。再看整个范围的<strong>最坏情况</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>策略</th>
+<th>μ = 0.3</th>
+<th>μ = 1.2</th>
+<th>最坏</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>只训 1.0（a = 1.0）</td>
+<td>−0.490</td>
+<td>−0.040</td>
+<td><strong>−0.490</strong></td>
+</tr>
+<tr>
+<td>域随机化（a = 1.190）</td>
+<td>−0.413</td>
+<td>−0.184</td>
+<td><strong>−0.413</strong></td>
+</tr>
+</tbody>
+</table>
+<p>DR 在 μ = 1.2 附近反而比只训 1.0 差（−0.184 对 −0.040）：它是「对所有 μ 都还行」的折中，在某个具体的 μ 上不一定最好；它买的是平均更好、最坏不太离谱。</p>
+<p><strong>一句话</strong>：DR 用「每处都过得去」换「某处最好」，买的是稳，不是最优。</p>
+<h3 id="2026-11-20_2">第三步：特权信息：训练时能看、部署时看不到（2026-11-20）</h3>
+<p><strong>类比：教练知道今天地滑，提醒你小步走；比赛时教练不在，你得自己从脚感判断。</strong></p>
+<p>仿真里知道真实摩擦，真机上不知道。两种用法：</p>
+<table>
+<thead>
+<tr>
+<th>做法</th>
+<th>谁看特权信息</th>
+<th>部署时</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>非对称 actor-critic</strong></td>
+<td>只有 critic 看</td>
+<td>critic 只在训练时用，部署时扔掉，所以它看什么都行；更准的价值 → 更准的优势</td>
+</tr>
+<tr>
+<td><strong>teacher-student</strong></td>
+<td>teacher 策略直接看</td>
+<td>先训一个看得到 μ 的 teacher，再训一个只看观测历史的 student 去模仿它（ANYmal 野外地形、RMA）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>玩具例子</strong>：teacher 知道 μ = 0.4，直接给 a = 1/0.4 = <strong>2.5</strong>，奖励 0（满分）。student 只能从「我推了多少、箱子动了多少」的历史里猜 μ，猜得越准越接近 teacher。</p>
+<table>
+<thead>
+<tr>
+<th>策略</th>
+<th>a</th>
+<th>μ = 0.4 时的效果</th>
+<th>奖励</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>只训 1.0</td>
+<td>1.000</td>
+<td>0.400</td>
+<td>−0.360</td>
+</tr>
+<tr>
+<td>域随机化</td>
+<td>1.190</td>
+<td>0.476</td>
+<td>−0.274</td>
+</tr>
+<tr>
+<td>teacher（知道 μ）</td>
+<td>2.500</td>
+<td>1.000</td>
+<td>0</td>
+</tr>
+</tbody>
+</table>
+<p><strong>一句话</strong>：特权信息给 critic 用（非对称），或者先教 teacher 再让 student 从历史里猜。</p>
+<h3 id="supermimic-world-model2026-11-20">第四步：SuperMimic 的做法：把随机化参数喂给 world model（2026-11-20）</h3>
+<p>SuperMimic 的策略（actor）只看带噪声的本体感知（第 2 章），这一点和别人一样。不同在它的 <strong>world model</strong> 和 <strong>critic</strong>：</p>
+<ul>
+<li>每局的随机化参数打包成 <strong>sim context ξ</strong>（摩擦、标定偏差、质心），作为 world model 的输入（原文 L241–L246：仿真的随机性来源已知，所以模型保持确定性，把 ξ 当条件）。</li>
+<li>critic <span class="arithmatex">\(V_\psi(\hat s, g, \xi)\)</span> 也看 ξ（附录表 A.4），就是非对称 critic。</li>
+<li>传感器噪声分布也已知，所以在模型<strong>外面</strong>加（L232–L233），不让模型去学噪声。</li>
+</ul>
+<p><strong>一句话</strong>：已知的随机性（ξ、噪声）直接告诉模型，模型就不用去猜，可以是确定性的。这条在第 9 章会再用到。</p>
+<h3 id="_2">动画演示：三种策略在不同地面上</h3>
+<p><img alt="域随机化：换地面时三种策略的奖励" src="../animations/04-domain-rand.gif" /></p>
+<p>可交互版：<a href="../animations/04-domain-rand.html">animations/04-domain-rand.html</a>（滑块：真机摩擦 μ、训练用的单一 μ）。</p>
+<p><strong>怎么看</strong>：</p>
+<ol>
+<li>横轴是真机摩擦 μ（0.3 到 1.2），三条曲线是三种策略在这个 μ 上的奖励（第一、二、三步）。</li>
+<li>红线「只训一个 μ」在训练那一点（默认 1.0）满分，离开越远掉得越快；蓝线「域随机化」整体更平，最低点比红线高。</li>
+<li>绿线 teacher 处处满分，它是 student 追的上限。拖「真机 μ」看三根柱子怎么变。</li>
+</ol>
+<h2 id="_3">练习与作答记录</h2>
+<p><strong>题 1</strong>（第一步）：只在 μ = 0.5 上训，最优 a 是多少？真机 μ = 1.0 时奖励多少？</p>
+<p><strong>作答</strong>：（待作答）</p>
+<p><strong>题 2</strong>（第二步）：如果只在 μ = 0.6 上训，算它在 μ = 0.3 和 μ = 1.2 两端的奖励，最坏情况是多少？和域随机化的最坏 −0.413 比，哪个更稳？</p>
+<p><strong>作答</strong>：（待作答）</p>
+<p><strong>题 3</strong>（第三步）：玩具例子里，student 看不到 μ，只能看自己的历史。你会用历史里的哪两个量来估计 μ？估错 10% 时，它的动作会偏多少？</p>
+<p><strong>作答</strong>：（待作答）</p>
+<h2 id="_4">口诀</h2>
+<blockquote>
+<p>冰上学会地毯摔，只练一处只会一处；<br />
+每局换个参数练，处处过得去，买的是稳不是最优；<br />
+教练知道地滑不滑：给 critic 看，或 teacher 教 student；<br />
+已知的随机告诉模型，模型就能是确定的。</p>
+</blockquote>
+<h2 id="_5">本章复习卡片</h2>
+<p>M07（域随机化：用稳换最优，玩具例子 a* = E[μ]/E[μ²]）、M08（非对称 actor-critic 与 teacher-student 的区别）</p>
+<h2 id="_6">附录 · 延伸阅读</h2>
+<blockquote>
+<p>留给以后深入学习用，不影响本章主线。★ 是建议先读的。</p>
+</blockquote>
+<h3 id="_7">推荐阅读</h3>
+<table>
+<thead>
+<tr>
+<th>读什么</th>
+<th>读哪里</th>
+<th>读它为了什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>★ ANYmal 野外地形</td>
+<td><code>papers/anymal-terrain-2010.11251.txt</code></td>
+<td>teacher-student 的经典做法</td>
+</tr>
+<tr>
+<td>★ RMA</td>
+<td><code>papers/rma-2107.04034.txt</code></td>
+<td>student 从历史里在线估计环境参数</td>
+</tr>
+<tr>
+<td>SuperMimic 附录 A、§3.2</td>
+<td><code>papers/supermimic-2610.28480.txt</code> L241–L246、L711–L715</td>
+<td>sim context ξ 与确定性 world model</td>
+</tr>
+<tr>
+<td>ANYmal 执行器网络</td>
+<td><code>papers/anymal-agile-1901.08652.txt</code></td>
+<td>用学出来的电机模型缩小现实差距</td>
+</tr>
+<tr>
+<td>ASAP</td>
+<td><code>papers/asap-2502.01143.txt</code></td>
+<td>用真机数据学「动作修正量」对齐仿真和真机</td>
+</tr>
+<tr>
+<td>运控细化笔记 §6.2</td>
+<td><code>robot-system-architecture/notes/02-motion-control-deep-dive.md</code></td>
+<td>让策略「看见」仿真里才有的信息</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_8">数学原理</h3>
+<ul>
+<li><strong>求期望的最优点</strong>：<span class="arithmatex">\(\frac{d}{da}\mathbb E[(a\mu-1)^2] = \mathbb E[2\mu(a\mu-1)] = 0 \Rightarrow a = \mathbb E[\mu]/\mathbb E[\mu^2]\)</span>。</li>
+<li><strong>均匀分布的矩</strong>：<span class="arithmatex">\(\mathbb E[\mu] = (a+b)/2\)</span>，<span class="arithmatex">\(\mathbb E[\mu^2] = (b^3-a^3)/(3(b-a))\)</span>。</li>
+</ul>
+<h3 id="_9">公式清单</h3>
+<table>
+<thead>
+<tr>
+<th>公式</th>
+<th>意思</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span class="arithmatex">\(r(a,\mu) = -(a\mu-1)^2\)</span></td>
+<td>玩具奖励</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(a^*_{DR} = \mathbb E[\mu]/\mathbb E[\mu^2]\)</span></td>
+<td>域随机化的最优动作</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(a^*_{teacher} = 1/\mu\)</span></td>
+<td>知道 μ 时的最优动作</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(V_\psi(\hat s, g, \xi)\)</span></td>
+<td>看 sim context 的非对称 critic</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_10">代码对照：把本章的数字用代码算一遍</h3>
+<blockquote>
+<p>用 Python + NumPy 把讲义里讲过的数算一遍，不算练习题。代码在仓库本地 <code>robot-motion-rl/solutions/chapter-code/ch04_sim2real.py</code>，配套测试 <code>tests/test_ch01_06.py</code>，notebook 在 <code>notebooks/ch04_sim2real.ipynb</code>。Mac 上直接能跑，不需要 GPU：</p>
+<p><code>bash  
+cd robot-motion-rl/solutions/chapter-code  
+uv run python ch04_sim2real.py  
+uv run pytest tests/test_ch01_06.py</code></p>
+</blockquote>
+<p><strong>讲义 ↔ 代码</strong>（玩具任务是编的，摩擦范围取自 SuperMimic 表 A.3，默认摩擦 1.0 取自附录 F.1）：</p>
+<table>
+<thead>
+<tr>
+<th>讲义</th>
+<th>公式</th>
+<th>写法</th>
+<th>跑出来</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>第一步 只训 1.0</td>
+<td>a = 1/1.0</td>
+<td><code>best_action_single(1.0)</code></td>
+<td>1.000</td>
+</tr>
+<tr>
+<td>第二步 域随机化</td>
+<td>E[μ]/E[μ²]</td>
+<td><code>best_action_dr()</code></td>
+<td>1.190</td>
+</tr>
+<tr>
+<td>第二步 最坏情况</td>
+<td>扫 μ ∈ [0.3, 1.2] 取最小</td>
+<td><code>worst_case(a)</code></td>
+<td>−0.490、−0.413</td>
+</tr>
+<tr>
+<td>第三步 真机 μ = 0.4</td>
+<td>−(aμ − 1)²</td>
+<td><code>reward(a, 0.4)</code></td>
+<td>−0.360、−0.274、0</td>
+</tr>
+</tbody>
+</table>
+<p><strong>关键几行</strong>：</p>
+<pre><code class="language-python">def reward(a, mu):
+    return -((a * mu - 1.0) ** 2)                 # 效果 a·μ 正好是 1 时得 0
+e_mu = (lo + hi) / 2                              # 均匀分布的平均
+e_mu2 = (hi**3 - lo**3) / (3 * (hi - lo))         # 均匀分布的二阶矩
+a_dr = e_mu / e_mu2                               # 对平均奖励求导令其为 0
+</code></pre>
+<p><strong>代码里才看得到的 1 件事</strong>：</p>
+<ul>
+<li>玩具任务里 DR 的最优动作有解析解；真实训练里没有，PPO 是在抽到的各种参数上平均梯度，效果相同：学到一个对整个分布平均最好的策略。</li>
+</ul>
+<p><strong>自己改一改</strong>（不影响练习答案）：</p>
+<ul>
+<li>把随机化范围缩到 U[0.6, 1.0]，看 DR 的 a 怎么变，μ = 0.4 时奖励变好还是变差。</li>
+<li>用 <code>worst_case</code> 比较几种随机化范围（U[0.3, 1.2]、U[0.5, 1.0]、U[0.2, 1.5]）训出的 DR 策略，看范围越宽最坏情况怎么变。</li>
+<li>写一个 student：给它一个带噪声的 μ 估计（真值 × (1 + 0.1·噪声)），看平均奖励离 teacher 有多远。</li>
+</ul><nav class="pager"><a href="03-ppo-recipe.html">← 第 3 章 · 运控里的 PPO 配方：高斯策略、几千个环境、按 KL 调学习率</a><a href="05-imitation-sampling.html">第 5 章 · 动作模仿：从哪开始练、什么时候喊停、难的地方多练 →</a></nav>
+</main>
+<footer>来自个人学习仓库的对话讲义，含练习作答记录。源码：<a href="https://github.com/wikieden/robot-motion-rl">github.com/wikieden/robot-motion-rl</a>。更多讲义书：<a href="https://wikieden.github.io/ai-books/">AI 算法图解讲义（合集）</a></footer>
+</body></html>

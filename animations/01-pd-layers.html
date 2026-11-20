@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>低增益 PD 跟踪</title><link rel="stylesheet" href="anim.css"></head>
+<body><main>
+<h1>第 1 章 · 低增益 PD：50 Hz 阶梯目标，1 kHz 出力矩</h1>
+<p class="sub">配套讲义：<a href="../lessons/01-layers-pd.html">第 1 章 · 运控的三层与 PD 目标接口：策略不直接给力矩</a> 第一至三步。1 自由度关节，转动惯量 0.1，数字是编的。<br>缩写：PD = Proportional–Derivative（比例 / 微分）；Kp、Kd：比例、微分增益；τ（tau）：力矩；Hz = Hertz（赫兹，每秒多少次）。</p>
+<div class="panel"><svg id="sv" viewBox="0 0 680 400"></svg></div>
+<div class="stats">
+<div class="stat"><div class="l">时间</div><div class="v" id="st">0 ms</div></div>
+<div class="stat"><div class="l">目标 − 实际（平均误差）</div><div class="v" id="s1">–</div></div>
+<div class="stat"><div class="l">负载 / Kp（预测的稳态误差）</div><div class="v" id="s2">–</div></div>
+</div>
+<div class="row ctl"><label>Kp</label><input type="range" id="kp" min="10" max="200" step="5" value="40"><span id="kpv">40</span></div>
+<div class="row ctl"><label>Kd</label><input type="range" id="kd" min="0.2" max="10" step="0.2" value="4"><span id="kdv">4</span></div>
+<div class="row ctl"><label>负载（N·m）</label><input type="range" id="ld" min="0" max="6" step="0.5" value="4"><span id="ldv">4</span></div>
+<div class="row"><button id="play">▶ 播放</button><button id="step">→ 单步</button><button id="reset">↺ 从头开始</button></div>
+<p class="note">看点：① 灰色阶梯是策略每 20 ms 给一次的目标角，蓝线是关节角，按 1 ms 一步积分（第一步）。② 下方橙线是 PD 力矩 τ = Kp(q* − q) − Kd·q̇，碰到 ±8 N·m 的虚线就被截平（第二步）。③ 有负载时蓝线总比阶梯低一截，约等于负载 / Kp；把 Kp 拉大，差距变小但力矩更冲（第三步）。</p>
+</main>
+<script src="anim.js"></script>
+<script>
+const sv=$('sv');const X0=60,W=600,T=1200,TMAX=8,I=0.1;
+const P1={top:20,h:200,lo:-0.2,hi:1.2},P2={top:250,h:120,lo:-10,hi:10};
+const X=t=>X0+t/T*W,Y=(P,v)=>P.top+P.h-(v-P.lo)/(P.hi-P.lo)*P.h;
+[P1,P2].forEach(P=>el('rect',{x:X0,y:P.top,width:W,height:P.h,fill:'var(--bg)',stroke:'var(--line)'},sv));
+txt('关节角 q（rad）',{x:X0,y:14},sv);txt('力矩 τ（N·m）',{x:X0,y:244},sv);
+[0,0.5,1].forEach(v=>txt(v,{x:X0-6,y:Y(P1,v)+4,'text-anchor':'end',class:'m'},sv));
+[-8,0,8].forEach(v=>txt(v,{x:X0-6,y:Y(P2,v)+4,'text-anchor':'end',class:'m'},sv));
+[TMAX,-TMAX].forEach(v=>el('line',{x1:X0,x2:X0+W,y1:Y(P2,v),y2:Y(P2,v),stroke:'var(--bad)','stroke-dasharray':'4 3'},sv));
+txt('时间（ms），每格竖线 = 一次策略输出（20 ms）',{x:X0,y:392,class:'m'},sv);
+const tgt=el('polyline',{fill:'none',stroke:'var(--muted)','stroke-width':1.6},sv);
+const qL=el('polyline',{fill:'none',stroke:'var(--accent)','stroke-width':2.2},sv);
+const tL=el('polyline',{fill:'none',stroke:'var(--amber)','stroke-width':1.6},sv);
+let f,sim;
+function ref(t){return t<200?0:t<600?0.8:t<900?0.3:0.6}
+function simulate(){const kp=+$('kp').value,kd=+$('kd').value,ld=+$('ld').value;let q=0,qd=0,qs=[],ts=[],gs=[],tgtv=0;
+  for(let t=0;t<T;t++){if(t%20===0)tgtv=ref(t);let tau=kp*(tgtv-q)-kd*qd;tau=clamp(tau,-TMAX,TMAX);qd+=(tau-ld)/I*0.001;q+=qd*0.001;qs.push(q);ts.push(tau);gs.push(tgtv)}
+  return{qs,ts,gs,kp,ld}}
+function readCtl(){['kp','kd','ld'].forEach(k=>$(k+'v').textContent=$(k).value)}
+['kp','kd','ld'].forEach(k=>$(k).oninput=()=>{readCtl();ANIM.stop();ANIM.reset(0)});
+function reset(){readCtl();sim=simulate();f=0;draw()}
+function next(){if(f>=T/20)return false;f++;draw();return true}
+function draw(){const n=f*20;const pts=(arr,P)=>arr.slice(0,n).map((v,t)=>`${X(t)},${Y(P,v)}`).join(' ');
+  tgt.setAttribute('points',pts(sim.gs,P1));qL.setAttribute('points',pts(sim.qs,P1));tL.setAttribute('points',pts(sim.ts,P2));
+  $('st').textContent=n+' ms';
+  if(n>100){let e=0,c=0;for(let t=Math.max(0,n-150);t<n;t++){e+=sim.gs[t]-sim.qs[t];c++}$('s1').textContent=(e/c).toFixed(3)}else $('s1').textContent='–';
+  $('s2').textContent=(sim.ld/sim.kp).toFixed(3)}
+setupPlayer({captureSeed:1,reset,next},90);
+</script><a href="https://wikieden.github.io/ai-books/" style="position:fixed;right:12px;bottom:12px;z-index:99;padding:4px 10px;border-radius:14px;background:rgba(127,127,127,.18);color:inherit;font:13px/1.6 system-ui,sans-serif;text-decoration:none">← 全部讲义书</a>
+</body></html>

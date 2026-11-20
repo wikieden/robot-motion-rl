@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>第 6 章 · GRPO 为什么不适合底层运控：整条打分 vs 逐步打分 · 机器人运控与强化学习</title>
+<style>
+:root{--bg:#fbfbfa;--fg:#1f2328;--mute:#5d6470;--line:#e3e5e8;--card:#fff;--acc:#2f6fdf;--code:#f2f3f5;--quote:#f4f6fa}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15181d;--fg:#e4e7ec;--mute:#9aa3b2;--line:#2c323b;--card:#1c2026;--acc:#7aa7ff;--code:#22272f;--quote:#1b2029}}
+:root[data-theme="dark"]{--bg:#15181d;--fg:#e4e7ec;--mute:#9aa3b2;--line:#2c323b;--card:#1c2026;--acc:#7aa7ff;--code:#22272f;--quote:#1b2029}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.75 -apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Helvetica Neue",sans-serif}
+a{color:var(--acc)}
+header.top{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+header.top .in{max-width:860px;margin:0 auto;padding:10px 16px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;font-size:14px}
+header.top .brand{font-weight:600;color:var(--fg);text-decoration:none;margin-right:auto}
+header.top a{text-decoration:none}
+main{max-width:860px;margin:0 auto;padding:24px 16px 72px;overflow-wrap:anywhere}
+h1{font-size:28px;line-height:1.35;margin:8px 0 16px} h2{font-size:22px;margin:40px 0 12px;padding-top:8px;border-top:1px solid var(--line)} h3{font-size:18px;margin:28px 0 8px}
+img{max-width:100%;height:auto;border-radius:8px;border:1px solid var(--line);background:#fff}
+blockquote{margin:16px 0;padding:10px 16px;background:var(--quote);border-left:3px solid var(--acc);border-radius:4px;color:var(--mute)}
+blockquote p{margin:4px 0}
+code{background:var(--code);padding:1px 5px;border-radius:4px;font-size:.9em}
+pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto} pre code{padding:0;background:none}
+table{border-collapse:collapse;display:block;overflow-x:auto;max-width:100%;margin:12px 0;font-size:15px}
+th,td{border:1px solid var(--line);padding:6px 10px;vertical-align:top} th{background:var(--code)}
+details{border:1px solid var(--line);border-radius:8px;padding:6px 12px;margin:8px 0;background:var(--card)}
+details[open]{padding-bottom:10px} summary{cursor:pointer;color:var(--acc);font-weight:500}
+mjx-container{overflow-x:auto;overflow-y:hidden;max-width:100%}
+.btn{display:inline-block;margin:4px 8px 4px 0;padding:6px 14px;border:1px solid var(--acc);border-radius:999px;text-decoration:none;font-size:14px}
+.pager{display:flex;justify-content:space-between;gap:12px;margin-top:48px;padding-top:16px;border-top:1px solid var(--line);font-size:15px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin:16px 0}
+.card{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden;color:inherit;text-decoration:none}
+.card:hover{border-color:var(--acc)} .card img{border:0;border-bottom:1px solid var(--line);border-radius:0;aspect-ratio:16/10;object-fit:contain;width:100%}
+.card .no{color:var(--mute);font-size:13px;padding:8px 12px 0} .card .t{padding:0 12px 12px;font-weight:500;line-height:1.5}
+.lead{font-size:17px;color:var(--mute)}
+footer{max-width:860px;margin:0 auto;padding:0 16px 40px;color:var(--mute);font-size:13px}
+</style>
+<script>window.MathJax={tex:{inlineMath:[["\\(","\\)"]],displayMath:[["\\[","\\]"],["$$","$$"]],processEscapes:true,processEnvironments:true}};</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js"></script>
+</head><body>
+<header class="top"><div class="in">
+<a class="brand" href="../index.html">机器人运控与强化学习</a>
+<a href="../lessons/index.html">讲义目录</a>
+<a href="../animations/index.html">动画</a>
+<a href="../review.html">复习卡片</a>
+<a href="../lessons/appendix-glossary.html">缩写表</a>
+<a href="https://wikieden.github.io/ai-books/">← 全部讲义书</a>
+</div></header>
+<main>
+<h1 id="6-grpo-vs">第 6 章 · GRPO 为什么不适合底层运控：整条打分 vs 逐步打分</h1><p><a class="btn" href="../animations/06-grpo-vs-ppo-credit.html">▶ 打开本章可交互动画</a></p>
+<blockquote>
+<p>本章回答：GRPO 在 LLM 上省掉了 critic，效果很好；为什么搬到机器人运控上就不灵了？「信用分配」到底是在分配什么？GRPO 在机器人里有没有合适的位置？<br />
+讲解日期：2026-11-20 · 上一章：<a href="../lessons/05-imitation-sampling.html">第 5 章 动作模仿与采样</a> · 下一章：<a href="../lessons/07-scaling-cost.html">第 7 章 规模化的代价</a><br />
+对应原文：GRPO 优势公式（<code>papers/deepseekmath-grpo-2402.03300.txt</code> L1049）；Learning Without Critics?（<code>papers/grpo-classic-rl-2511.03527.txt</code>）；GR2PO 方法（<code>papers/gr2po-2609.19850.txt</code> L38–L40、§III）；《从零学强化学习》第 22 章 GAE、第 24 章 GRPO<br />
+本章缩写：GRPO = Group Relative Policy Optimization（组 / 相对 / 策略 / 优化）；GAE = Generalized Advantage Estimation（广义 / 优势 / 估计）；δ_t：TD 误差（读 "delta"，TD = Temporal Difference 时序 / 差分）；V：状态价值（critic 的输出）；GR2PO = Group Relative Return Policy Optimization（组 / 相对 / 回报 / 策略优化）；VLA = Vision-Language-Action（视觉 / 语言 / 动作）。全部缩写见 <a href="../lessons/appendix-glossary.html">附录 · 缩写与术语表</a></p>
+</blockquote>
+<h2 id="_1">讲解</h2>
+<h3 id="grpo2026-11-20">第一步：回顾 GRPO：同一道题答几遍互相比（2026-11-20）</h3>
+<p>《从零学强化学习》第 24 章第三步：一道题采 G 个回答，各自打分 <span class="arithmatex">\(r_i\)</span>，优势</p>
+<div class="arithmatex">\[\hat A_i = \frac{r_i - \text{mean}(r)}{\text{std}(r)}\]</div>
+<p><strong>整条回答的每个 token 都用这一个数</strong>。组平均当 baseline，所以不需要 critic。它在 LLM 上成立有三个前提：① 同一个 prompt 可以随便重采，起点完全相同；② 整条回答只有一个分；③ 本质上是「一次决策、一个分数」，没有中间状态需要估值。</p>
+<p><strong>一句话</strong>：GRPO = 同起点多采几次，用组平均当 baseline，整条共享一个优势。</p>
+<h3 id="2026-11-20">第二步：运控的轨迹：踩错一步，八步后才摔（2026-11-20）</h3>
+<p><strong>类比：下楼梯踩空一脚，你会晃几下才摔倒。事后复盘，错在踩空那一下，不在后面那几下晃。</strong></p>
+<p><strong>例子</strong>（编的）：4 条轨迹从同一状态出发，每步站着得 1 分，最多 6 步（γ = 1）。轨迹 A 在第 1 步踩错，第 3 步后摔倒（只活了 3 步）；B、C、D 都站满 6 步。</p>
+<p>GRPO：回报 = [3, 6, 6, 6]，平均 5.25，标准差 1.299，</p>
+<table>
+<thead>
+<tr>
+<th>轨迹</th>
+<th>A</th>
+<th>B</th>
+<th>C</th>
+<th>D</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>优势</td>
+<td><strong>−1.732</strong></td>
+<td>0.577</td>
+<td>0.577</td>
+<td>0.577</td>
+</tr>
+</tbody>
+</table>
+<p>A 的<strong>三步全都是 −1.732</strong>：第 0 步（好好的）、第 1 步（踩错）、第 2 步（在晃）一起被罚。</p>
+<p><strong>一句话</strong>：GRPO 只知道「这条不好」，不知道「哪一步不好」。</p>
+<h3 id="ppo-gaecritic-2026-11-20">第三步：PPO + GAE：critic 把功劳分到每一步（2026-11-20）</h3>
+<p><strong>类比：复盘的教练看得出「从这一步之后，局面就坏了」。</strong></p>
+<p>第 22 章：<span class="arithmatex">\(\delta_t = r_t + \gamma V(s_{t+1}) - V(s_t)\)</span>，「这一步之后，价值变了多少」。取 λ = 0，优势就是 δ。</p>
+<p>假设 critic 是理想的：没出错时 V = 还剩几步（能站满）；踩错之后 V = 摔倒前还剩几步。轨迹 A：</p>
+<table>
+<thead>
+<tr>
+<th>t</th>
+<th>0</th>
+<th>1（踩错）</th>
+<th>2</th>
+<th>结束</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>V(s_t)</td>
+<td>6</td>
+<td>5</td>
+<td>1</td>
+<td>0</td>
+</tr>
+<tr>
+<td>δ_t = 1 + V(s_{t+1}) − V(s_t)</td>
+<td>1 + 5 − 6 = <strong>0</strong></td>
+<td>1 + 1 − 5 = <strong>−3</strong></td>
+<td>1 + 0 − 1 = <strong>0</strong></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>惩罚<strong>全部</strong>落在第 1 步。B、C、D 每步 δ 都是 0（一切如预期）。</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>惩罚落在踩错那一步的比例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GRPO</td>
+<td>1/3 ≈ 33%</td>
+</tr>
+<tr>
+<td>PPO + GAE（理想 critic）</td>
+<td>3/3 = <strong>100%</strong></td>
+</tr>
+</tbody>
+</table>
+<p>时域越长，GRPO 的惩罚摊得越薄：一条 500 步的动作，踩错那一步只分到 1/500。</p>
+<p><strong>一句话</strong>：critic 让「哪一步之后局面变坏」看得出来，惩罚就能落在那一步。</p>
+<h3 id="grpo-2026-11-20">第四步：实证与 GRPO 在机器人里的位置（2026-11-20）</h3>
+<ul>
+<li><strong>Learning Without Critics?（2511.03527）</strong>：在 HalfCheetah、Humanoid 等环境上，各种去 critic 的方法（包括 GRPO）除 CartPole 外都明显落后 PPO。不过它的「组」是同一批里不同环境的轨迹，起点不同，不满足第一步的前提①。</li>
+<li><strong>GR2PO（2609.19850）</strong>：先算每条轨迹每个时刻的折扣回报 <span class="arithmatex">\(G_t\)</span>，再<strong>在每个时间下标 t 上</strong>跨组归一化（L38–L40），追到和 actor-critic 差不多。但第 1 步之后各条轨迹就分叉了，同一个 t 比的已经不是同一个状态。</li>
+<li><strong>合适的位置</strong>：VLA 微调。任务只看成功 / 失败（一个分）、能重置到同一场景、策略是几十亿参数的大模型（critic 很贵），结构和 LLM 一样。见 <code>vla-deep-dive/materials/papers/07-rl-posttrain/simplevla-rl-2509.09674.pdf</code>。</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>用什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>底层全身控制（50 Hz、稠密奖励、几百步）</td>
+<td>PPO + GAE，critic 只有几十万参数，不贵</td>
+</tr>
+<tr>
+<td>VLA 微调（成功 0/1、同场景重置、大模型）</td>
+<td>GRPO 合适</td>
+</tr>
+</tbody>
+</table>
+<p><strong>一句话</strong>：长时域稠密奖励要逐步分功劳，critic 绕不开；「一次决策一个分」的场景才轮到 GRPO。</p>
+<h3 id="vs">动画演示：整条打分 vs 逐步打分</h3>
+<p><img alt="GRPO 整条打分 vs PPO 逐步打分" src="../animations/06-grpo-vs-ppo-credit.gif" /></p>
+<p>可交互版：<a href="../animations/06-grpo-vs-ppo-credit.html">animations/06-grpo-vs-ppo-credit.html</a>（滑块：时域长度 T、组大小 G）。</p>
+<p><strong>怎么看</strong>：</p>
+<ol>
+<li>G 条轨迹从同一状态出发，✕ 是踩错的一步，8 步后才摔倒（第二步）。</li>
+<li>上半部分 GRPO：每行同一个颜色，摔倒的轨迹整行红（第二步）。默认 T = 60 时只有约 4% 的惩罚落在 ✕ 上。</li>
+<li>下半部分 PPO + GAE：红色集中在 ✕ 处，约 97%（第三步）。拖 T 到 120，GRPO 降到约 1%。</li>
+</ol>
+<h2 id="_2">练习与作答记录</h2>
+<p><strong>题 1</strong>（第二步）：4 条轨迹回报是 [2, 6, 6, 4]，算 GRPO 的组平均、标准差和每条的优势。</p>
+<p><strong>作答</strong>：（待作答）</p>
+<p><strong>题 2</strong>（第三步）：最长 6 步，轨迹 E 在第 3 步踩错，第 5 步后摔倒（活 5 步）。用理想 critic（规则同第三步）写出每一步的 V 和 δ。</p>
+<p><strong>作答</strong>：（待作答）</p>
+<p><strong>题 3</strong>（第四步）：一个 VLA 抓取任务，如果奖励改成每步都有的「手离目标多远」稠密奖励，而且每局物体位置随机、不能重置到同一场景，GRPO 还合适吗？逐条对照第一步的三个前提回答。</p>
+<p><strong>作答</strong>：（待作答）</p>
+<h2 id="_3">口诀</h2>
+<blockquote>
+<p>同题答几遍，组平均当 baseline，整条共享一个分；<br />
+踩空一脚晃几下才摔，错在那一脚，不在后面晃；<br />
+critic 看出局面何时变坏，惩罚落在那一步；<br />
+长时域稠密奖励用 PPO，成功失败一个分才轮到 GRPO。</p>
+</blockquote>
+<h2 id="_4">本章复习卡片</h2>
+<p>M11（GRPO 在运控里失效的原因：信用分配）、M12（GRPO 与 PPO 在机器人里各自合适的场景）</p>
+<h2 id="_5">附录 · 延伸阅读</h2>
+<blockquote>
+<p>留给以后深入学习用，不影响本章主线。★ 是建议先读的。</p>
+</blockquote>
+<h3 id="_6">推荐阅读</h3>
+<table>
+<thead>
+<tr>
+<th>读什么</th>
+<th>读哪里</th>
+<th>读它为了什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>★ Learning Without Critics?</td>
+<td><code>papers/grpo-classic-rl-2511.03527.txt</code> RQ1–RQ3</td>
+<td>GRPO vs PPO 在经典控制上的系统比较</td>
+</tr>
+<tr>
+<td>★ 运控调研 §3</td>
+<td>survey-ppo-grpo-supermimic.md §3</td>
+<td>三个障碍、实证汇总、PPO vs GRPO 对照表</td>
+</tr>
+<tr>
+<td>GR2PO</td>
+<td><code>papers/gr2po-2609.19850.txt</code> L38–L40、§III</td>
+<td>按时间下标归一化回报</td>
+</tr>
+<tr>
+<td>TD-GRPC</td>
+<td><code>papers/td-grpc-2505.13549.txt</code></td>
+<td>GRPO 与 TD-MPC 混合（保留了 value）</td>
+</tr>
+<tr>
+<td>DeepSeekMath</td>
+<td><code>papers/deepseekmath-grpo-2402.03300.txt</code> L1049</td>
+<td>GRPO 原始公式</td>
+</tr>
+<tr>
+<td>SimpleVLA-RL</td>
+<td><code>vla-deep-dive/materials/papers/07-rl-posttrain/simplevla-rl-2509.09674.pdf</code></td>
+<td>GRPO 在 VLA 上的用法</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_7">数学原理</h3>
+<ul>
+<li><strong>标准差</strong>：<span class="arithmatex">\(\text{std} = \sqrt{\frac1G\sum_i (r_i - \bar r)^2}\)</span>。例子：偏差 −2.25, 0.75, 0.75, 0.75，平方平均 1.6875，开根号 1.299。</li>
+<li><strong>TD 误差的和</strong>：λ = 1、γ = 1 时，GAE 的优势 = 回报 − V(s_t)，λ = 0 时就是单步 δ_t。</li>
+</ul>
+<h3 id="_8">公式清单</h3>
+<table>
+<thead>
+<tr>
+<th>公式</th>
+<th>意思</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span class="arithmatex">\(\hat A_i = (r_i - \text{mean})/\text{std}\)</span></td>
+<td>GRPO 组相对优势（整条共享）</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(\delta_t = r_t + \gamma V(s_{t+1}) - V(s_t)\)</span></td>
+<td>TD 误差 = λ = 0 时的 GAE 优势</td>
+</tr>
+<tr>
+<td>落在出错步的比例：GRPO ≈ 1/T</td>
+<td>时域越长越薄</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_9">代码对照：把本章的数字用代码算一遍</h3>
+<blockquote>
+<p>用 Python + NumPy 把讲义里讲过的数算一遍，不算练习题。代码在仓库本地 <code>robot-motion-rl/solutions/chapter-code/ch06_grpo_credit.py</code>，配套测试 <code>tests/test_ch01_06.py</code>，notebook 在 <code>notebooks/ch06_grpo_credit.ipynb</code>。Mac 上直接能跑，不需要 GPU：</p>
+<p><code>bash  
+cd robot-motion-rl/solutions/chapter-code  
+uv run python ch06_grpo_credit.py  
+uv run pytest tests/test_ch01_06.py</code></p>
+</blockquote>
+<p><strong>讲义 ↔ 代码</strong>（轨迹是编的，critic 假设理想）：</p>
+<table>
+<thead>
+<tr>
+<th>讲义</th>
+<th>公式</th>
+<th>写法</th>
+<th>跑出来</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>第二步 GRPO</td>
+<td>(r − mean)/std</td>
+<td><code>grpo_advantages([3, 6, 6, 6])</code></td>
+<td>[−1.732, 0.577, 0.577, 0.577]</td>
+</tr>
+<tr>
+<td>第三步 理想 V</td>
+<td>还剩几步</td>
+<td><code>ideal_values(3, 6, mistake=1)</code></td>
+<td>[6, 5, 1, 0]</td>
+</tr>
+<tr>
+<td>第三步 δ</td>
+<td>r + V' − V</td>
+<td><code>td_errors([1, 1, 1], v)</code></td>
+<td>[0, −3, 0]</td>
+</tr>
+</tbody>
+</table>
+<p><strong>关键几行</strong>：</p>
+<pre><code class="language-python">adv = (r - r.mean()) / r.std()                     # GRPO：一条轨迹一个数
+v.append(float(length - t) if t &gt; mistake else float(horizon - t))  # 踩错后只剩到摔倒的步数
+delta = rewards[t] + values[t + 1] - values[t]     # λ = 0、γ = 1 的 GAE
+</code></pre>
+<p><strong>代码里才看得到的 2 件事</strong>：</p>
+<ul>
+<li><code>np.std</code> 默认除以 G（总体标准差），和第 24 章的算法一致；有些实现除以 G − 1，数会稍大。</li>
+<li>理想 critic 在踩错的<strong>下一个</strong>状态才变成「注定要摔」，所以 δ 的负值出现在踩错那一步（它连接好状态和坏状态）。</li>
+</ul>
+<p><strong>自己改一改</strong>（不影响练习答案）：</p>
+<ul>
+<li>把轨迹 A 改成第 4 步才踩错，看 GRPO 和 δ 怎么变。</li>
+<li>给理想 V 加一点噪声（±0.5），看 δ 的红色会不会「散开」。</li>
+</ul><nav class="pager"><a href="05-imitation-sampling.html">← 第 5 章 · 动作模仿：从哪开始练、什么时候喊停、难的地方多练</a><a href="07-scaling-cost.html">第 7 章 · 规模化的代价：动作越多，PPO 越要堆算力 →</a></nav>
+</main>
+<footer>来自个人学习仓库的对话讲义，含练习作答记录。源码：<a href="https://github.com/wikieden/robot-motion-rl">github.com/wikieden/robot-motion-rl</a>。更多讲义书：<a href="https://wikieden.github.io/ai-books/">AI 算法图解讲义（合集）</a></footer>
+</body></html>

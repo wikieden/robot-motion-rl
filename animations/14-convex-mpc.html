@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>滚动优化与摩擦锥</title><link rel="stylesheet" href="anim.css"></head>
+<body><main>
+<h1>第 14 章 · 凸 MPC：规划一段、只执行第一步；力被摩擦锥截住</h1>
+<p class="sub">配套讲义：<a href="../lessons/14-convex-mpc.html">第 14 章 · 单刚体凸 MPC 与 WBC：四足怎么「算」出每只脚该推多大力</a> 第二、三步。9 kg、两脚着地、每步 0.03 s、从静止加速到 1 m/s，和讲义的例子一致。<br>缩写：MPC = Model Predictive Control（模型 / 预测 / 控制）；μ：摩擦系数；f_z：每只脚的竖直力（这里 44.1 N）；摩擦锥：|f_x| ≤ μ·f_z。</p>
+<div class="panel"><svg id="sv" viewBox="0 0 680 400"></svg></div>
+<div class="stats">
+<div class="stat"><div class="l">执行到第几步</div><div class="v" id="s0">0</div></div>
+<div class="stat"><div class="l">当前速度</div><div class="v" id="s1">0</div></div>
+<div class="stat"><div class="l">总力上限 2μ·f_z</div><div class="v" id="s2">–</div></div>
+</div>
+<div class="row ctl"><label>μ</label><input type="range" id="mu" min="0.1" max="1" step="0.05" value="0.6"><span id="muv">0.6</span></div>
+<div class="row ctl"><label>目标速度</label><input type="range" id="vr" min="0.3" max="2" step="0.1" value="1"><span id="vrv">1</span></div>
+<div class="row ctl"><label>规划长度 N</label><input type="range" id="hn" min="1" max="15" step="1" value="10"><span id="hnv">10</span></div>
+<div class="row"><button id="play">▶ 播放</button><button id="step">→ 单步</button><button id="reset">↺ 从头开始</button></div>
+<p class="note">看点：① 上图实线是已经走过的速度，虚线是这一刻规划出的未来 N 步，竖线是「现在」：只有虚线的第一步会被执行，下一步重新规划（第三步）。② 下图是每步实际用的水平力，红虚线是摩擦锥给的上限；顶到红线时速度按 μg 直线上升（第二步）。③ 拖 μ 变小（冰面），加速变慢、要更多步才到目标。</p>
+</main>
+<script src="anim.js"></script>
+<script>
+const sv=$('sv');const M=9,DT=0.03,FZ=44.1,STEPS=24;
+const X0=60,W=600,T1=20,H1=200,T2=270,H2=110;
+const X=t=>X0+t/(STEPS+15)*W;
+el('rect',{x:X0,y:T1,width:W,height:H1,fill:'var(--bg)',stroke:'var(--line)'},sv);el('rect',{x:X0,y:T2,width:W,height:H2,fill:'var(--bg)',stroke:'var(--line)'},sv);
+txt('速度（m/s）：实线已走，虚线是当前规划',{x:X0,y:T1-6,class:'m'},sv);txt('每步水平力（N），红线 = 摩擦锥上限',{x:X0,y:T2-6,class:'m'},sv);
+const Y=v=>T1+H1-v/2.2*H1;[0,1,2].forEach(v=>txt(v,{x:X0-6,y:Y(v)+4,'text-anchor':'end',class:'m'},sv));
+const ref=el('line',{x1:X0,x2:X0+W,stroke:'var(--good)','stroke-dasharray':'3 3'},sv);
+const done=el('polyline',{fill:'none',stroke:'var(--accent)','stroke-width':2.4},sv);
+const plan=el('polyline',{fill:'none',stroke:'var(--accent)','stroke-width':1.6,'stroke-dasharray':'5 4'},sv);
+const now=el('line',{y1:T1,y2:T1+H1,stroke:'var(--muted)'},sv);
+const FY=f=>T2+H2-f/120*H2;const cap=el('line',{x1:X0,x2:X0+W,stroke:'var(--bad)','stroke-dasharray':'4 3'},sv);
+const bars=[];for(let i=0;i<STEPS;i++)bars.push(el('rect',{x:X(i)+2,width:W/(STEPS+15)-4,fill:'var(--warm)'},sv));
+let k,v,vs,fs,pl;
+function planF(v0,vr,N,fmax){// 最小二乘（力的代价很小）后截断：解析版 = 每步都朝目标推，截到上限
+  const f=[];let vv=v0;for(let i=0;i<N;i++){let need=(vr-vv)*M/DT;need=clamp(need,-fmax,fmax);f.push(need);vv+=need*DT/M}return f}
+function reset(){['mu','vr','hn'].forEach(id=>$(id+'v').textContent=$(id).value);k=0;v=0;vs=[0];fs=[];replan();draw()}
+function fmax(){return 2*(+$('mu').value)*FZ}
+function replan(){const N=+$('hn').value;pl=planF(v,+$('vr').value,N,fmax())}
+function next(){if(k>=STEPS)return false;const f=pl[0];v+=f*DT/M;fs.push(f);vs.push(v);k++;replan();draw();return true}
+function draw(){const vr=+$('vr').value;ref.setAttribute('y1',Y(vr));ref.setAttribute('y2',Y(vr));
+  done.setAttribute('points',vs.map((x,i)=>`${X(i)},${Y(x)}`).join(' '));
+  let vv=v;const pp=[`${X(k)},${Y(vv)}`];pl.forEach((f,i)=>{vv+=f*DT/M;pp.push(`${X(k+i+1)},${Y(vv)}`)});plan.setAttribute('points',pp.join(' '));
+  now.setAttribute('x1',X(k));now.setAttribute('x2',X(k));cap.setAttribute('y1',FY(fmax()));cap.setAttribute('y2',FY(fmax()));
+  bars.forEach((b,i)=>{const f=i<fs.length?Math.abs(fs[i]):0;b.setAttribute('y',FY(f));b.setAttribute('height',T2+H2-FY(f))});
+  $('s0').textContent=k;$('s1').textContent=v.toFixed(3);$('s2').textContent=fmax().toFixed(1)+' N'}
+['mu','vr','hn'].forEach(id=>$(id).oninput=()=>{ANIM.stop();ANIM.reset(0)});
+setupPlayer({captureSeed:1,reset,next},260);
+</script><a href="https://wikieden.github.io/ai-books/" style="position:fixed;right:12px;bottom:12px;z-index:99;padding:4px 10px;border-radius:14px;background:rgba(127,127,127,.18);color:inherit;font:13px/1.6 system-ui,sans-serif;text-decoration:none">← 全部讲义书</a>
+</body></html>

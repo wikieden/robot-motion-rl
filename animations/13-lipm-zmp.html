@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>线性倒立摆</title><link rel="stylesheet" href="anim.css"></head>
+<body><main>
+<h1>第 13 章 · 线性倒立摆：离开 ZMP 就按 cosh 发散，踩在捕获点上就停住</h1>
+<p class="sub">配套讲义：<a href="../lessons/13-lipm-zmp.html">第 13 章 · 线性倒立摆与 ZMP：双足机器人为什么要不停地迈步</a> 第二至四步。质心高 0.8 m（ω = 3.5），初速 0.5 m/s 往前，数字是编的。<br>缩写：ZMP = Zero Moment Point（零 / 力矩 / 点）；LIPM = Linear Inverted Pendulum Model（线性 / 倒立摆 / 模型）；ω：√(g / 质心高度)；ξ：捕获点 = 位置 + 速度 / ω。</p>
+<div class="panel"><svg id="sv" viewBox="0 0 680 400"></svg></div>
+<div class="stats">
+<div class="stat"><div class="l">时间</div><div class="v" id="s0">0 s</div></div>
+<div class="stat"><div class="l">质心位置 / 速度</div><div class="v" id="s1">–</div></div>
+<div class="stat"><div class="l">捕获点 ξ</div><div class="v" id="s2">–</div></div>
+</div>
+<div class="row ctl"><label>质心高度（m）</label><input type="range" id="zc" min="0.4" max="1.2" step="0.05" value="0.8"><span id="zcv">0.8</span></div>
+<div class="row ctl"><label>初始速度（m/s）</label><input type="range" id="v0" min="0.1" max="1" step="0.05" value="0.5"><span id="v0v">0.5</span></div>
+<div class="row ctl"><button id="mode" class="on">迈到捕获点：开</button></div>
+<div class="row"><button id="play">▶ 播放</button><button id="step">→ 单步</button><button id="reset">↺ 从头开始</button></div>
+<p class="note">看点：① 侧视图：圆点是质心，线连到脚（ZMP），灰色短条是脚底支撑区（第一、二步）。② 前 0.25 s 脚不动：质心在 ZMP 前面，越来越快地往前倒；下方曲线是质心位置（第三步）。③ 「迈到捕获点：开」时，0.25 s 那一刻把脚放到 ξ = x + ẋ/ω，质心减速、停在新脚正上方；关掉则继续倒（第四步）。</p>
+</main>
+<script src="anim.js"></script>
+<script>
+const sv=$('sv');const G=9.8,DT=0.02,TMAX=1.6,STEP_AT=0.25;
+const SX=m=>80+m*900,GY=210;
+el('line',{x1:20,x2:660,y1:GY,y2:GY,stroke:'var(--muted)','stroke-width':2},sv);
+const foot=el('rect',{y:GY-4,width:40,height:8,fill:'var(--line)'},sv);
+const foot2=el('rect',{y:GY-4,width:40,height:8,fill:'var(--good)',opacity:0},sv);
+const leg=el('line',{stroke:'var(--accent)','stroke-width':3},sv);
+const com=el('circle',{r:12,fill:'var(--accent)'},sv);
+const xiM=txt('ξ',{'text-anchor':'middle',fill:'var(--good)','font-size':16},sv);
+const CX=60,CW=600,CT=250,CH=120;
+el('rect',{x:CX,y:CT,width:CW,height:CH,fill:'var(--bg)',stroke:'var(--line)'},sv);txt('质心位置 x（m）随时间',{x:CX,y:CT-6,class:'m'},sv);
+const curve=el('polyline',{fill:'none',stroke:'var(--accent)','stroke-width':2},sv);
+const stepL=el('line',{y1:CT,y2:CT+CH,stroke:'var(--good)','stroke-dasharray':'4 3'},sv);
+let st,k,mode=true,w,zc;
+const CXp=t=>CX+t/TMAX*CW,CYp=x=>CT+CH-clamp(x/0.6,0,1)*CH;
+function reset(){zc=+$('zc').value;$('zcv').textContent=zc;$('v0v').textContent=$('v0').value;w=Math.sqrt(G/zc);st={x:0,v:+$('v0').value,p:-0.0,t:0,hist:[[0,0]],stepped:false};k=0;draw()}
+function next(){if(st.t>=TMAX-1e-9)return false;if(mode&&!st.stepped&&st.t>=STEP_AT-1e-9){st.p=st.x+st.v/w;st.stepped=true}
+  const c=Math.cosh(w*DT),sh=Math.sinh(w*DT),d=st.x-st.p;st.x=st.p+d*c+st.v/w*sh;st.v=d*w*sh+st.v*c;st.t+=DT;/* 解析解：欧拉积分的误差会被不稳定系统放大 */st.hist.push([st.t,st.x]);draw();return true}
+function draw(){const H=zc*120;const fx=SX(st.p);foot.setAttribute('x',SX(0)-20);foot2.setAttribute('x',fx-20);foot2.setAttribute('opacity',st.stepped?0.8:0);
+  const cx=SX(st.x),cy=GY-H;leg.setAttribute('x1',fx);leg.setAttribute('y1',GY);leg.setAttribute('x2',cx);leg.setAttribute('y2',cy);com.setAttribute('cx',cx);com.setAttribute('cy',cy);
+  const xi=st.x+st.v/w;xiM.setAttribute('x',SX(xi));xiM.setAttribute('y',GY+24);
+  curve.setAttribute('points',st.hist.map(([t,x])=>`${CXp(t)},${CYp(x)}`).join(' '));
+  stepL.setAttribute('x1',CXp(STEP_AT));stepL.setAttribute('x2',CXp(STEP_AT));stepL.setAttribute('opacity',mode?1:0);
+  $('s0').textContent=st.t.toFixed(2)+' s';$('s1').textContent=st.x.toFixed(3)+' / '+st.v.toFixed(3);$('s2').textContent=xi.toFixed(3);
+  $('mode').textContent='迈到捕获点：'+(mode?'开':'关');$('mode').classList.toggle('on',mode)}
+['zc','v0'].forEach(id=>$(id).oninput=()=>{ANIM.stop();ANIM.reset(0)});
+$('mode').onclick=()=>{mode=!mode;ANIM.stop();ANIM.reset(0)};
+setupPlayer({captureSeed:1,reset,next},90);
+</script><a href="https://wikieden.github.io/ai-books/" style="position:fixed;right:12px;bottom:12px;z-index:99;padding:4px 10px;border-radius:14px;background:rgba(127,127,127,.18);color:inherit;font:13px/1.6 system-ui,sans-serif;text-decoration:none">← 全部讲义书</a>
+</body></html>

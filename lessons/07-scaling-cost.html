@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>第 7 章 · 规模化的代价：动作越多，PPO 越要堆算力 · 机器人运控与强化学习</title>
+<style>
+:root{--bg:#fbfbfa;--fg:#1f2328;--mute:#5d6470;--line:#e3e5e8;--card:#fff;--acc:#2f6fdf;--code:#f2f3f5;--quote:#f4f6fa}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15181d;--fg:#e4e7ec;--mute:#9aa3b2;--line:#2c323b;--card:#1c2026;--acc:#7aa7ff;--code:#22272f;--quote:#1b2029}}
+:root[data-theme="dark"]{--bg:#15181d;--fg:#e4e7ec;--mute:#9aa3b2;--line:#2c323b;--card:#1c2026;--acc:#7aa7ff;--code:#22272f;--quote:#1b2029}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.75 -apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Helvetica Neue",sans-serif}
+a{color:var(--acc)}
+header.top{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+header.top .in{max-width:860px;margin:0 auto;padding:10px 16px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;font-size:14px}
+header.top .brand{font-weight:600;color:var(--fg);text-decoration:none;margin-right:auto}
+header.top a{text-decoration:none}
+main{max-width:860px;margin:0 auto;padding:24px 16px 72px;overflow-wrap:anywhere}
+h1{font-size:28px;line-height:1.35;margin:8px 0 16px} h2{font-size:22px;margin:40px 0 12px;padding-top:8px;border-top:1px solid var(--line)} h3{font-size:18px;margin:28px 0 8px}
+img{max-width:100%;height:auto;border-radius:8px;border:1px solid var(--line);background:#fff}
+blockquote{margin:16px 0;padding:10px 16px;background:var(--quote);border-left:3px solid var(--acc);border-radius:4px;color:var(--mute)}
+blockquote p{margin:4px 0}
+code{background:var(--code);padding:1px 5px;border-radius:4px;font-size:.9em}
+pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto} pre code{padding:0;background:none}
+table{border-collapse:collapse;display:block;overflow-x:auto;max-width:100%;margin:12px 0;font-size:15px}
+th,td{border:1px solid var(--line);padding:6px 10px;vertical-align:top} th{background:var(--code)}
+details{border:1px solid var(--line);border-radius:8px;padding:6px 12px;margin:8px 0;background:var(--card)}
+details[open]{padding-bottom:10px} summary{cursor:pointer;color:var(--acc);font-weight:500}
+mjx-container{overflow-x:auto;overflow-y:hidden;max-width:100%}
+.btn{display:inline-block;margin:4px 8px 4px 0;padding:6px 14px;border:1px solid var(--acc);border-radius:999px;text-decoration:none;font-size:14px}
+.pager{display:flex;justify-content:space-between;gap:12px;margin-top:48px;padding-top:16px;border-top:1px solid var(--line);font-size:15px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin:16px 0}
+.card{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden;color:inherit;text-decoration:none}
+.card:hover{border-color:var(--acc)} .card img{border:0;border-bottom:1px solid var(--line);border-radius:0;aspect-ratio:16/10;object-fit:contain;width:100%}
+.card .no{color:var(--mute);font-size:13px;padding:8px 12px 0} .card .t{padding:0 12px 12px;font-weight:500;line-height:1.5}
+.lead{font-size:17px;color:var(--mute)}
+footer{max-width:860px;margin:0 auto;padding:0 16px 40px;color:var(--mute);font-size:13px}
+</style>
+<script>window.MathJax={tex:{inlineMath:[["\\(","\\)"]],displayMath:[["\\[","\\]"],["$$","$$"]],processEscapes:true,processEnvironments:true}};</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js"></script>
+</head><body>
+<header class="top"><div class="in">
+<a class="brand" href="../index.html">机器人运控与强化学习</a>
+<a href="../lessons/index.html">讲义目录</a>
+<a href="../animations/index.html">动画</a>
+<a href="../review.html">复习卡片</a>
+<a href="../lessons/appendix-glossary.html">缩写表</a>
+<a href="https://wikieden.github.io/ai-books/">← 全部讲义书</a>
+</div></header>
+<main>
+<h1 id="7-ppo">第 7 章 · 规模化的代价：动作越多，PPO 越要堆算力</h1><p><a class="btn" href="../animations/07-gpu-hours.html">▶ 打开本章可交互动画</a></p>
+<blockquote>
+<p>本章回答：从一条动作到十几万条动作，现在的方法怎么扩？SONIC 花了多少算力？为什么说 PPO 路线「扩数据就是扩算力」？SuperMimic 的「省 1000 倍」是怎么算出来的，公平吗？<br />
+讲解日期：2026-11-20 · 上一章：<a href="../lessons/06-grpo-credit.html">第 6 章 GRPO 为什么不适合底层运控</a> · 下一章：<a href="../lessons/08-two-gradients.html">第 8 章 两种梯度</a><br />
+对应原文：SuperMimic §1（<code>papers/supermimic-2610.28480.txt</code> L57–L63）、§4.1 与 Compute accounting（L318–L346）；SONIC scaling 实验（<code>papers/sonic-2511.07820.txt</code> L268–L274）<br />
+本章缩写：GPU-h = GPU hours（GPU 时：GPU 数 × 小时数）；SONIC：NVIDIA 的通用动作跟踪器（论文名 Supersizing Motion Tracking 的缩写）；L40、H100：两种 NVIDIA 数据中心 GPU；DAgger = Dataset Aggregation（数据集 / 聚合，一种蒸馏方法）。全部缩写见 <a href="../lessons/appendix-glossary.html">附录 · 缩写与术语表</a></p>
+</blockquote>
+<h2 id="_1">讲解</h2>
+<h3 id="2026-11-20">第一步：两条扩展路线（2026-11-20）</h3>
+<p><strong>类比：培养一支全能舞团。</strong> 办法一：每支舞请一位专家各练一个徒弟，再让一个总徒弟跟所有专家学（会丢东西）。办法二：一个徒弟同时学所有舞，靠堆训练时间。</p>
+<table>
+<thead>
+<tr>
+<th>路线</th>
+<th>代表</th>
+<th>做法</th>
+<th>代价</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>专家 + 蒸馏</td>
+<td>BeyondMimic</td>
+<td>每条动作训一个 PPO 专家，再用 DAgger 蒸馏成一个策略</td>
+<td>蒸馏有损（SuperMimic 原话 "lossy distillation"）</td>
+</tr>
+<tr>
+<td>暴力通用策略</td>
+<td>SONIC</td>
+<td>一个 PPO 策略吃所有动作</td>
+<td>集群级算力</td>
+</tr>
+</tbody>
+</table>
+<p>两条路都证明了：动作库越大，控制器越强。但都越扩越贵（L57–L63）。</p>
+<p><strong>一句话</strong>：要么专家蒸馏有损，要么一个策略硬堆算力。</p>
+<h3 id="sonic-2026-11-20">第二步：算一下 SONIC 的账（2026-11-20）</h3>
+<p>SONIC 的 scaling 实验（<code>sonic-2511.07820.txt</code> L268–L269）：把 GPU 从 16、32 加到 128 张，各训到 5 万次迭代，约 2k、9k、21k GPU-h；数据 700 小时动捕、1 亿帧。SuperMimic §4.1 引用的最终版本：</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>GPU</th>
+<th>时间</th>
+<th>GPU-h</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SONIC</td>
+<td>128 张 L40</td>
+<td>168 h（7 天）</td>
+<td>128 × 168 = <strong>21504</strong></td>
+</tr>
+<tr>
+<td>SuperMimic</td>
+<td>1 张 H100</td>
+<td>3 h</td>
+<td>1 × 3 = <strong>3</strong></td>
+</tr>
+</tbody>
+</table>
+<p>GPU-h 比 = 21504 / 3 ≈ <strong>7168 倍</strong>（论文写「超过 1000×」，保守说法）；墙钟比 = 168 / 3 = <strong>56 倍</strong>（论文写「超过 50×」）。3 小时的那个点，SuperMimic 在同一套 12.9 万条动作上的归一化回报已经超过 SONIC 公开的 checkpoint，失败动作数 25 对 179。</p>
+<p><strong>一句话</strong>：两万多 GPU 时 vs 3 GPU 时，差七千倍。</p>
+<h3 id="2026-11-20_1">第三步：这个比较公平吗（2026-11-20）</h3>
+<p>论文自己在「Compute accounting」（L329–L337）里列了两处不对等，都对 SuperMimic 有利：</p>
+<table>
+<thead>
+<tr>
+<th>不对等</th>
+<th>倍数</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>数据：SuperMimic 只用 BONES-SEED 公开子集 264.56 h，SONIC 用 611 h</td>
+<td>611 / 264.56 ≈ <strong>2.31</strong></td>
+</tr>
+<tr>
+<td>硬件：H100 的 tensor-core 峰值是 L40 的 5.5 倍（fp32 只有 0.74 倍）</td>
+<td>最多 <strong>5.5</strong></td>
+</tr>
+</tbody>
+</table>
+<p>把这两项全算给 SONIC：2.31 × 5.5 ≈ 12.7，7168 / 12.7 ≈ <strong>564 倍</strong>。还剩两个多数量级，所以「1000× 以上」的说法偏乐观，但「几百倍」站得住。另外，失败数是在<strong>训练集动作</strong>上测的，衡量的是覆盖度，不是泛化（附录 F.2）。</p>
+<p><strong>一句话</strong>：扣掉数据和硬件的优势，仍差五百多倍。</p>
+<h3 id="ppo-2026-11-20">第四步：为什么 PPO 扩数据就是扩算力（2026-11-20）</h3>
+<p><strong>类比：一百个学生学一百支舞，但他们其实都在学同一副身体怎么动。如果每个人都从头摸索「这样蹬地会怎样」，就浪费了一百遍。</strong></p>
+<p>SuperMimic 的诊断（L61–L62）：所有动作都由同一个身体执行，共享同一套刚体和接触动力学；model-free 的 PPO 不显式建模这份共享结构，每条动作都要从带噪声的仿真回放里<strong>重新估计</strong>「这个动作会带来什么后果」。</p>
+<p>受控实验（LAFAN1 40 条动作，L344–L346）也说明瓶颈不在卡数：</p>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PPO-Sim 1 / 4 / 8 GPU，18 h</td>
+<td>最终回报 0.60 / 0.70 / <strong>0.72</strong>（4 → 8 卡几乎不涨）</td>
+</tr>
+<tr>
+<td>SuperMimic 1 GPU</td>
+<td><strong>1.2 h</strong> 到 0.82</td>
+</tr>
+</tbody>
+</table>
+<p>PPO-Sim 和 SuperMimic 用同样的动作、观测、奖励、终止、域随机化和网络大小，每卡环境数还是 SuperMimic 的两倍。差别只在「梯度从哪来」，这是第 8 章的主题。</p>
+<p><strong>一句话</strong>：每条动作都在重新摸索同一副身体的物理，加卡只是摸索得更快，不是更聪明。</p>
+<h3 id="gpu">动画演示：GPU 时对比与公平性修正</h3>
+<p><img alt="SONIC vs SuperMimic 的 GPU 时（对数坐标）" src="../animations/07-gpu-hours.gif" /></p>
+<p>可交互版：<a href="../animations/07-gpu-hours.html">animations/07-gpu-hours.html</a>（开关：扣掉数据差、扣掉硬件差）。</p>
+<p><strong>怎么看</strong>：</p>
+<ol>
+<li>两根柱子是 GPU-h，纵轴是对数坐标（每格 10 倍），中间标出倍数（第二步）。</li>
+<li>依次打开「扣掉数据差」「扣掉硬件差」，SONIC 的柱子按 2.31、5.5 倍缩短，倍数从 7168 降到 564（第三步）。</li>
+<li>最后一段对比 PPO-Sim 1 / 4 / 8 卡和 SuperMimic 1 卡的回报（第四步）。</li>
+</ol>
+<h2 id="_2">练习与作答记录</h2>
+<p><strong>题 1</strong>（第二步）：如果 SuperMimic 用 2 张 H100 训 9.8 小时（论文里零失败的那次），GPU-h 是多少？和 SONIC 比是多少倍？</p>
+<p><strong>作答</strong>：（待作答）</p>
+<p><strong>题 2</strong>（第三步）：如果只扣硬件差（5.5 倍），不扣数据差，剩下多少倍？为什么论文说「2.3 倍数据和最多 5.5 倍峰值算力解释不了 1000 倍的差距」？</p>
+<p><strong>作答</strong>：（待作答）</p>
+<p><strong>题 3</strong>（第四步）：如果动作库再翻一倍，按「PPO 扩数据 ≈ 扩算力」，你预计 PPO 路线的 GPU 时大概怎么变？SuperMimic 论文里哪张图说明它不会同样增长？</p>
+<p><strong>作答</strong>：（待作答）</p>
+<h2 id="_3">口诀</h2>
+<blockquote>
+<p>扩动作两条路：专家蒸馏有损，通用策略烧卡；<br />
+一百二十八卡七天两万一，一卡三时，差七千；<br />
+扣掉数据二点三、硬件五点五，还剩五百多；<br />
+同一副身体，PPO 每条重摸一遍，加卡不变聪明。</p>
+</blockquote>
+<h2 id="_4">本章复习卡片</h2>
+<p>M13（SONIC vs SuperMimic 的算力账与公平性修正）、M14（为什么 PPO 扩数据 = 扩算力）</p>
+<h2 id="_5">附录 · 延伸阅读</h2>
+<blockquote>
+<p>留给以后深入学习用，不影响本章主线。★ 是建议先读的。</p>
+</blockquote>
+<h3 id="_6">推荐阅读</h3>
+<table>
+<thead>
+<tr>
+<th>读什么</th>
+<th>读哪里</th>
+<th>读它为了什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>★ SuperMimic §4.1</td>
+<td><code>papers/supermimic-2610.28480.txt</code> L318–L346</td>
+<td>算力账、受控实验原文</td>
+</tr>
+<tr>
+<td>★ SONIC</td>
+<td><code>papers/sonic-2511.07820.txt</code> L26–L36（摘要）、L268–L274（scaling）</td>
+<td>数据、模型、算力三轴 scaling 的证据</td>
+</tr>
+<tr>
+<td>BeyondMimic</td>
+<td><code>papers/beyondmimic-2508.08241.txt</code></td>
+<td>专家 + 蒸馏 + 引导扩散的路线</td>
+</tr>
+<tr>
+<td>SuperMimic 附录 F</td>
+<td><code>papers/supermimic-2610.28480.txt</code> F.2 表 A.8</td>
+<td>失败动作按组统计（SONIC 整组失败的空翻、侧滚）</td>
+</tr>
+<tr>
+<td>运控调研 §2.3、§5.6</td>
+<td>survey-ppo-grpo-supermimic.md</td>
+<td>同一份账的另一种写法</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_7">数学原理</h3>
+<ul>
+<li><strong>对数坐标</strong>：每格乘 10，适合比较相差几个数量级的数；log₁₀ 21504 ≈ 4.33，log₁₀ 3 ≈ 0.48，差约 3.85 格。</li>
+<li><strong>倍数的合并</strong>：几个独立因素的倍数相乘（2.31 × 5.5），要扣掉就相除。</li>
+</ul>
+<h3 id="_8">公式清单</h3>
+<table>
+<thead>
+<tr>
+<th>公式</th>
+<th>意思</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GPU-h = GPU 数 × 小时</td>
+<td>算力账</td>
+</tr>
+<tr>
+<td>21504 / 3 ≈ 7168；168 / 3 = 56</td>
+<td>GPU-h 比、墙钟比</td>
+</tr>
+<tr>
+<td>7168 / (2.31 × 5.5) ≈ 564</td>
+<td>扣掉数据和硬件后的差距</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_9">代码对照：把本章的数字用代码算一遍</h3>
+<blockquote>
+<p>用 Python 把讲义里讲过的数算一遍，不算练习题。代码在仓库本地 <code>robot-motion-rl/solutions/chapter-code/ch07_scaling_cost.py</code>，配套测试 <code>tests/test_ch07_11.py</code>，notebook 在 <code>notebooks/ch07_scaling_cost.ipynb</code>。Mac 上直接能跑，不需要 GPU：</p>
+<p><code>bash  
+cd robot-motion-rl/solutions/chapter-code  
+uv run python ch07_scaling_cost.py  
+uv run pytest tests/test_ch07_11.py</code></p>
+</blockquote>
+<p><strong>讲义 ↔ 代码</strong>（数字全部来自 SuperMimic §4.1）：</p>
+<table>
+<thead>
+<tr>
+<th>讲义</th>
+<th>公式</th>
+<th>写法</th>
+<th>跑出来</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>第二步 GPU-h</td>
+<td>GPU × 小时</td>
+<td><code>ratios()</code></td>
+<td>21504、3、7168×、56×</td>
+</tr>
+<tr>
+<td>第三步 修正</td>
+<td>÷ (2.31 × 5.5)</td>
+<td><code>leftover_gap(7168)</code></td>
+<td>≈ 564×</td>
+</tr>
+<tr>
+<td>第四步 PPO 加卡</td>
+<td>—</td>
+<td><code>main()</code> 第三段</td>
+<td>0.60 / 0.70 / 0.72 vs 1.2 h 到 0.82</td>
+</tr>
+</tbody>
+</table>
+<p><strong>关键几行</strong>：</p>
+<pre><code class="language-python">a, b = gpus_sonic * hours_sonic, gpus_sm * hours_sm    # 21504 vs 3
+ratio = a / b                                          # ≈ 7168
+leftover = ratio / ((611 / 264.56) * 5.5)              # 把数据、硬件优势都还给 SONIC
+</code></pre>
+<p><strong>代码里才看得到的 1 件事</strong>：</p>
+<ul>
+<li>论文只写「超过 1000×」「超过 50×」，是保守的下界；代码给的是精确比值 7168 和 56。讲义按精确值算，按论文的保守说法下结论。</li>
+</ul>
+<p><strong>自己改一改</strong>（不影响练习答案）：</p>
+<ul>
+<li>把 SuperMimic 换成 2 卡 9.8 小时，重算三个倍数。</li>
+<li>只扣数据差或只扣硬件差，看哪一项影响大。</li>
+</ul><nav class="pager"><a href="06-grpo-credit.html">← 第 6 章 · GRPO 为什么不适合底层运控：整条打分 vs 逐步打分</a><a href="08-two-gradients.html">第 8 章 · 两种梯度：「试了打分」的似然比梯度 vs 「顺着公式求导」的解析梯度 →</a></nav>
+</main>
+<footer>来自个人学习仓库的对话讲义，含练习作答记录。源码：<a href="https://github.com/wikieden/robot-motion-rl">github.com/wikieden/robot-motion-rl</a>。更多讲义书：<a href="https://wikieden.github.io/ai-books/">AI 算法图解讲义（合集）</a></footer>
+</body></html>

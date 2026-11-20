@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>域随机化</title><link rel="stylesheet" href="anim.css"></head>
+<body><main>
+<h1>第 4 章 · 域随机化：换地面时三种策略的奖励</h1>
+<p class="sub">配套讲义：<a href="../lessons/04-sim2real.html">第 4 章 · 从仿真到真机：域随机化、特权信息与 teacher-student</a> 第一至三步。玩具任务是编的：推箱子，效果 = a·μ，想让效果等于 1，奖励 = −(a·μ − 1)²。摩擦范围 U[0.3, 1.2] 取自 SuperMimic 表 A.3。<br>缩写：DR = Domain Randomization（域 / 随机化）；μ（mu）：摩擦系数；teacher：能看到真实 μ 的策略（特权信息）。</p>
+<div class="panel"><svg id="sv" viewBox="0 0 680 400"></svg></div>
+<div class="stats">
+<div class="stat"><div class="l">真机 μ</div><div class="v" id="s0">0.4</div></div>
+<div class="stat"><div class="l">只训一个 μ 的奖励</div><div class="v" id="s1">–</div></div>
+<div class="stat"><div class="l">域随机化的奖励</div><div class="v" id="s2">–</div></div>
+</div>
+<div class="row ctl"><label>训练用的单一 μ（默认 1.0）</label><input type="range" id="mt" min="0.3" max="1.2" step="0.05" value="1"><span id="mtv">1</span></div>
+<div class="row ctl"><label>真机 μ（拖动后停在这里）</label><input type="range" id="mr" min="0.3" max="1.2" step="0.01" value="0.4"><span id="mrv">0.4</span></div>
+<div class="row"><button id="play">▶ 播放</button><button id="step">→ 单步</button><button id="reset">↺ 从头开始</button></div>
+<p class="note">看点：① 横轴是真机摩擦 μ，三条曲线是三种策略在这个 μ 上的奖励。红线「只训一个 μ」（a = 1/μ_train，默认 μ_train = 1.0）在训练那一点满分，离开越远掉得越快（第一步）。② 蓝线「域随机化」（a = E[μ]/E[μ²] ≈ 1.19）整体更平，最坏处 −0.413 比红线的 −0.490 好；但在 μ = 1.2 附近反而不如红线（第二步）。③ 绿线 teacher 知道 μ，处处满分，是 student 追的上限（第三步）。播放时竖线扫过 0.3 到 1.2，右边柱子显示三者的奖励。</p>
+</main>
+<script src="anim.js"></script>
+<script>
+const sv=$('sv');const X0=60,W=430,TOP=20,H=320,LO=-0.6,LOm=0.3,HIm=1.2;
+const X=m=>X0+(m-LOm)/(HIm-LOm)*W,Y=v=>TOP+H-(clamp(v,LO,0.05)-LO)/(0.05-LO)*H;
+el('rect',{x:X0,y:TOP,width:W,height:H,fill:'var(--bg)',stroke:'var(--line)'},sv);
+[0,-0.2,-0.4,-0.6].forEach(v=>txt(v,{x:X0-6,y:Y(v)+4,'text-anchor':'end',class:'m'},sv));
+[0.3,0.6,0.9,1.2].forEach(v=>txt(v,{x:X(v),y:TOP+H+16,'text-anchor':'middle',class:'m'},sv));
+txt('真机摩擦 μ',{x:X0+W,y:TOP+H+34,'text-anchor':'end',class:'m'},sv);
+const R=(a,m)=>-((a*m-1)**2),aDR=0.75/0.63;
+const lines={teach:el('polyline',{fill:'none',stroke:'var(--good)','stroke-width':3,'stroke-dasharray':'6 4'},sv),single:el('polyline',{fill:'none',stroke:'var(--bad)','stroke-width':2.2},sv),dr:el('polyline',{fill:'none',stroke:'var(--accent)','stroke-width':2.2},sv)};
+txt('红：只训一个 μ　蓝：域随机化　绿虚线：teacher（处处 0）',{x:X0+W-4,y:TOP+H-10,'text-anchor':'end',class:'m'},sv);
+const cur=el('line',{y1:TOP,y2:TOP+H,stroke:'var(--muted)','stroke-dasharray':'3 3'},sv);
+const BX=525,names=[['只训一个 μ','var(--bad)'],['域随机化','var(--accent)'],['teacher','var(--good)']];
+const bars=names.map(([n,c],i)=>{txt(n,{x:BX+i*60+20,y:TOP+H+16+(i%2)*14,'text-anchor':'middle',class:'m'},sv);return el('rect',{x:BX+i*60+2,width:36,fill:c},sv)});
+el('line',{x1:BX,x2:BX+180,y1:Y(0),y2:Y(0),stroke:'var(--line)'},sv);
+txt('奖励（0 = 满分）',{x:BX,y:TOP+12,class:'m'},sv);
+let m;
+function curves(){const mt=+$('mt').value,aS=1/mt,p={single:[],dr:[],teach:[]};for(let i=0;i<=90;i++){const mm=LOm+i/90*(HIm-LOm);p.single.push(`${X(mm)},${Y(R(aS,mm))}`);p.dr.push(`${X(mm)},${Y(R(aDR,mm))}`);p.teach.push(`${X(mm)},${Y(0)}`)}for(const k in p)lines[k].setAttribute('points',p[k].join(' '))}
+function draw(){const mt=+$('mt').value,v=[R(1/mt,m),R(aDR,m),0];cur.setAttribute('x1',X(m));cur.setAttribute('x2',X(m));
+  bars.forEach((b,i)=>{const y=Y(v[i]),y0=Y(0);b.setAttribute('y',Math.min(y,y0));b.setAttribute('height',Math.max(2,Math.abs(y-y0)))});
+  $('s0').textContent=m.toFixed(2);$('s1').textContent=v[0].toFixed(3);$('s2').textContent=v[1].toFixed(3)}
+$('mt').oninput=()=>{$('mtv').textContent=$('mt').value;curves();draw()};
+$('mr').oninput=()=>{ANIM.stop();m=+$('mr').value;$('mrv').textContent=m;draw()};
+function reset(){$('mtv').textContent=$('mt').value;m=0.3;curves();draw()}
+function next(){if(m>=1.2-1e-9)return false;m=Math.round((m+0.025)*1000)/1000;draw();return true}
+setupPlayer({captureSeed:1,reset,next},140);
+</script><a href="https://wikieden.github.io/ai-books/" style="position:fixed;right:12px;bottom:12px;z-index:99;padding:4px 10px;border-radius:14px;background:rgba(127,127,127,.18);color:inherit;font:13px/1.6 system-ui,sans-serif;text-decoration:none">← 全部讲义书</a>
+</body></html>

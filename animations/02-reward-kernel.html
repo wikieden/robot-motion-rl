@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>奖励核的形状</title><link rel="stylesheet" href="anim.css"></head>
+<body><main>
+<h1>第 2 章 · 跟踪奖励核 exp(−e²/σ²)：误差越大得分越少，但不会变负</h1>
+<p class="sub">配套讲义：<a href="../lessons/02-tracking-mdp.html">第 2 章 · 把动作跟踪写成 MDP：看什么、做什么、怎么打分、什么时候算摔</a> 第三步。σ 的默认值 0.3 m 取自 SuperMimic 表 A.2 的刚体位置项。<br>缩写：σ（sigma）：核的宽度，误差等于 σ 时得 e⁻¹ ≈ 0.368；e：误差。</p>
+<div class="panel"><svg id="sv" viewBox="0 0 680 380"></svg></div>
+<div class="stats">
+<div class="stat"><div class="l">误差 e</div><div class="v" id="s0">0</div></div>
+<div class="stat"><div class="l">exp 核得分</div><div class="v" id="s1">1</div></div>
+<div class="stat"><div class="l">对照：−e²/σ²</div><div class="v" id="s2">0</div></div>
+</div>
+<div class="row ctl"><label>σ</label><input type="range" id="sg" min="0.1" max="0.8" step="0.05" value="0.3"><span id="sgv">0.3</span></div>
+<div class="row ctl"><label>误差 e（拖动后停在这里）</label><input type="range" id="ee" min="0" max="1" step="0.01" value="0.1"><span id="eev">0.1</span></div>
+<div class="row"><button id="play">▶ 播放</button><button id="step">→ 单步</button><button id="reset">↺ 从头开始</button></div>
+<p class="note">看点：① 蓝线是奖励核，红点是当前误差的得分，播放时误差从 0 慢慢变大（第三步）。② 虚线是 −e²/σ² 的对照：误差一大就扣成很大的负数，一次失误能把整批梯度拽过去；exp 核最低停在 0。③ 拖 σ：σ 越小越严格，同样的误差得分更低。讲义里的四个点（0、0.1、0.3、0.6）都标在横轴上。</p>
+</main>
+<script src="anim.js"></script>
+<script>
+const sv=$('sv');const X0=60,W=600,TOP=20,H=300,LO=-3,HI=1.1,EMAX=1;
+const X=e=>X0+e/EMAX*W,Y=v=>TOP+H-(clamp(v,LO,HI)-LO)/(HI-LO)*H;
+el('rect',{x:X0,y:TOP,width:W,height:H,fill:'var(--bg)',stroke:'var(--line)'},sv);
+el('line',{x1:X0,x2:X0+W,y1:Y(0),y2:Y(0),stroke:'var(--line)'},sv);
+[1,0,-1,-2,-3].forEach(v=>txt(v,{x:X0-6,y:Y(v)+4,'text-anchor':'end',class:'m'},sv));
+[0,0.1,0.3,0.6,1].forEach(e=>{txt(e,{x:X(e),y:TOP+H+16,'text-anchor':'middle',class:'m'},sv)});
+txt('误差 e（m）',{x:X0+W,y:TOP+H+34,'text-anchor':'end',class:'m'},sv);
+const kL=el('polyline',{fill:'none',stroke:'var(--accent)','stroke-width':2.4},sv);
+const qL=el('polyline',{fill:'none',stroke:'var(--warm)','stroke-width':1.6,'stroke-dasharray':'5 4'},sv);
+const sigL=el('line',{y1:TOP,y2:TOP+H,stroke:'var(--muted)','stroke-dasharray':'2 3'},sv);
+const sigT=txt('',{y:TOP+14,class:'m'},sv);
+const dot=el('circle',{r:6,fill:'var(--bad)'},sv);const dq=el('circle',{r:4,fill:'var(--warm)'},sv);
+txt('蓝：exp(−e²/σ²)　虚线：−e²/σ²（对照）',{x:X0+W-4,y:TOP+30,'text-anchor':'end',class:'m'},sv);
+let e,auto;
+function sig(){return +$('sg').value}
+function curves(){const s=sig(),a=[],b=[];for(let i=0;i<=100;i++){const x=i/100*EMAX;a.push(`${X(x)},${Y(Math.exp(-x*x/s/s))}`);b.push(`${X(x)},${Y(-x*x/s/s)}`)}kL.setAttribute('points',a.join(' '));qL.setAttribute('points',b.join(' '));
+  sigL.setAttribute('x1',X(s));sigL.setAttribute('x2',X(s));sigT.setAttribute('x',X(s)+4);sigT.textContent='e = σ → 0.368'}
+$('sg').oninput=()=>{$('sgv').textContent=$('sg').value;curves();draw()};
+$('ee').oninput=()=>{ANIM.stop();e=+$('ee').value;$('eev').textContent=e;draw()};
+function reset(){$('sgv').textContent=$('sg').value;e=0;curves();draw()}
+function next(){if(e>=0.8-1e-9)return false;e=Math.round((e+0.02)*100)/100;draw();return true}
+function draw(){const s=sig(),k=Math.exp(-e*e/s/s),q=-e*e/s/s;dot.setAttribute('cx',X(e));dot.setAttribute('cy',Y(k));dq.setAttribute('cx',X(e));dq.setAttribute('cy',Y(q));
+  $('s0').textContent=e.toFixed(2);$('s1').textContent=k.toFixed(3);$('s2').textContent=q.toFixed(2)}
+setupPlayer({captureSeed:1,reset,next},120);
+</script><a href="https://wikieden.github.io/ai-books/" style="position:fixed;right:12px;bottom:12px;z-index:99;padding:4px 10px;border-radius:14px;background:rgba(127,127,127,.18);color:inherit;font:13px/1.6 system-ui,sans-serif;text-decoration:none">← 全部讲义书</a>
+</body></html>

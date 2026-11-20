@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>第 11 章 · SuperMimic 全流程：三步循环、关键超参、结果和怎么选路线 · 机器人运控与强化学习</title>
+<style>
+:root{--bg:#fbfbfa;--fg:#1f2328;--mute:#5d6470;--line:#e3e5e8;--card:#fff;--acc:#2f6fdf;--code:#f2f3f5;--quote:#f4f6fa}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15181d;--fg:#e4e7ec;--mute:#9aa3b2;--line:#2c323b;--card:#1c2026;--acc:#7aa7ff;--code:#22272f;--quote:#1b2029}}
+:root[data-theme="dark"]{--bg:#15181d;--fg:#e4e7ec;--mute:#9aa3b2;--line:#2c323b;--card:#1c2026;--acc:#7aa7ff;--code:#22272f;--quote:#1b2029}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.75 -apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Helvetica Neue",sans-serif}
+a{color:var(--acc)}
+header.top{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+header.top .in{max-width:860px;margin:0 auto;padding:10px 16px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;font-size:14px}
+header.top .brand{font-weight:600;color:var(--fg);text-decoration:none;margin-right:auto}
+header.top a{text-decoration:none}
+main{max-width:860px;margin:0 auto;padding:24px 16px 72px;overflow-wrap:anywhere}
+h1{font-size:28px;line-height:1.35;margin:8px 0 16px} h2{font-size:22px;margin:40px 0 12px;padding-top:8px;border-top:1px solid var(--line)} h3{font-size:18px;margin:28px 0 8px}
+img{max-width:100%;height:auto;border-radius:8px;border:1px solid var(--line);background:#fff}
+blockquote{margin:16px 0;padding:10px 16px;background:var(--quote);border-left:3px solid var(--acc);border-radius:4px;color:var(--mute)}
+blockquote p{margin:4px 0}
+code{background:var(--code);padding:1px 5px;border-radius:4px;font-size:.9em}
+pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto} pre code{padding:0;background:none}
+table{border-collapse:collapse;display:block;overflow-x:auto;max-width:100%;margin:12px 0;font-size:15px}
+th,td{border:1px solid var(--line);padding:6px 10px;vertical-align:top} th{background:var(--code)}
+details{border:1px solid var(--line);border-radius:8px;padding:6px 12px;margin:8px 0;background:var(--card)}
+details[open]{padding-bottom:10px} summary{cursor:pointer;color:var(--acc);font-weight:500}
+mjx-container{overflow-x:auto;overflow-y:hidden;max-width:100%}
+.btn{display:inline-block;margin:4px 8px 4px 0;padding:6px 14px;border:1px solid var(--acc);border-radius:999px;text-decoration:none;font-size:14px}
+.pager{display:flex;justify-content:space-between;gap:12px;margin-top:48px;padding-top:16px;border-top:1px solid var(--line);font-size:15px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin:16px 0}
+.card{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden;color:inherit;text-decoration:none}
+.card:hover{border-color:var(--acc)} .card img{border:0;border-bottom:1px solid var(--line);border-radius:0;aspect-ratio:16/10;object-fit:contain;width:100%}
+.card .no{color:var(--mute);font-size:13px;padding:8px 12px 0} .card .t{padding:0 12px 12px;font-weight:500;line-height:1.5}
+.lead{font-size:17px;color:var(--mute)}
+footer{max-width:860px;margin:0 auto;padding:0 16px 40px;color:var(--mute);font-size:13px}
+</style>
+<script>window.MathJax={tex:{inlineMath:[["\\(","\\)"]],displayMath:[["\\[","\\]"],["$$","$$"]],processEscapes:true,processEnvironments:true}};</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js"></script>
+</head><body>
+<header class="top"><div class="in">
+<a class="brand" href="../index.html">机器人运控与强化学习</a>
+<a href="../lessons/index.html">讲义目录</a>
+<a href="../animations/index.html">动画</a>
+<a href="../review.html">复习卡片</a>
+<a href="../lessons/appendix-glossary.html">缩写表</a>
+<a href="https://wikieden.github.io/ai-books/">← 全部讲义书</a>
+</div></header>
+<main>
+<h1 id="11-supermimic">第 11 章 · SuperMimic 全流程：三步循环、关键超参、结果和怎么选路线</h1><p><a class="btn" href="../animations/11-supermimic-loop.html">▶ 打开本章可交互动画</a></p>
+<blockquote>
+<p>本章回答：前面十章的零件，在 SuperMimic 里怎么拼成一个训练循环？一次迭代到底做了多少计算？它快在哪三个地方？它还做不了什么？以后遇到一个运控问题，该用 PPO、MPC 还是 SuperMimic 这一类方法？<br />
+讲解日期：2026-11-20 · 上一章：<a href="../lessons/10-bptt-critic.html">第 10 章 在想象里训练</a> · 下一章：<a href="../lessons/12-lqr.html">第 12 章 LQR（第二部分：经典控制与上真机）</a><br />
+对应原文：SuperMimic §3.1 训练循环（<code>papers/supermimic-2610.28480.txt</code> L204–L216，图 2）、附录 Algorithm A.1（L813 起）、表 A.5（L859–L889）、§4.2（L401–L442）、§4.4 真机（L453 起）、§6 局限（L526–L540）<br />
+本章缩写：UTD = Update-To-Data ratio（更新 / 对 / 数据 比：每采一份数据做几次更新）；Dyna：Sutton 1991 提出的「用模型生成数据来训练策略」框架；PPO-WM：在 world model 里跑的 PPO；G1：Unitree 的人形机器人；MPC = Model Predictive Control（模型 / 预测 / 控制）；WBC = Whole-Body Control（全身 / 控制）。全部缩写见 <a href="../lessons/appendix-glossary.html">附录 · 缩写与术语表</a></p>
+</blockquote>
+<h2 id="_1">讲解</h2>
+<h3 id="2026-11-20">第一步：三步循环（2026-11-20）</h3>
+<p><strong>类比：学开车的人一边上路（采数据），一边在脑子里更新「这车怎么开」的感觉（拟合模型），晚上躺床上在脑子里反复演练（想象里改策略）。三件事每天都做，不是先学完理论再上路。</strong></p>
+<p>每次迭代（Algorithm A.1）：</p>
+<table>
+<thead>
+<tr>
+<th>步</th>
+<th>做什么</th>
+<th>用到哪章</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>① 采数据</td>
+<td>当前（确定性）策略加动作噪声，在 MuJoCo Warp 里跑；转移存入回放缓冲区，满了覆盖最旧的；重置点按回报抽</td>
+<td>第 2、4、5 章</td>
+</tr>
+<tr>
+<td>② 拟合 world model</td>
+<td>从缓冲区取 8 步窗口，自回归地训练 <span class="arithmatex">\(f_\omega\)</span></td>
+<td>第 9 章</td>
+</tr>
+<tr>
+<td>③ 改策略</td>
+<td>冻住模型，从缓冲区取起点，想象 32 步，BPTT 更新策略；用想象轨迹拟合 critic</td>
+<td>第 8、10 章</td>
+</tr>
+</tbody>
+</table>
+<p>三步一起转，模型和策略一起进步（L214–L216）。关键一句（L214）：<strong>旧策略采的数据对拟合模型一直有效</strong>，因为物理不依赖是谁采的数据。这让 SuperMimic 天然能复用旧数据（Dyna 风格），而 PPO 的数据用一轮就作废（《从零学强化学习》第 23 章）。</p>
+<p><strong>一句话</strong>：上路、更新感觉、脑中演练，三件事每轮都做。</p>
+<h3 id="2026-11-20_1">第二步：一次迭代的账（2026-11-20）</h3>
+<p>超参来自表 A.5（单卡）：</p>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>算式</th>
+<th>数</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>回放缓冲区</td>
+<td>4096 个环境 × 每环境 1000 步</td>
+<td><strong>4,096,000</strong> 条转移</td>
+</tr>
+<tr>
+<td>一次 world model 更新</td>
+<td>10 批 × 2048 个窗口 × 8 步</td>
+<td><strong>163,840</strong> 步预测</td>
+</tr>
+<tr>
+<td>一次策略更新</td>
+<td>4096 条想象 × 32 步</td>
+<td><strong>131,072</strong> 步想象</td>
+</tr>
+<tr>
+<td>训练长度</td>
+<td>32 万次迭代</td>
+<td>共想象约 <strong>4.2 × 10¹⁰</strong> 步</td>
+</tr>
+</tbody>
+</table>
+<p>其他：UTD = 0.4；每次模型更新配 1 次策略更新；学习率余弦衰减到 0.03 倍；动作噪声 N(0, 0.1²)；γ = 0.99，λ = 0.95。</p>
+<p>想象这么多步还很快，是因为模型在 GPU 上一次前向就是一个 MLP，比仿真器算接触快得多（下一步）。</p>
+<p><strong>一句话</strong>：缓冲区四百万条，每轮想象十三万步，一共四百多亿步。</p>
+<h3 id="2026-11-20_2">第三步：快在哪三个地方（2026-11-20）</h3>
+<p>§4.2 把提速拆成三个因素：</p>
+<table>
+<thead>
+<tr>
+<th>因素</th>
+<th>证据</th>
+<th>对应</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>① 一个模型摊销整个动作库</td>
+<td>数据 1 → 264 小时，8 步预测误差保持 0.007–0.011（图 3c，L405–L409）</td>
+<td>第 7、9 章</td>
+</tr>
+<tr>
+<td>② 想象比仿真快</td>
+<td>实际用的 2k–16k 并行下快 10 倍以上，64k 并行时快 62 倍（图 5a，L410–L415）</td>
+<td>本章</td>
+</tr>
+<tr>
+<td>③ 解析梯度省样本</td>
+<td>同一个模型里，达到 PPO-WM 的最好回报只用约 1/64 的想象步数（图 5b，L440–L442）</td>
+<td>第 8 章</td>
+</tr>
+</tbody>
+</table>
+<p>③ 最重要：它把「有模型」和「用解析梯度」两件事拆开了。RWM 那一类「world model + PPO」只拿到 ① 和 ②。</p>
+<p>结果回顾（第 7 章）：1 张 H100 训 3 小时超过 SONIC（128 张 L40 训 7 天）的回报；12.9 万条动作失败 25 条，2 卡 9.8 小时降到 0 条；一个通用策略不做逐动作调参，直接在真机 G1 上做出跳跃、侧滚、90° 空翻和原地 360° 空翻（§4.4）。</p>
+<p><strong>一句话</strong>：模型共享、想象快、梯度准，三样乘起来。</p>
+<h3 id="2026-11-20_3">第四步：还做不了什么，以及怎么选路线（2026-11-20）</h3>
+<p><strong>局限</strong>（§6，L526–L540）：</p>
+<ul>
+<li>world model 只从仿真学，没用真机数据；</li>
+<li>只有平地，没有地形和物体交互；</li>
+<li>确定性模型学不了突变（推搡、碰撞冲击，第 9 章），这可能是做物体交互时的障碍（这一条是本书的推断）；</li>
+<li>多个下游接口一起训练的研究还很初步。</li>
+</ul>
+<p><strong>怎么选路线</strong>（本书的总结，接 学习计划 阶段 A–H）：</p>
+<table>
+<thead>
+<tr>
+<th>你的情况</th>
+<th>优先考虑</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>要可解释、动作结构化（工业四足巡检）</td>
+<td>MPC + WBC（机器人架构讲义第 6 章、运控细化笔记 §5）</td>
+</tr>
+<tr>
+<td>动态动作、全身动作、难建模的接触</td>
+<td>仿真里 PPO + 动作跟踪（第 2–5 章）</td>
+</tr>
+<tr>
+<td>动作库很大、算力有限</td>
+<td>SuperMimic 这类可微 world model（第 8–11 章）</td>
+</tr>
+<tr>
+<td>只有真机数据</td>
+<td>SAC 这类 off-policy，或 model-based</td>
+</tr>
+<tr>
+<td>上层「一次决策一个分」的微调</td>
+<td>GRPO（第 6 章）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>一句话</strong>：平地、大动作库、算力紧，选 SuperMimic；要地形、要碰东西，目前还是 PPO 加大规模仿真更稳。</p>
+<h3 id="_2">动画演示：三步循环与「冻结模型」对照</h3>
+<p><img alt="SuperMimic 的三步循环" src="../animations/11-supermimic-loop.gif" /></p>
+<p>可交互版：<a href="../animations/11-supermimic-loop.html">animations/11-supermimic-loop.html</a>（滑块：下图在第几轮冻结 world model）。</p>
+<p><strong>怎么看</strong>：</p>
+<ol>
+<li>上方三个框是每轮都走一遍的三步，高亮的是当前这一步；缓冲区装满后新数据覆盖最旧的（第一步）。</li>
+<li>上图「边训边拟合」：模型误差（橙线）下降，想象回报（虚线）和真实回报（实线）贴在一起。</li>
+<li>下图「冻结模型」：不再拟合后，策略钻模型的空子，虚线越涨越高、实线反而掉。这是 model-based RL 的通病示意，不是 SuperMimic 论文里的实验；SuperMimic 用「每轮都重新拟合」来避免它。</li>
+</ol>
+<h2 id="_3">练习与作答记录</h2>
+<p><strong>题 1</strong>（第一步）：回放缓冲区存的是加了动作噪声后实际执行的转移。如果改成只存不加噪声的动作，world model 会在哪类动作上预测得差？这对第三步「改策略」有什么影响？</p>
+<p><strong>作答</strong>：（待作答）</p>
+<p><strong>题 2</strong>（第二步）：如果改成 2048 个环境、每环境存 500 步，想象视野改成 16、想象条数 8192，缓冲区多大？每次策略更新想象多少步？</p>
+<p><strong>作答</strong>：（待作答）</p>
+<p><strong>题 3</strong>（第四步）：假设要把 SuperMimic 用到「推箱子走」这种有物体接触的任务上。根据第 9 章和本章的局限，你预计最先遇到什么问题？会怎么改？</p>
+<p><strong>作答</strong>：（待作答）</p>
+<h2 id="_4">口诀</h2>
+<blockquote>
+<p>上路采数据、更新车感、躺床上演练，三步每轮都转；<br />
+旧数据照样能用，物理不看是谁采的；<br />
+缓冲四百万、每轮想十三万，一共四百多亿步；<br />
+共享模型、想象快、梯度准，三样乘起来就是几百倍。</p>
+</blockquote>
+<h2 id="_5">本章复习卡片</h2>
+<p>M21（SuperMimic 三步循环与「旧数据仍有效」）、M22（三个提速因素与各自证据；局限与选路线）</p>
+<h2 id="_6">附录 · 延伸阅读</h2>
+<blockquote>
+<p>留给以后深入学习用，不影响本章主线。★ 是建议先读的。</p>
+</blockquote>
+<h3 id="_7">推荐阅读</h3>
+<table>
+<thead>
+<tr>
+<th>读什么</th>
+<th>读哪里</th>
+<th>读它为了什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>★ SuperMimic 全文</td>
+<td><code>papers/supermimic-2610.28480.txt</code>（§3、§4、附录 A、D、F）</td>
+<td>全书主线的原文</td>
+</tr>
+<tr>
+<td>★ 运控调研第 5–6 章</td>
+<td>survey-ppo-grpo-supermimic.md</td>
+<td>SuperMimic 精读和高效学习清单</td>
+</tr>
+<tr>
+<td>★ 学习计划</td>
+<td>study-plan.md MC-M16（小规模 SuperMimic）、MC-M17</td>
+<td>把本书落成实验</td>
+</tr>
+<tr>
+<td>Dyna</td>
+<td>Sutton 1991（SuperMimic 引用 [23]，未下载）</td>
+<td>用模型生成数据训练策略的源头</td>
+</tr>
+<tr>
+<td>MBPO</td>
+<td>Janner et al. 2019（引用 [24]，未下载）</td>
+<td>什么时候可以信任模型</td>
+</tr>
+<tr>
+<td>mjlab</td>
+<td><code>papers/mjlab-2601.22074.txt</code></td>
+<td>SuperMimic 作者之一的 GPU 机器人学习框架</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_8">数学原理</h3>
+<ul>
+<li><strong>摊销（amortization）</strong>：一次付出成本（学一个共享模型），之后很多任务共用，平均到每个任务的成本就小。</li>
+<li><strong>三个倍数相乘</strong>：若三个因素互相独立，总提速约等于各自倍数的乘积；论文没有给出精确分解，本书只做定性说法。</li>
+</ul>
+<h3 id="_9">公式清单</h3>
+<table>
+<thead>
+<tr>
+<th>公式</th>
+<th>意思</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>缓冲区 = 环境数 × 每环境步数</td>
+<td>4096 × 1000</td>
+</tr>
+<tr>
+<td>每次 WM 更新 = 批数 × 窗口数 × k</td>
+<td>10 × 2048 × 8</td>
+</tr>
+<tr>
+<td>每次策略更新 = 想象条数 × H</td>
+<td>4096 × 32</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_10">代码对照：把本章的数字用代码算一遍</h3>
+<blockquote>
+<p>用 Python 把讲义里讲过的数算一遍，不算练习题。代码在仓库本地 <code>robot-motion-rl/solutions/chapter-code/ch11_supermimic.py</code>，配套测试 <code>tests/test_ch07_11.py</code>，notebook 在 <code>notebooks/ch11_supermimic.ipynb</code>。Mac 上直接能跑，不需要 GPU：</p>
+<p><code>bash  
+cd robot-motion-rl/solutions/chapter-code  
+uv run python ch11_supermimic.py  
+uv run pytest tests/test_ch07_11.py</code></p>
+</blockquote>
+<p><strong>讲义 ↔ 代码</strong>（超参全部取自 SuperMimic 表 A.5）：</p>
+<table>
+<thead>
+<tr>
+<th>讲义</th>
+<th>公式</th>
+<th>写法</th>
+<th>跑出来</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>第二步 缓冲区</td>
+<td>4096 × 1000</td>
+<td><code>buffer_size()</code></td>
+<td>4,096,000</td>
+</tr>
+<tr>
+<td>第二步 WM 更新</td>
+<td>10 × 2048 × 8</td>
+<td><code>wm_transitions_per_update()</code></td>
+<td>163,840</td>
+</tr>
+<tr>
+<td>第二步 策略更新</td>
+<td>4096 × 32</td>
+<td><code>imagined_steps_per_update()</code></td>
+<td>131,072；× 32 万 ≈ 4.19e10</td>
+</tr>
+</tbody>
+</table>
+<p><strong>关键几行</strong>：</p>
+<pre><code class="language-python">HP = {&quot;envs_per_gpu&quot;: 4096, &quot;buffer_steps_per_env&quot;: 1000, &quot;window_k&quot;: 8,
+      &quot;wm_batches&quot;: 10, &quot;wm_windows_per_batch&quot;: 2048, &quot;horizon_H&quot;: 32,
+      &quot;imagined_rollouts&quot;: 4096, &quot;iterations&quot;: 320_000}            # 表 A.5
+buffer = HP[&quot;envs_per_gpu&quot;] * HP[&quot;buffer_steps_per_env&quot;]         # 回放缓冲区
+imagined = HP[&quot;imagined_rollouts&quot;] * HP[&quot;horizon_H&quot;]             # 每次策略更新想象的步数
+</code></pre>
+<p><strong>代码里才看得到的 1 件事</strong>：</p>
+<ul>
+<li>这一章的「代码对照」只是算账：完整的三步循环要 GPU 仿真器和几个大网络，见学习计划 MC-M16（HalfCheetah 上的小规模版本，本机可做）和 MC-M17（<code>[GPU]</code>）。</li>
+</ul>
+<p><strong>自己改一改</strong>（不影响练习答案）：</p>
+<ul>
+<li>把 <code>horizon_H</code> 改成 128（论文里一张 H100 装得下的最长视野），看每次想象的步数涨几倍。</li>
+<li>估一下：如果每步想象花 1 微秒，32 万次迭代的想象部分要多少小时？</li>
+</ul><nav class="pager"><a href="10-bptt-critic.html">← 第 10 章 · 在想象里训练：BPTT 只看 32 步，critic 补上后面</a><a href="12-lqr.html">第 12 章 · LQR：模型已知、线性、二次代价时，Bellman 方程有闭式解 →</a></nav>
+</main>
+<footer>来自个人学习仓库的对话讲义，含练习作答记录。源码：<a href="https://github.com/wikieden/robot-motion-rl">github.com/wikieden/robot-motion-rl</a>。更多讲义书：<a href="https://wikieden.github.io/ai-books/">AI 算法图解讲义（合集）</a></footer>
+</body></html>

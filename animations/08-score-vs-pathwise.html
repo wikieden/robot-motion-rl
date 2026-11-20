@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>采样梯度 vs 解析梯度</title><link rel="stylesheet" href="anim.css"></head>
+<body><main>
+<h1>第 8 章 · 采样梯度 score-function gradient vs 解析梯度 pathwise gradient</h1>
+<p class="sub">配套讲义：<a href="../lessons/08-two-gradients.html">第 8 章 · 两种梯度：「试了打分」的似然比梯度 vs 「顺着公式求导」的解析梯度</a>；另见运控调研 第 5.3 节。依据 SuperMimic 论文 <code>supermimic-2610.28480.txt</code> 第 278–281 行（两种梯度的对比）、第 440–442 行（同一 world model 上 PPO 要多约 64 倍想象步数）。图是<strong>二维示意</strong>，不是论文里的数字。<br>缩写：PPO = Proximal Policy Optimization（近端 / 策略 / 优化）；BPTT = Backpropagation Through Time（反向传播 / 穿过 / 时间）；θ 是策略参数，J(θ) 是期望回报，∇J 是它的梯度（往哪边走回报涨得最快）。</p>
+<div class="panel"><svg id="sv" viewBox="0 0 680 430"></svg></div>
+<div class="stats">
+<div class="stat"><div class="l">迭代</div><div class="v" id="st">0</div></div>
+<div class="stat"><div class="l">左：已用样本 / 离最优</div><div class="v" id="s1">0</div></div>
+<div class="stat"><div class="l">右：想象 rollout / 离最优</div><div class="v" id="s2">0</div></div>
+<div class="stat"><div class="l">平均方向误差 左 / 右</div><div class="v" id="s3">–</div></div>
+</div>
+<div class="row ctl"><label>左边每次采样数 N</label><input type="range" id="nN" min="2" max="64" step="1" value="4"><span id="nNv">4</span></div>
+<div class="row ctl"><label>探索噪声 σ</label><input type="range" id="sg" min="0.1" max="0.8" step="0.05" value="0.35"><span id="sgv">0.35</span></div>
+<div class="row ctl"><label>右边 world model 偏差</label><input type="range" id="bm" min="0" max="1" step="0.05" value="0"><span id="bmv">0</span></div>
+<div class="row"><button id="play">▶ 播放</button><button id="step">→ 单步</button><button id="reset">↺ 换一组随机数</button></div>
+<p class="note">看点：① 左边（PPO 式）每步在当前点周围撒 N 个随机动作（小点，颜色越深回报越高），只拿到 N 个分数，靠「分数高的方向多走」去猜上坡方向。实线箭头是猜出来的方向，虚线是真正的上坡方向 ∇J，两者常常对不上，所以路线弯弯绕绕。② 右边（SuperMimic 式）沿着 world model 用 BPTT 直接求导，一次想象 rollout（在模型里往前推演一段）就得到一个方向向量，只带少量随机误差，几乎走直线。③ 拖「N」：拉到 64，左边变直，但每步要 64 个样本，这就是 PPO 必须靠大 batch、大规模并行仿真压方差的原因。④ 拖「world model 偏差」：模型学偏了，以为最优点在空心 ☆ 那里，右边会又快又稳地走到错的地方。解析梯度只和模型一样好，所以 SuperMimic 要边训策略边用新数据拟合模型（论文 Figure 2 的三步循环）。</p>
+</main>
+<script src="anim.js"></script>
+<script>
+const sv=$('sv');
+const C=[1.2,0.9],ANG=Math.PI/6,cs=Math.cos(ANG),sn=Math.sin(ANG);
+const S=62,LR=0.12,MAXSTEP=0.3,ITERS=40,START=[-2.0,-1.9];
+const panels=[{x0:12,name:'PPO 式：采样 + 打分（似然比梯度）',col:'var(--warm)'},{x0:352,name:'SuperMimic 式：穿过 world model 求导（解析梯度）',col:'var(--accent)'}];
+function uv(p){const dx=p[0]-C[0],dy=p[1]-C[1];return[cs*dx+sn*dy,-sn*dx+cs*dy]}
+function J(p){const[u,v]=uv(p);return-(0.5*u*u+4*v*v)}
+function gradJ(p){const[u,v]=uv(p);const gu=-u,gv=-8*v;return[cs*gu-sn*gv,sn*gu+cs*gv]}
+const defs=el('defs',{},sv);
+panels.forEach((P,i)=>{
+  const cp=el('clipPath',{id:'cp'+i},defs);el('rect',{x:P.x0,y:40,width:316,height:316},cp);
+  const mk=el('marker',{id:'ar'+i,viewBox:'0 0 10 10',refX:8,refY:5,markerWidth:6,markerHeight:6,orient:'auto-start-reverse'},defs);
+  el('path',{d:'M0,0 L10,5 L0,10 z',fill:P.col},mk);
+});
+const mkT=el('marker',{id:'arT',viewBox:'0 0 10 10',refX:8,refY:5,markerWidth:6,markerHeight:6,orient:'auto-start-reverse'},defs);
+el('path',{d:'M0,0 L10,5 L0,10 z',fill:'var(--muted)'},mkT);
+function px(P,p){return[P.x0+158+p[0]*S,198-p[1]*S]}
+panels.forEach((P,i)=>{
+  el('rect',{x:P.x0,y:40,width:316,height:316,fill:'var(--bg)',stroke:'var(--line)',rx:8},sv);
+  txt(P.name,{x:P.x0+4,y:30,'font-size':12.5},sv);
+  const g=el('g',{'clip-path':`url(#cp${i})`},sv);
+  const c=px(P,C);
+  [0.08,0.4,1,2,3.5,5.5,8,11].forEach(k=>el('ellipse',{cx:c[0],cy:c[1],rx:Math.sqrt(2*k)*S,ry:Math.sqrt(k/4)*S,fill:'none',stroke:'var(--line)','stroke-width':1,transform:`rotate(${-ANG*180/Math.PI} ${c[0]} ${c[1]})`},g));
+  txt('★',{x:c[0],y:c[1]+5,'text-anchor':'middle','font-size':16,fill:'var(--good)'},g);
+  P.samples=el('g',{},g);
+  P.path=el('polyline',{fill:'none',stroke:P.col,'stroke-width':2.2},g);
+  P.dot=el('circle',{r:5.5,fill:P.col},g);
+  P.tru=el('line',{stroke:'var(--muted)','stroke-width':1.6,'stroke-dasharray':'4 3','marker-end':'url(#arT)'},g);
+  P.est=el('line',{stroke:P.col,'stroke-width':2.4,'marker-end':`url(#ar${i})`},g);
+});
+txt('实线箭头 = 这一步实际用的更新方向　虚线箭头 = 真正的上坡方向（∇J）',{x:12,y:378,class:'m'},sv);
+txt('左：每步要 N 个仿真样本，只拿到 N 个分数（标量）',{x:12,y:400,class:'m'},sv);
+txt('右：每步 1 次想象 rollout，反向传播直接给出方向（向量），带少量模型误差',{x:12,y:420,class:'m'},sv);
+let t,N,SIG,BIAS=0;
+const modelC=()=>[C[0]-BIAS*0.7,C[1]+BIAS*1.1];
+const fake=txt('☆',{'text-anchor':'middle','font-size':17,fill:'var(--accent)','clip-path':'url(#cp1)'},sv);
+function readCtl(){N=+$('nN').value;SIG=+$('sg').value;BIAS=+$('bm').value;$('nNv').textContent=N;$('sgv').textContent=SIG.toFixed(2);$('bmv').textContent=BIAS.toFixed(2);
+  const m=modelC(),q=px(panels[1],m);fake.setAttribute('x',q[0]);fake.setAttribute('y',q[1]+5);fake.style.display=BIAS>0?'':'none'}
+$('nN').oninput=$('sg').oninput=$('bm').oninput=()=>{readCtl();ANIM.stop();ANIM.reset(Date.now())};
+function reset(sd){seed(sd);readCtl();t=0;panels.forEach(P=>{P.p=START.slice();P.pts=[START.slice()];P.used=0;P.angSum=0;P.last=null;P.lastTrue=null;clear(P.samples)});draw()}
+function ang(a,b){const d=(a[0]*b[0]+a[1]*b[1])/(Math.hypot(...a)*Math.hypot(...b)+1e-9);return Math.acos(clamp(d,-1,1))*180/Math.PI}
+function stepTo(P,g){let s=[LR*g[0],LR*g[1]];const L=Math.hypot(...s);if(L>MAXSTEP)s=s.map(v=>v*MAXSTEP/L);P.p=[P.p[0]+s[0],P.p[1]+s[1]];P.pts.push(P.p.slice())}
+function next(){
+  if(t>=ITERS)return false;
+  // 左：似然比梯度，ĝ = 1/(Nσ) Σ (J_i − mean J) ε_i
+  const L=panels[0];clear(L.samples);
+  const eps=[],js=[];for(let i=0;i<N;i++){const e=[gauss(),gauss()];eps.push(e);js.push(J([L.p[0]+SIG*e[0],L.p[1]+SIG*e[1]]))}
+  const jm=js.reduce((a,b)=>a+b,0)/N,jmin=Math.min(...js),jmax=Math.max(...js);
+  let g=[0,0];eps.forEach((e,i)=>{g[0]+=(js[i]-jm)*e[0]/(N*SIG);g[1]+=(js[i]-jm)*e[1]/(N*SIG);
+    const q=px(L,[L.p[0]+SIG*e[0],L.p[1]+SIG*e[1]]);el('circle',{cx:q[0],cy:q[1],r:3,fill:'var(--warm)',opacity:0.25+0.7*(js[i]-jmin)/(jmax-jmin+1e-9)},L.samples)});
+  L.lastTrue=gradJ(L.p);L.last=g;L.angSum+=ang(g,L.lastTrue);L.used+=N;stepTo(L,g);
+  // 右：解析梯度，∇Ĵ = ∇J + 小的模型误差
+  const R=panels[1];const gt=gradJ(R.p),mc=modelC();
+  const gm=gradJ([R.p[0]-mc[0]+C[0],R.p[1]-mc[1]+C[1]]),m=0.15*Math.hypot(...gm);
+  const gr=[gm[0]+m*gauss(),gm[1]+m*gauss()];
+  R.lastTrue=gt;R.last=gr;R.angSum+=ang(gr,gt);R.used+=1;stepTo(R,gr);
+  t++;draw();return true}
+function arrow(P,line,from,g){if(!g||Math.hypot(...g)<1e-9){line.setAttribute('x1',-99);line.setAttribute('x2',-99);return}
+  const a=px(P,from),n=Math.hypot(...g);line.setAttribute('x1',a[0]);line.setAttribute('y1',a[1]);line.setAttribute('x2',a[0]+42*g[0]/n);line.setAttribute('y2',a[1]-42*g[1]/n)}
+function draw(){panels.forEach(P=>{P.path.setAttribute('points',P.pts.map(p=>px(P,p).join(',')).join(' '));const q=px(P,P.p);P.dot.setAttribute('cx',q[0]);P.dot.setAttribute('cy',q[1]);
+    const from=P.pts.length>1?P.pts[P.pts.length-2]:P.p;arrow(P,P.est,from,P.last);arrow(P,P.tru,from,P.lastTrue)});
+  const d=P=>Math.hypot(P.p[0]-C[0],P.p[1]-C[1]).toFixed(2);
+  $('st').textContent=t;$('s1').textContent=`${panels[0].used} / ${d(panels[0])}`;$('s2').textContent=`${panels[1].used} / ${d(panels[1])}`;
+  $('s3').textContent=t?`${(panels[0].angSum/t).toFixed(0)}° / ${(panels[1].angSum/t).toFixed(0)}°`:'–'}
+setupPlayer({captureSeed:5,reset,next},350);
+</script><a href="https://wikieden.github.io/ai-books/" style="position:fixed;right:12px;bottom:12px;z-index:99;padding:4px 10px;border-radius:14px;background:rgba(127,127,127,.18);color:inherit;font:13px/1.6 system-ui,sans-serif;text-decoration:none">← 全部讲义书</a>
+</body></html>

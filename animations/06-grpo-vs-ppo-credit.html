@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>整条打分 vs 逐步打分</title><link rel="stylesheet" href="anim.css"></head>
+<body><main>
+<h1>第 6 章 · 信用分配 credit assignment：GRPO 整条打分 vs PPO 逐步打分</h1>
+<p class="sub">配套讲义：<a href="../lessons/06-grpo-credit.html">第 6 章 · GRPO 为什么不适合底层运控：整条打分 vs 逐步打分</a>；另见运控调研 第 3.2 节。GRPO 的 advantage 公式见 <code>deepseekmath-grpo-2402.03300.txt</code> 第 1049 行，GAE 见 <code>gae-1506.02438.txt</code>。机器人和 critic 都是<strong>示意</strong>：critic 假设是「理想的」，直接知道哪一步已经注定会摔。<br>缩写：GRPO = Group Relative Policy Optimization（组 / 相对 / 策略 / 优化）；PPO = Proximal Policy Optimization（近端 / 策略 / 优化）；GAE = Generalized Advantage Estimation（广义 / 优势 / 估计）。advantage（优势）= 这一步比「平常」好多少，正数鼓励、负数惩罚。</p>
+<div class="panel"><svg id="sv" viewBox="0 0 680 440"></svg></div>
+<div class="stats">
+<div class="stat"><div class="l">时间步</div><div class="v" id="st">0</div></div>
+<div class="stat"><div class="l">GRPO：负分落在出错那一步的比例</div><div class="v" id="s1">–</div></div>
+<div class="stat"><div class="l">PPO + GAE：同上</div><div class="v" id="s2">–</div></div>
+</div>
+<div class="row ctl"><label>时域长度 T（一条动作多少步）</label><input type="range" id="tT" min="40" max="120" step="10" value="60"><span id="tTv">60</span></div>
+<div class="row ctl"><label>组大小 G（同起点采几条）</label><input type="range" id="gG" min="4" max="10" step="1" value="6"><span id="gGv">6</span></div>
+<div class="row"><button id="play">▶ 播放</button><button id="step">→ 单步</button><button id="reset">↺ 换一组随机数</button></div>
+<p class="note">看点：① 先播放 G 条从同一状态出发的轨迹：灰格 = 站着、在跟踪动作；✕ = 这一步踩错了（比如落脚点偏了）；之后再过 8 步才真正摔倒，摔倒后 episode 结束（格子变空）。② 上半部分按 GRPO 打分：每条轨迹只有一个总回报，减组均值、除组标准差，<strong>整条轨迹每一步都涂同一个颜色</strong>。摔了的轨迹里，前面几十步好好的动作也一起被惩罚；没摔的轨迹里，碰巧没出事的平庸动作也一起被奖励。③ 下半部分按 PPO + GAE 打分：critic 估计每个状态的价值，advantage 是「这一步之后的价值变化」，所以红色集中在 ✕ 那一步，其他步接近 0。④ 拖「时域长度 T」：T 越长，GRPO 的负分被摊得越薄，出错那一步分到的比例越小；而运控一条动作动辄几百步。</p>
+</main>
+<script src="anim.js"></script>
+<script>
+const sv=$('sv');const X0=96,W=560,GAMMA=0.97,DELAY=8;
+const blocks=[{name:'GRPO：整条轨迹一个分',top:40},{name:'PPO + GAE：每一步一个分',top:240}];
+let T,G,trajs,t,phase,cells,legend;
+function readCtl(){T=+$('tT').value;G=+$('gG').value;$('tTv').textContent=T;$('gGv').textContent=G}
+$('tT').oninput=$('gG').oninput=()=>{readCtl();ANIM.stop();ANIM.reset(Date.now())};
+function colorFor(a){if(a===null)return'var(--bg)';const m=Math.min(1,Math.abs(a)/1.6);return a<0?`rgba(200,60,50,${0.12+0.85*m})`:`rgba(60,150,90,${0.12+0.85*m})`}
+function build(){
+  clear(sv);cells=[];
+  const ch=Math.min(24,150/G),cw=W/T;
+  blocks.forEach((B,bi)=>{
+    txt(B.name,{x:X0,y:B.top-12},sv);
+    const rows=[];
+    for(let i=0;i<G;i++){
+      const y=B.top+i*ch;txt(`轨迹 ${i+1}`,{x:X0-8,y:y+ch*0.7,'text-anchor':'end',class:'m'},sv);
+      const row=[];for(let k=0;k<T;k++)row.push(el('rect',{x:X0+k*cw+0.5,y:y+1,width:Math.max(cw-1,0.8),height:ch-2,fill:'var(--bg)',stroke:'var(--line)','stroke-width':0.4},sv));
+      const mk=txt('',{y:y+ch*0.75,'text-anchor':'middle','font-size':Math.min(13,ch*0.8),fill:'var(--text)'},sv);
+      rows.push({row,mk});
+    }
+    cells.push(rows);
+  });
+  txt('格子颜色：绿 = advantage 为正（鼓励），红 = 为负（惩罚），越深绝对值越大；✕ = 踩错的那一步',{x:X0-80,y:432,class:'m'},sv);
+  legend=txt('',{x:X0-80,y:412,class:'m'},sv);
+}
+function vHealthy(k,hz){let v=0,p=1;for(let j=k;j<T;j++){v+=p*Math.pow(GAMMA,j-k);p*=(1-hz)}return v}
+function vDoomed(left){let v=0;for(let j=0;j<left;j++)v+=Math.pow(GAMMA,j);return v}
+function reset(sd){
+  seed(sd);readCtl();build();t=0;phase=0;
+  const hz=0.5/Math.max(T-DELAY-6,1);
+  trajs=[];let fellAny=false;
+  for(let i=0;i<G;i++){
+    let m=null;for(let k=4;k<T-DELAY-1;k++)if(rnd()<hz){m=k;break}
+    if(i===G-1&&!fellAny&&m===null)m=Math.floor(T*0.45);
+    if(m!==null)fellAny=true;
+    const f=m===null?T:m+DELAY+1;
+    const r=[];for(let k=0;k<f;k++)r.push(1+0.08*gauss());
+    let R=0;r.forEach((v,k)=>R+=Math.pow(GAMMA,k)*v);
+    trajs.push({m,f,r,R});
+  }
+  const mean=trajs.reduce((a,b)=>a+b.R,0)/G,sd2=Math.sqrt(trajs.reduce((a,b)=>a+(b.R-mean)**2,0)/G)+1e-6;
+  const all=[];
+  trajs.forEach(tr=>{
+    tr.grpo=(tr.R-mean)/sd2;
+    const V=k=>{if(k>=tr.f)return 0;if(tr.m!==null&&k>tr.m)return vDoomed(tr.f-k);return vHealthy(k,hz)};
+    tr.adv=tr.r.map((rv,k)=>rv+GAMMA*V(k+1)-V(k)+0.03*gauss());
+    all.push(...tr.adv);
+  });
+  const am=all.reduce((a,b)=>a+b,0)/all.length,as=Math.sqrt(all.reduce((a,b)=>a+(b-am)**2,0)/all.length)+1e-6;
+  trajs.forEach(tr=>tr.ppo=tr.adv.map(a=>(a-am)/as));
+  draw();
+}
+function focus(key){let s=0,n=0;trajs.forEach(tr=>{if(tr.m===null)return;const a=key==='grpo'?tr.r.map(()=>tr.grpo):tr.ppo;let neg=0;a.forEach(v=>{if(v<0)neg+=-v});const at=a[tr.m]<0?-a[tr.m]:0;if(neg>0){s+=at/neg;n++}});return n?(100*s/n).toFixed(0)+'%':'–'}
+function next(){
+  if(phase===0){t=Math.min(T,t+Math.max(1,Math.round(T/30)));if(t>=T)phase=1;draw();return true}
+  if(phase<3){phase++;draw();return true}
+  return false}
+function draw(){
+  const cw=W/T;
+  blocks.forEach((B,bi)=>trajs.forEach((tr,i)=>{
+    const {row,mk}=cells[bi][i];
+    row.forEach((c,k)=>{
+      let f='var(--bg)';
+      if(k<t&&k<tr.f){f='var(--card)';
+        if(bi===0&&phase>=2)f=colorFor(tr.grpo);
+        if(bi===1&&phase>=3)f=colorFor(tr.ppo[k]);}
+      c.setAttribute('fill',f);
+    });
+    if(tr.m!==null&&t>tr.m){mk.textContent='✕';mk.setAttribute('x',X0+(tr.m+0.5)*cw)}else mk.textContent='';
+  }));
+  $('st').textContent=t;
+  $('s1').textContent=phase>=2?focus('grpo'):'–';$('s2').textContent=phase>=3?focus('ppo'):'–';
+  legend.textContent=phase<1?'第 1 步：G 条轨迹从同一状态同时出发……':phase===1?'全部跑完。摔倒的轨迹总回报低，没摔的高。':phase===2?'上：GRPO 给每条轨迹一个分，整行同色。':'下：PPO + GAE 给每一步一个分，红色集中在 ✕ 处。';
+}
+setupPlayer({captureSeed:11,reset,next},220);
+</script><a href="https://wikieden.github.io/ai-books/" style="position:fixed;right:12px;bottom:12px;z-index:99;padding:4px 10px;border-radius:14px;background:rgba(127,127,127,.18);color:inherit;font:13px/1.6 system-ui,sans-serif;text-decoration:none">← 全部讲义书</a>
+</body></html>

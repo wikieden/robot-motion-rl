@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>第 16 章 · AMP：不逐帧跟踪，只要求「动作像人」 · 机器人运控与强化学习</title>
+<style>
+:root{--bg:#fbfbfa;--fg:#1f2328;--mute:#5d6470;--line:#e3e5e8;--card:#fff;--acc:#2f6fdf;--code:#f2f3f5;--quote:#f4f6fa}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15181d;--fg:#e4e7ec;--mute:#9aa3b2;--line:#2c323b;--card:#1c2026;--acc:#7aa7ff;--code:#22272f;--quote:#1b2029}}
+:root[data-theme="dark"]{--bg:#15181d;--fg:#e4e7ec;--mute:#9aa3b2;--line:#2c323b;--card:#1c2026;--acc:#7aa7ff;--code:#22272f;--quote:#1b2029}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.75 -apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Helvetica Neue",sans-serif}
+a{color:var(--acc)}
+header.top{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+header.top .in{max-width:860px;margin:0 auto;padding:10px 16px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;font-size:14px}
+header.top .brand{font-weight:600;color:var(--fg);text-decoration:none;margin-right:auto}
+header.top a{text-decoration:none}
+main{max-width:860px;margin:0 auto;padding:24px 16px 72px;overflow-wrap:anywhere}
+h1{font-size:28px;line-height:1.35;margin:8px 0 16px} h2{font-size:22px;margin:40px 0 12px;padding-top:8px;border-top:1px solid var(--line)} h3{font-size:18px;margin:28px 0 8px}
+img{max-width:100%;height:auto;border-radius:8px;border:1px solid var(--line);background:#fff}
+blockquote{margin:16px 0;padding:10px 16px;background:var(--quote);border-left:3px solid var(--acc);border-radius:4px;color:var(--mute)}
+blockquote p{margin:4px 0}
+code{background:var(--code);padding:1px 5px;border-radius:4px;font-size:.9em}
+pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto} pre code{padding:0;background:none}
+table{border-collapse:collapse;display:block;overflow-x:auto;max-width:100%;margin:12px 0;font-size:15px}
+th,td{border:1px solid var(--line);padding:6px 10px;vertical-align:top} th{background:var(--code)}
+details{border:1px solid var(--line);border-radius:8px;padding:6px 12px;margin:8px 0;background:var(--card)}
+details[open]{padding-bottom:10px} summary{cursor:pointer;color:var(--acc);font-weight:500}
+mjx-container{overflow-x:auto;overflow-y:hidden;max-width:100%}
+.btn{display:inline-block;margin:4px 8px 4px 0;padding:6px 14px;border:1px solid var(--acc);border-radius:999px;text-decoration:none;font-size:14px}
+.pager{display:flex;justify-content:space-between;gap:12px;margin-top:48px;padding-top:16px;border-top:1px solid var(--line);font-size:15px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin:16px 0}
+.card{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden;color:inherit;text-decoration:none}
+.card:hover{border-color:var(--acc)} .card img{border:0;border-bottom:1px solid var(--line);border-radius:0;aspect-ratio:16/10;object-fit:contain;width:100%}
+.card .no{color:var(--mute);font-size:13px;padding:8px 12px 0} .card .t{padding:0 12px 12px;font-weight:500;line-height:1.5}
+.lead{font-size:17px;color:var(--mute)}
+footer{max-width:860px;margin:0 auto;padding:0 16px 40px;color:var(--mute);font-size:13px}
+</style>
+<script>window.MathJax={tex:{inlineMath:[["\\(","\\)"]],displayMath:[["\\[","\\]"],["$$","$$"]],processEscapes:true,processEnvironments:true}};</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js"></script>
+</head><body>
+<header class="top"><div class="in">
+<a class="brand" href="../index.html">机器人运控与强化学习</a>
+<a href="../lessons/index.html">讲义目录</a>
+<a href="../animations/index.html">动画</a>
+<a href="../review.html">复习卡片</a>
+<a href="../lessons/appendix-glossary.html">缩写表</a>
+<a href="https://wikieden.github.io/ai-books/">← 全部讲义书</a>
+</div></header>
+<main>
+<h1 id="16-amp">第 16 章 · AMP：不逐帧跟踪，只要求「动作像人」</h1><p><a class="btn" href="../animations/16-amp.html">▶ 打开本章可交互动画</a></p>
+<blockquote>
+<p>本章回答：第 2 章的动作跟踪要求每一帧都和参考一样，但很多任务（朝某个方向跑、去打一个目标）没有现成的参考片段，怎么让动作还保持自然？判别器怎么变成奖励？风格奖励和任务奖励怎么配？<br />
+讲解日期：2026-11-20 · 上一章：<a href="../lessons/15-ilqr-mppi.html">第 15 章 iLQR 与 MPPI</a> · 下一章：<a href="../lessons/17-shac.html">第 17 章 SHAC 与可微仿真</a><br />
+对应原文：AMP 论文（<code>papers/amp-2104.02180.txt</code> L215–L224 任务目标与风格目标、L277 式 4、L278–L302 最小二乘判别器与式 7、L348 梯度惩罚、L517 权重 w_G = w_S = 0.5）<br />
+本章缩写：AMP = Adversarial Motion Priors（对抗式 / 动作 / 先验）；GAIL = Generative Adversarial Imitation Learning（生成 / 对抗 / 模仿学习）；GAN = Generative Adversarial Network（生成 / 对抗 / 网络）；LSGAN = Least-Squares GAN（最小二乘 GAN）；D：判别器（Discriminator）；r_G、r_S：任务奖励（G = goal）、风格奖励（S = style）；w_G、w_S：两者的权重。全部缩写见 <a href="../lessons/appendix-glossary.html">附录 · 缩写与术语表</a></p>
+</blockquote>
+<h2 id="_1">讲解</h2>
+<h3 id="2026-11-20">第一步：跟踪的局限：没有参考片段怎么办（2026-11-20）</h3>
+<p><strong>类比：学跳舞照着视频一帧一帧学（第 5 章），但「跑去门口」没有视频可照，你只希望跑的样子像个人，不要像螃蟹。</strong></p>
+<p>第 2 章的跟踪奖励要求有一段时间对齐的参考动作。很多任务只有目标（速度、方向、位置），没有对应的片段；只用任务奖励训，策略常会学出能完成任务但很怪的步态（拖腿、抖动、小碎步）。AMP 把「像不像人」单独做成一项奖励：给一个动作库，不要求逐帧对齐，只要求策略做出的<strong>状态转移</strong> <span class="arithmatex">\((s_t, s_{t+1})\)</span> 看起来像库里的（原文 L215–L224：风格目标是「与任务无关的动作先验」）。</p>
+<p><strong>一句话</strong>：跟踪要求逐帧一样，AMP 只要求看起来像，所以能配任意任务。</p>
+<h3 id="2026-11-20_1">第二步：判别器：一个会挑毛病的裁判（2026-11-20）</h3>
+<p><strong>类比：鉴定师看一段步态，判断是真人录的还是机器人做的。机器人努力做到让鉴定师分不出来。</strong></p>
+<p>GAIL / GAN 的思路：训练一个判别器 D，输入一个状态转移，输出「像真的」程度。AMP 用最小二乘版本（LSGAN，L278 起）：</p>
+<ul>
+<li>动作库里的转移，D 往 <strong>+1</strong> 推；</li>
+<li>策略做出的转移，D 往 <strong>−1</strong> 推。</li>
+</ul>
+<p>损失：<span class="arithmatex">\(\mathbb E_{库}[(D-1)^2] + \mathbb E_{策略}[(D+1)^2]\)</span>。</p>
+<p><strong>例子</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>库里的 D</th>
+<th>策略的 D</th>
+<th>损失</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>[0.9, 1.1]</td>
+<td>[−0.8, −1.2]</td>
+<td>0.05</td>
+<td>裁判分得很清楚</td>
+</tr>
+<tr>
+<td>[0.2, 0.4]</td>
+<td>[0.3, 0.1]</td>
+<td>1.95</td>
+<td>裁判分不清，要继续学</td>
+</tr>
+</tbody>
+</table>
+<p>判别器和策略交替训练：裁判越来越会挑，策略越来越像。为了让训练稳定，AMP 还给判别器加了梯度惩罚（§5.4，L348）。</p>
+<p><strong>一句话</strong>：判别器把库里的往 +1、策略的往 −1 推，它分不清时，策略就像了。</p>
+<h3 id="2026-11-20_2">第三步：判别器输出怎么变成奖励（2026-11-20）</h3>
+<p><strong>类比：鉴定师给打分卡：「非常像真人」满分，「完全是机器」零分。</strong></p>
+<p>AMP 式 7（L302）：</p>
+<div class="arithmatex">\[r_S = \max\big(0,\ 1 - 0.25\,(D - 1)^2\big)\]</div>
+<table>
+<thead>
+<tr>
+<th>D</th>
+<th>+1</th>
+<th>0</th>
+<th>−1</th>
+<th>+2</th>
+<th>+3</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span class="arithmatex">\(r_S\)</span></td>
+<td><strong>1.00</strong></td>
+<td>0.75</td>
+<td>0.00</td>
+<td>0.75</td>
+<td>0.00</td>
+</tr>
+</tbody>
+</table>
+<p>D = 1（像库里的）满分；D = −1（被认出是策略的）零分；截到 0 以上，所以和第 2 章的核一样不会出现大负数。D 超过 1 也会扣分，这个形状是二次的，梯度平滑。</p>
+<p><strong>一句话</strong>：<span class="arithmatex">\(r_S = \max(0, 1 - 0.25(D-1)^2)\)</span>，D 越接近 1 越高。</p>
+<h3 id="2026-11-20_3">第四步：风格奖励 + 任务奖励（2026-11-20）</h3>
+<p>AMP 式 4（L277）：</p>
+<div class="arithmatex">\[r = w_G\,r_G + w_S\,r_S\]</div>
+<p>论文所有任务都用 <span class="arithmatex">\(w_G = w_S = 0.5\)</span>（L517）。</p>
+<p><strong>例子</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>情况</th>
+<th>r_G</th>
+<th>D</th>
+<th>r_S</th>
+<th>r</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>任务完成得好、动作有点怪</td>
+<td>0.8</td>
+<td>0</td>
+<td>0.75</td>
+<td><strong>0.775</strong></td>
+</tr>
+<tr>
+<td>动作很像人、任务没完成</td>
+<td>0.2</td>
+<td>1</td>
+<td>1.00</td>
+<td><strong>0.6</strong></td>
+</tr>
+</tbody>
+</table>
+<p>两项互相牵制：只追任务会变怪，只追像人会不干活。</p>
+<p><strong>放回全书</strong>：</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>第 2、5 章的跟踪</th>
+<th>AMP</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>需要什么</td>
+<td>时间对齐的参考片段</td>
+<td>只要一个动作库</td>
+</tr>
+<tr>
+<td>奖励</td>
+<td>exp 跟踪核，逐帧</td>
+<td>判别器打分 + 任务奖励</td>
+</tr>
+<tr>
+<td>适合</td>
+<td>复现一段特定动作（舞蹈、空翻）</td>
+<td>完成任务时保持自然（行走、转身）</td>
+</tr>
+<tr>
+<td>代价</td>
+<td>每段动作都要参考</td>
+<td>对抗训练，较难调</td>
+</tr>
+</tbody>
+</table>
+<p>SuperMimic 第 4.5 节的下游速度接口用的是另一种思路：在跟踪器的潜空间上，直接用速度奖励训一个编码器（第 11 章）。</p>
+<p><strong>一句话</strong>：风格和任务各占一半奖励，互相牵制；有参考片段用跟踪，只有动作库用 AMP。</p>
+<h3 id="_2">动画演示：判别器输出与风格奖励</h3>
+<p><img alt="AMP：策略的动作分布慢慢靠近动作库，风格奖励随之上升" src="../animations/16-amp.gif" /></p>
+<p>可交互版：<a href="../animations/16-amp.html">animations/16-amp.html</a>（滑块：D 的值、任务奖励权重 w_G）。</p>
+<p><strong>怎么看</strong>：</p>
+<ol>
+<li>左图：灰点是动作库的转移特征，蓝点是策略的。训练推进时蓝点向灰点靠拢（示意，第二步）。</li>
+<li>中图：<span class="arithmatex">\(r_S = \max(0, 1 - 0.25(D-1)^2)\)</span> 的曲线，红点是策略样本的平均 D（第三步）。</li>
+<li>右图：任务奖励、风格奖励和加权总奖励的柱子；拖 w_G 看两者此消彼长（第四步）。</li>
+</ol>
+<h2 id="_3">练习与作答记录</h2>
+<p><strong>题 1</strong>（第三步）：D = 0.5 和 D = −0.5 时，风格奖励各是多少？</p>
+<p><strong>作答</strong>：（待作答）</p>
+<p><strong>题 2</strong>（第四步）：w_G = 0.7、w_S = 0.3，任务奖励 0.4、D = 0.5，总奖励是多少？</p>
+<p><strong>作答</strong>：（待作答）</p>
+<p><strong>题 3</strong>（第四步）：如果把权重设成 w_G = 1、w_S = 0，或者 w_G = 0、w_S = 1，AMP 分别退化成什么？各会出现什么问题？</p>
+<p><strong>作答</strong>：（待作答）</p>
+<h2 id="_4">口诀</h2>
+<blockquote>
+<p>跟踪逐帧照视频，AMP 只求看着像；<br />
+裁判把真的推向一、假的推向负一，分不清时就像了；<br />
+一减四分之一 (D−1)²，截到零，D 越近一分越高；<br />
+任务风格各一半，互相牵制不跑偏。</p>
+</blockquote>
+<h2 id="_5">本章复习卡片</h2>
+<p>M31（AMP 的判别器：最小二乘目标、梯度惩罚；为什么能不要时间对齐的参考）、M32（风格奖励 r_S = max(0, 1 − 0.25(D−1)²)；r = w_G r_G + w_S r_S，各 0.5）</p>
+<h2 id="_6">附录 · 延伸阅读</h2>
+<blockquote>
+<p>留给以后深入学习用，不影响本章主线。★ 是建议先读的。</p>
+</blockquote>
+<h3 id="_7">推荐阅读</h3>
+<table>
+<thead>
+<tr>
+<th>读什么</th>
+<th>读哪里</th>
+<th>读它为了什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>★ AMP</td>
+<td><code>papers/amp-2104.02180.txt</code> L215–L224、L277–L302、L348、L517、附录超参（L1073 起）</td>
+<td>风格奖励的完整做法</td>
+</tr>
+<tr>
+<td>GAIL</td>
+<td><code>cs285-deep-rl/materials/papers/gail-1606.03476.pdf</code>（文本 <code>papers/gail-1606.03476.txt</code>）</td>
+<td>对抗式模仿学习的源头</td>
+</tr>
+<tr>
+<td>DeepMimic</td>
+<td><code>papers/deepmimic-1804.02717.txt</code></td>
+<td>跟踪奖励的对照</td>
+</tr>
+<tr>
+<td>学习计划 MC-M14</td>
+<td>study-plan.md</td>
+<td>用 AMP 训 Walker2d，和跟踪对比</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_8">数学原理</h3>
+<ul>
+<li><strong>最小二乘 GAN</strong>：判别器回归到 ±1，而不是二分类的 sigmoid 交叉熵；梯度在两类重叠时不会消失，训练更稳。</li>
+<li><strong>梯度惩罚</strong>：惩罚判别器在真实样本附近的梯度大小，让它的打分曲面平滑，策略收到的奖励信号也更平滑。</li>
+</ul>
+<h3 id="_9">公式清单</h3>
+<table>
+<thead>
+<tr>
+<th>公式</th>
+<th>意思</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span class="arithmatex">\(\min_D \mathbb E_{库}[(D-1)^2] + \mathbb E_{策略}[(D+1)^2]\)</span></td>
+<td>最小二乘判别器</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(r_S = \max(0, 1 - 0.25(D-1)^2)\)</span></td>
+<td>风格奖励（式 7）</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(r = w_G r_G + w_S r_S\)</span></td>
+<td>总奖励（式 4），<span class="arithmatex">\(w_G = w_S = 0.5\)</span></td>
+</tr>
+</tbody>
+</table>
+<h3 id="_10">代码对照：把本章的数字用代码算一遍</h3>
+<blockquote>
+<p>用 Python + NumPy 把讲义里讲过的数算一遍，不算练习题。代码在仓库本地 <code>robot-motion-rl/solutions/chapter-code/ch16_amp.py</code>，配套测试 <code>tests/test_ch12_18.py</code>，notebook 在 <code>notebooks/ch16_amp.ipynb</code>。Mac 上直接能跑，不需要 GPU：</p>
+<p><code>bash  
+cd robot-motion-rl/solutions/chapter-code  
+uv run python ch16_amp.py  
+uv run pytest tests/test_ch12_18.py</code></p>
+</blockquote>
+<p><strong>讲义 ↔ 代码</strong>（D 的值和任务奖励是编的，公式与权重取自 AMP 论文）：</p>
+<table>
+<thead>
+<tr>
+<th>讲义</th>
+<th>公式</th>
+<th>写法</th>
+<th>跑出来</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>第二步 判别器损失</td>
+<td>(D−1)² + (D+1)²</td>
+<td><code>lsgan_disc_loss(...)</code></td>
+<td>0.05、1.95</td>
+</tr>
+<tr>
+<td>第三步 风格奖励</td>
+<td>式 7</td>
+<td><code>style_reward(d)</code></td>
+<td>1.00、0.75、0.00、0.75、0.00</td>
+</tr>
+<tr>
+<td>第四步 总奖励</td>
+<td>式 4</td>
+<td><code>total_reward(0.8, 0.75)</code></td>
+<td>0.775；另一例 0.6</td>
+</tr>
+</tbody>
+</table>
+<p><strong>关键几行</strong>：</p>
+<pre><code class="language-python">r_s = max(0.0, 1.0 - 0.25 * (d - 1.0) ** 2)                     # 式 7：D 越接近 1 越高
+loss = np.mean((d_real - 1) ** 2) + np.mean((d_fake + 1) ** 2)  # 库往 +1、策略往 −1
+r = 0.5 * r_task + 0.5 * r_s                                    # 式 4，论文权重各 0.5
+</code></pre>
+<p><strong>代码里才看得到的 1 件事</strong>：</p>
+<ul>
+<li>判别器的输入是状态转移 <span class="arithmatex">\((s_t, s_{t+1})\)</span>，不含动作 a（原文 L220：<span class="arithmatex">\(r^S(s_t, s_{t+1})\)</span>）；所以动作库只需要动捕的姿态序列，不需要知道人「出了多大力」。</li>
+</ul>
+<p><strong>自己改一改</strong>（不影响练习答案）：</p>
+<ul>
+<li>把式 7 里的 0.25 改成 1，看 D = 0 时风格奖励变成多少，「截到 0」的范围变宽还是变窄。</li>
+<li>把权重改成 w_G = 0.9、w_S = 0.1，重算第四步两个例子，看哪个情况更占便宜。</li>
+</ul><nav class="pager"><a href="15-ilqr-mppi.html">← 第 15 章 · iLQR 与 MPPI：不训练策略，每次现算一条轨迹</a><a href="17-shac.html">第 17 章 · 可微仿真与 SHAC：SuperMimic 之前，解析梯度是怎么来的 →</a></nav>
+</main>
+<footer>来自个人学习仓库的对话讲义，含练习作答记录。源码：<a href="https://github.com/wikieden/robot-motion-rl">github.com/wikieden/robot-motion-rl</a>。更多讲义书：<a href="https://wikieden.github.io/ai-books/">AI 算法图解讲义（合集）</a></footer>
+</body></html>

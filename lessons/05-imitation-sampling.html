@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>第 5 章 · 动作模仿：从哪开始练、什么时候喊停、难的地方多练 · 机器人运控与强化学习</title>
+<style>
+:root{--bg:#fbfbfa;--fg:#1f2328;--mute:#5d6470;--line:#e3e5e8;--card:#fff;--acc:#2f6fdf;--code:#f2f3f5;--quote:#f4f6fa}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15181d;--fg:#e4e7ec;--mute:#9aa3b2;--line:#2c323b;--card:#1c2026;--acc:#7aa7ff;--code:#22272f;--quote:#1b2029}}
+:root[data-theme="dark"]{--bg:#15181d;--fg:#e4e7ec;--mute:#9aa3b2;--line:#2c323b;--card:#1c2026;--acc:#7aa7ff;--code:#22272f;--quote:#1b2029}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.75 -apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Helvetica Neue",sans-serif}
+a{color:var(--acc)}
+header.top{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+header.top .in{max-width:860px;margin:0 auto;padding:10px 16px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;font-size:14px}
+header.top .brand{font-weight:600;color:var(--fg);text-decoration:none;margin-right:auto}
+header.top a{text-decoration:none}
+main{max-width:860px;margin:0 auto;padding:24px 16px 72px;overflow-wrap:anywhere}
+h1{font-size:28px;line-height:1.35;margin:8px 0 16px} h2{font-size:22px;margin:40px 0 12px;padding-top:8px;border-top:1px solid var(--line)} h3{font-size:18px;margin:28px 0 8px}
+img{max-width:100%;height:auto;border-radius:8px;border:1px solid var(--line);background:#fff}
+blockquote{margin:16px 0;padding:10px 16px;background:var(--quote);border-left:3px solid var(--acc);border-radius:4px;color:var(--mute)}
+blockquote p{margin:4px 0}
+code{background:var(--code);padding:1px 5px;border-radius:4px;font-size:.9em}
+pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto} pre code{padding:0;background:none}
+table{border-collapse:collapse;display:block;overflow-x:auto;max-width:100%;margin:12px 0;font-size:15px}
+th,td{border:1px solid var(--line);padding:6px 10px;vertical-align:top} th{background:var(--code)}
+details{border:1px solid var(--line);border-radius:8px;padding:6px 12px;margin:8px 0;background:var(--card)}
+details[open]{padding-bottom:10px} summary{cursor:pointer;color:var(--acc);font-weight:500}
+mjx-container{overflow-x:auto;overflow-y:hidden;max-width:100%}
+.btn{display:inline-block;margin:4px 8px 4px 0;padding:6px 14px;border:1px solid var(--acc);border-radius:999px;text-decoration:none;font-size:14px}
+.pager{display:flex;justify-content:space-between;gap:12px;margin-top:48px;padding-top:16px;border-top:1px solid var(--line);font-size:15px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin:16px 0}
+.card{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden;color:inherit;text-decoration:none}
+.card:hover{border-color:var(--acc)} .card img{border:0;border-bottom:1px solid var(--line);border-radius:0;aspect-ratio:16/10;object-fit:contain;width:100%}
+.card .no{color:var(--mute);font-size:13px;padding:8px 12px 0} .card .t{padding:0 12px 12px;font-weight:500;line-height:1.5}
+.lead{font-size:17px;color:var(--mute)}
+footer{max-width:860px;margin:0 auto;padding:0 16px 40px;color:var(--mute);font-size:13px}
+</style>
+<script>window.MathJax={tex:{inlineMath:[["\\(","\\)"]],displayMath:[["\\[","\\]"],["$$","$$"]],processEscapes:true,processEnvironments:true}};</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js"></script>
+</head><body>
+<header class="top"><div class="in">
+<a class="brand" href="../index.html">机器人运控与强化学习</a>
+<a href="../lessons/index.html">讲义目录</a>
+<a href="../animations/index.html">动画</a>
+<a href="../review.html">复习卡片</a>
+<a href="../lessons/appendix-glossary.html">缩写表</a>
+<a href="https://wikieden.github.io/ai-books/">← 全部讲义书</a>
+</div></header>
+<main>
+<h1 id="5">第 5 章 · 动作模仿：从哪开始练、什么时候喊停、难的地方多练</h1><p><a class="btn" href="../animations/05-reset-sampling.html">▶ 打开本章可交互动画</a></p>
+<blockquote>
+<p>本章回答：一段 10 秒的动作中间有个空翻，策略从头开始练，永远走不到空翻那里，怎么办？摔了以后为什么要立刻结束？一个动作库里有十几万条动作，怎么让难的片段多练一点？<br />
+讲解日期：2026-11-20 · 上一章：<a href="../lessons/04-sim2real.html">第 4 章 从仿真到真机</a> · 下一章：<a href="../lessons/06-grpo-credit.html">第 6 章 GRPO 为什么不适合底层运控</a><br />
+对应原文：DeepMimic §6.1 Initial State Distribution、§6.2 Early Termination（<code>papers/deepmimic-1804.02717.txt</code> L327、L405）；BeyondMimic Adaptive Sampling（<code>papers/beyondmimic-2508.08241.txt</code> L592–L601）；SuperMimic 附录 D.1（<code>papers/supermimic-2610.28480.txt</code> L836–L842）<br />
+本章缩写：RSI = Reference State Initialization（参考 / 状态 / 初始化：从参考动作的随机时刻开始一局）；ET = Early Termination（提前 / 终止）；G_b：第 b 段的折扣回报估计（b = bin，分箱）；G_max：能拿到的最大折扣回报；softmax：把一组数变成和为 1 的概率（《从零读懂 Transformer》第 3、6 章）。全部缩写见 <a href="../lessons/appendix-glossary.html">附录 · 缩写与术语表</a></p>
+</blockquote>
+<h2 id="_1">讲解</h2>
+<h3 id="2026-11-20">第一步：动作模仿是什么（2026-11-20）</h3>
+<p><strong>类比：照着视频学跳舞。</strong> 你不需要知道「好的舞蹈」怎么定义，只要每一刻都和视频里的人一样就行。</p>
+<p>DeepMimic（2018）把「模仿一段参考动作」变成 RL：奖励就是第 2 章的跟踪核，策略在物理仿真里学会用力矩把动作做出来。它解决了手写奖励的难题：「做一个漂亮的侧手翻」很难写成公式，但「和这段动捕数据一样」很好写。之后 PHC、BeyondMimic、SONIC、SuperMimic 都沿用这个框架，只是动作越来越多（从一条到十几万条）。</p>
+<p><strong>一句话</strong>：动作模仿把「做得好看」换成「和参考一样」，奖励就好写了。</p>
+<h3 id="2026-11-20_1">第二步：参考状态初始化：从片段中间开始练（2026-11-20）</h3>
+<p><strong>类比：学一首歌，最难的高音在第 3 分钟。如果每次都从头唱，没唱到那里就破音了，你永远练不到高音。直接从高音前几秒开始唱。</strong></p>
+<p><strong>例子</strong>（编的）：一段 10 秒的动作，空翻在第 6 秒。训练初期策略只能撑 2 秒就摔：</p>
+<table>
+<thead>
+<tr>
+<th>起点</th>
+<th>能练到空翻的概率</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>永远从第 0 秒开始</td>
+<td><strong>0</strong>（撑不到第 6 秒）</td>
+</tr>
+<tr>
+<td>RSI：起点在 0–10 秒里均匀抽</td>
+<td>起点落在第 4–6 秒（空翻前 2 秒内）就能练到：2 / 10 = <strong>0.2</strong></td>
+</tr>
+</tbody>
+</table>
+<p>RSI（DeepMimic §6.1，L327）：每局开始时，从参考动作里随机抽一个时刻，把机器人摆成那一刻的姿态和速度，从那里开始跟。这样片段的每一段都有机会被练到。</p>
+<p><strong>一句话</strong>：从参考动作的随机时刻开局，难的片段才练得到。</p>
+<h3 id="2026-11-20_2">第三步：提前终止：摔了就喊停（2026-11-20）</h3>
+<p><strong>类比：练舞摔了，不要躺在地上继续「跳」完这首歌。</strong></p>
+<p>如果摔倒后不结束，策略会在地上躺着收集大量「躺着」的样本，这些样本对学会站着跳舞毫无用处，还挤占了一批数据的名额。DeepMimic §6.2（L405）的提前终止：一旦摔倒（某些身体部位碰地）就结束这一局。第 2 章说过，配合「每步正奖励」，终止还是「别摔」的学习信号。</p>
+<p>SuperMimic 的终止条件就是第 2 章第四步的高度和倾斜阈值（附录 A，L704）。</p>
+<p><strong>一句话</strong>：摔了就停，数据都留给「站着」的状态，终止本身也是惩罚。</p>
+<h3 id="2026-11-20_3">第四步：按回报重置：难的片段多练（2026-11-20）</h3>
+<p><strong>类比：期末复习，会的题少看，错的题多看，但会的也偶尔翻一下，免得忘。</strong></p>
+<p>动作库很大时，均匀抽起点会把大部分时间花在走路这类简单片段上。BeyondMimic 的 adaptive sampling（L592–L601）：按失败率多抽难的片段，学会后逐渐回到均匀。SuperMimic 附录 D.1（L836–L842）写成了明确的公式：</p>
+<ol>
+<li>把动作时间轴切成 <strong>1 秒一段</strong>（bin），每段维护一个回报估计 <span class="arithmatex">\(G_b\)</span>（从这一段开始能拿多少折扣回报）。</li>
+<li>重置分布是三部分的混合：
+   - <strong>50%</strong> 均匀；
+   - <strong>40%</strong> 按 <span class="arithmatex">\(\text{softmax}_b(-25\,G_b/G_{max})\)</span>：回报越低的段越常被抽到；
+   - <strong>10%</strong> 按每段<strong>过去</strong>的 softmax 权重：学会了的难段还保留一点练习。</li>
+</ol>
+<p><strong>例子</strong>（编的）：5 段，<span class="arithmatex">\(G_b/G_{max}\)</span> = [0.9, 0.9, <strong>0.2</strong>, 0.8, 0.9]，第 3 段是空翻，还没学会：</p>
+<table>
+<thead>
+<tr>
+<th>段</th>
+<th>1</th>
+<th>2</th>
+<th>3</th>
+<th>4</th>
+<th>5</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span class="arithmatex">\(-25\,G_b/G_{max}\)</span></td>
+<td>−22.5</td>
+<td>−22.5</td>
+<td><strong>−5</strong></td>
+<td>−20</td>
+<td>−22.5</td>
+</tr>
+<tr>
+<td>softmax</td>
+<td>≈0</td>
+<td>≈0</td>
+<td><strong>≈1</strong></td>
+<td>≈0</td>
+<td>≈0</td>
+</tr>
+<tr>
+<td>最终分布（过去权重取同样的值）</td>
+<td>0.1</td>
+<td>0.1</td>
+<td><strong>0.6</strong></td>
+<td>0.1</td>
+<td>0.1</td>
+</tr>
+</tbody>
+</table>
+<p>温度 25 很大，softmax 几乎全押在最差的那一段；50% 的均匀部分保证其他段不会被饿死（各 0.1）。</p>
+<p><strong>一句话</strong>：一半均匀保底、四成押最差的段、一成照顾学会过的难段。</p>
+<h3 id="_2">动画演示：重置分布跟着回报变</h3>
+<p><img alt="按回报重置：难段多练，学会后回落" src="../animations/05-reset-sampling.gif" /></p>
+<p>可交互版：<a href="../animations/05-reset-sampling.html">animations/05-reset-sampling.html</a>（滑块：温度、均匀部分比例）。</p>
+<p><strong>怎么看</strong>：</p>
+<ol>
+<li>上排柱子是 10 段各自的回报 <span class="arithmatex">\(G_b/G_{max}\)</span>，第 4、7 段是两个难动作，一开始很低（第四步）。</li>
+<li>下排柱子是重置分布：难段被抽得多，它们的回报就涨得快。</li>
+<li>难段学会后，下排回落到接近均匀，但「过去权重」那 10% 让它们仍比别的段高一点。拖温度看分布变尖还是变平。</li>
+</ol>
+<h2 id="_3">练习与作答记录</h2>
+<p><strong>题 1</strong>（第二步）：一段 20 秒的动作，难点在第 15 秒，策略能撑 4 秒。从头开始练能练到难点吗？RSI 均匀抽起点时练到的概率是多少？</p>
+<p><strong>作答</strong>：（待作答）</p>
+<p><strong>题 2</strong>（第三步）：如果不做提前终止，而且奖励每步都是正的，策略在摔倒后会学到什么奇怪的行为？如果奖励每步都是负的呢？</p>
+<p><strong>作答</strong>：（待作答）</p>
+<p><strong>题 3</strong>（第四步）：把温度从 25 改成 1，第四步例子里的 softmax 大约是多少（只需判断是「接近均匀」还是「接近全押一段」）？为什么 SuperMimic 要用这么大的温度，又为什么还要留 50% 的均匀？</p>
+<p><strong>作答</strong>：（待作答）</p>
+<h2 id="_4">口诀</h2>
+<blockquote>
+<p>跳舞照视频，奖励就好写；<br />
+难处在中间，随机开局才练得到；<br />
+摔了就喊停，躺着的样本不要；<br />
+一半均匀保底，四成押最差，一成照顾学会的。</p>
+</blockquote>
+<h2 id="_5">本章复习卡片</h2>
+<p>M09（RSI 与提前终止各解决什么问题）、M10（SuperMimic 重置分布 50/40/10 的公式与作用）</p>
+<h2 id="_6">附录 · 延伸阅读</h2>
+<blockquote>
+<p>留给以后深入学习用，不影响本章主线。★ 是建议先读的。</p>
+</blockquote>
+<h3 id="_7">推荐阅读</h3>
+<table>
+<thead>
+<tr>
+<th>读什么</th>
+<th>读哪里</th>
+<th>读它为了什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>★ DeepMimic</td>
+<td><code>papers/deepmimic-1804.02717.txt</code> §6.1（L327）、§6.2（L405）、消融（L753、L810）</td>
+<td>RSI 和提前终止的原始论证与消融</td>
+</tr>
+<tr>
+<td>★ SuperMimic 附录 D.1</td>
+<td><code>papers/supermimic-2610.28480.txt</code> L836–L842</td>
+<td>按回报重置的完整公式</td>
+</tr>
+<tr>
+<td>BeyondMimic Adaptive Sampling</td>
+<td><code>papers/beyondmimic-2508.08241.txt</code> L592–L601、消融 L818–L823</td>
+<td>难段多练的效果（简单动作迭代数减半）</td>
+</tr>
+<tr>
+<td>AMP</td>
+<td><code>papers/amp-2104.02180.txt</code></td>
+<td>不要求逐帧跟踪、只要求「像」的风格奖励</td>
+</tr>
+<tr>
+<td>PHC</td>
+<td><code>papers/phc-2305.06456.txt</code></td>
+<td>大动作库 + 摔倒恢复</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_8">数学原理</h3>
+<ul>
+<li><strong>softmax 与温度</strong>：<span class="arithmatex">\(\text{softmax}(x)_i = e^{x_i}/\sum_j e^{x_j}\)</span>；输入乘一个大数（温度 25）会让最大的那个几乎独占概率。</li>
+<li><strong>混合分布</strong>：几个概率分布按权重相加（权重和为 1），结果仍是概率分布。</li>
+</ul>
+<h3 id="_9">公式清单</h3>
+<table>
+<thead>
+<tr>
+<th>公式</th>
+<th>意思</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span class="arithmatex">\(P_{RSI}(\text{练到难点}) = \min(1,\ \text{撑得住的时间}/\text{片段长度})\)</span>（本章简化）</td>
+<td>RSI 的效果</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(p_b = 0.5\cdot\frac{1}{B} + 0.4\cdot\text{softmax}_b(-25G_b/G_{max}) + 0.1\cdot w^{past}_b\)</span></td>
+<td>按回报重置</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_10">代码对照：把本章的数字用代码算一遍</h3>
+<blockquote>
+<p>用 Python + NumPy 把讲义里讲过的数算一遍，不算练习题。代码在仓库本地 <code>robot-motion-rl/solutions/chapter-code/ch05_imitation_sampling.py</code>，配套测试 <code>tests/test_ch01_06.py</code>，notebook 在 <code>notebooks/ch05_imitation_sampling.ipynb</code>。Mac 上直接能跑，不需要 GPU：</p>
+<p><code>bash  
+cd robot-motion-rl/solutions/chapter-code  
+uv run python ch05_imitation_sampling.py  
+uv run pytest tests/test_ch01_06.py</code></p>
+</blockquote>
+<p><strong>讲义 ↔ 代码</strong>（片段长度、各段回报是编的，50/40/10 和温度 25 取自 SuperMimic 附录 D.1）：</p>
+<table>
+<thead>
+<tr>
+<th>讲义</th>
+<th>公式</th>
+<th>写法</th>
+<th>跑出来</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>第二步 RSI</td>
+<td>窗口 / 片段长</td>
+<td><code>rsi_reach_probability(...)</code></td>
+<td>从头 0；RSI 0.2</td>
+</tr>
+<tr>
+<td>第四步 softmax</td>
+<td><span class="arithmatex">\(\text{softmax}(-25G/G_{max})\)</span></td>
+<td><code>reset_distribution(g)[1]</code></td>
+<td>[0, 0, 1, 0, 0]</td>
+</tr>
+<tr>
+<td>第四步 混合</td>
+<td>0.5 + 0.4 + 0.1</td>
+<td><code>reset_distribution(g)[0]</code></td>
+<td>[0.1, 0.1, 0.6, 0.1, 0.1]</td>
+</tr>
+</tbody>
+</table>
+<p><strong>关键几行</strong>：</p>
+<pre><code class="language-python">hard = softmax(-temp * g)                      # 回报越低，权重越大；温度 25 让最差的段几乎独占
+uniform = np.full_like(g, 1.0 / len(g))        # 均匀保底
+mix = 0.5 * uniform + 0.4 * hard + 0.1 * past  # 三部分混合，和仍为 1
+</code></pre>
+<p><strong>代码里才看得到的 2 件事</strong>：</p>
+<ul>
+<li>softmax 先减最大值再 exp，防止 <span class="arithmatex">\(e^{-5}\)</span> 和 <span class="arithmatex">\(e^{-22.5}\)</span> 这种数相差太大时溢出或下溢。</li>
+<li>「过去的权重」在真实训练里是历史上 softmax 的累计，例子为了简单直接用当前值；所以 0.4 + 0.1 都押在第 3 段，得 0.6。</li>
+</ul>
+<p><strong>自己改一改</strong>（不影响练习答案）：</p>
+<ul>
+<li>把第 3 段的回报从 0.2 慢慢提到 0.9，看最终分布怎么回到均匀。</li>
+<li>把温度改成 5、1，看 softmax 怎么从「全押」变成「平均」。</li>
+</ul><nav class="pager"><a href="04-sim2real.html">← 第 4 章 · 从仿真到真机：域随机化、特权信息与 teacher-student</a><a href="06-grpo-credit.html">第 6 章 · GRPO 为什么不适合底层运控：整条打分 vs 逐步打分 →</a></nav>
+</main>
+<footer>来自个人学习仓库的对话讲义，含练习作答记录。源码：<a href="https://github.com/wikieden/robot-motion-rl">github.com/wikieden/robot-motion-rl</a>。更多讲义书：<a href="https://wikieden.github.io/ai-books/">AI 算法图解讲义（合集）</a></footer>
+</body></html>

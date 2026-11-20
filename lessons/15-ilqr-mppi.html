@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>第 15 章 · iLQR 与 MPPI：不训练策略，每次现算一条轨迹 · 机器人运控与强化学习</title>
+<style>
+:root{--bg:#fbfbfa;--fg:#1f2328;--mute:#5d6470;--line:#e3e5e8;--card:#fff;--acc:#2f6fdf;--code:#f2f3f5;--quote:#f4f6fa}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15181d;--fg:#e4e7ec;--mute:#9aa3b2;--line:#2c323b;--card:#1c2026;--acc:#7aa7ff;--code:#22272f;--quote:#1b2029}}
+:root[data-theme="dark"]{--bg:#15181d;--fg:#e4e7ec;--mute:#9aa3b2;--line:#2c323b;--card:#1c2026;--acc:#7aa7ff;--code:#22272f;--quote:#1b2029}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.75 -apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Helvetica Neue",sans-serif}
+a{color:var(--acc)}
+header.top{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+header.top .in{max-width:860px;margin:0 auto;padding:10px 16px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;font-size:14px}
+header.top .brand{font-weight:600;color:var(--fg);text-decoration:none;margin-right:auto}
+header.top a{text-decoration:none}
+main{max-width:860px;margin:0 auto;padding:24px 16px 72px;overflow-wrap:anywhere}
+h1{font-size:28px;line-height:1.35;margin:8px 0 16px} h2{font-size:22px;margin:40px 0 12px;padding-top:8px;border-top:1px solid var(--line)} h3{font-size:18px;margin:28px 0 8px}
+img{max-width:100%;height:auto;border-radius:8px;border:1px solid var(--line);background:#fff}
+blockquote{margin:16px 0;padding:10px 16px;background:var(--quote);border-left:3px solid var(--acc);border-radius:4px;color:var(--mute)}
+blockquote p{margin:4px 0}
+code{background:var(--code);padding:1px 5px;border-radius:4px;font-size:.9em}
+pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto} pre code{padding:0;background:none}
+table{border-collapse:collapse;display:block;overflow-x:auto;max-width:100%;margin:12px 0;font-size:15px}
+th,td{border:1px solid var(--line);padding:6px 10px;vertical-align:top} th{background:var(--code)}
+details{border:1px solid var(--line);border-radius:8px;padding:6px 12px;margin:8px 0;background:var(--card)}
+details[open]{padding-bottom:10px} summary{cursor:pointer;color:var(--acc);font-weight:500}
+mjx-container{overflow-x:auto;overflow-y:hidden;max-width:100%}
+.btn{display:inline-block;margin:4px 8px 4px 0;padding:6px 14px;border:1px solid var(--acc);border-radius:999px;text-decoration:none;font-size:14px}
+.pager{display:flex;justify-content:space-between;gap:12px;margin-top:48px;padding-top:16px;border-top:1px solid var(--line);font-size:15px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin:16px 0}
+.card{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden;color:inherit;text-decoration:none}
+.card:hover{border-color:var(--acc)} .card img{border:0;border-bottom:1px solid var(--line);border-radius:0;aspect-ratio:16/10;object-fit:contain;width:100%}
+.card .no{color:var(--mute);font-size:13px;padding:8px 12px 0} .card .t{padding:0 12px 12px;font-weight:500;line-height:1.5}
+.lead{font-size:17px;color:var(--mute)}
+footer{max-width:860px;margin:0 auto;padding:0 16px 40px;color:var(--mute);font-size:13px}
+</style>
+<script>window.MathJax={tex:{inlineMath:[["\\(","\\)"]],displayMath:[["\\[","\\]"],["$$","$$"]],processEscapes:true,processEnvironments:true}};</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js"></script>
+</head><body>
+<header class="top"><div class="in">
+<a class="brand" href="../index.html">机器人运控与强化学习</a>
+<a href="../lessons/index.html">讲义目录</a>
+<a href="../animations/index.html">动画</a>
+<a href="../review.html">复习卡片</a>
+<a href="../lessons/appendix-glossary.html">缩写表</a>
+<a href="https://wikieden.github.io/ai-books/">← 全部讲义书</a>
+</div></header>
+<main>
+<h1 id="15-ilqr-mppi">第 15 章 · iLQR 与 MPPI：不训练策略，每次现算一条轨迹</h1><p><a class="btn" href="../animations/15-ilqr-mppi.html">▶ 打开本章可交互动画</a></p>
+<blockquote>
+<p>本章回答：非线性系统（比如把摆从下面甩上去）没法用一个 LQR 解决，怎么办？iLQR 是怎么把 LQR「反复用」的？MPPI 不求导数，靠什么找到好的控制序列？它们和强化学习、和第 8 章的两种梯度有什么关系？<br />
+讲解日期：2026-11-20 · 上一章：<a href="../lessons/14-convex-mpc.html">第 14 章 单刚体凸 MPC 与 WBC</a> · 下一章：<a href="../lessons/16-amp.html">第 16 章 AMP</a><br />
+对应原文：Underactuated Robotics「Trajectory Optimization」（<code>robot-motion-rl/materials/text/underactuated-trajopt.txt</code> L174–L178：iLQR 与 DDP）；MPPI 论文（<code>papers/mppi-1707.02342.txt</code> L147 逆温度 λ，§C Importance Sampling L343）<br />
+本章缩写：iLQR = iterative LQR（迭代 / LQR）；DDP = Differential Dynamic Programming（微分 / 动态 / 规划）；MPPI = Model Predictive Path Integral（模型预测 / 路径 / 积分）；λ：MPPI 的温度参数（读 "lambda"；论文 L147 叫它 inverse temperature，但在 exp(−S/λ) 里它起的是温度的作用：越大权重越平均）；S_k：第 k 条采样序列的总代价；α：线搜索步长（读 "alpha"）。全部缩写见 <a href="../lessons/appendix-glossary.html">附录 · 缩写与术语表</a></p>
+</blockquote>
+<h2 id="_1">讲解</h2>
+<h3 id="2026-11-20">第一步：轨迹优化：直接求一串控制量（2026-11-20）</h3>
+<p><strong>类比：出门前在地图上规划路线，而不是练一套「看到哪个路口就怎么拐」的本能。</strong></p>
+<p>RL 学的是<strong>策略</strong>（任何状态下该怎么做）；轨迹优化求的是<strong>一条轨迹</strong>（从当前状态出发，接下来 T 步的控制序列 <span class="arithmatex">\(u_0, \dots, u_{T-1}\)</span>）。</p>
+<p><strong>例子</strong>（编的，整章都用）：<span class="arithmatex">\(x_{t+1} = x_t + 0.1\,(\sin x_t + u_t)\)</span>，从 x = 0 走到 x = π（像把摆从下面甩到上面），代价 <span class="arithmatex">\(\sum_t (x_t - \pi)^2 + 0.1\,u_t^2\)</span>，T = 30。什么都不做（u 全 0）时，x 一直停在 0，代价 <strong>296.1</strong>。</p>
+<p><strong>一句话</strong>：不学策略，直接为眼前这一次求一串最好的控制量。</p>
+<h3 id="ilqr-lqr-2026-11-20">第二步：iLQR：沿着当前轨迹线性化，用 LQR 修一修（2026-11-20）</h3>
+<p><strong>类比：照着一张草图描，每描一遍就修正一点，几遍后就准了。</strong></p>
+<p>第 12 章的 LQR 只在一个平衡点附近线性化。iLQR 沿<strong>整条当前轨迹</strong>逐点线性化（原文 L174–L176）：</p>
+<ol>
+<li>按当前控制序列往前滚，得到轨迹 <span class="arithmatex">\(x_0, \dots, x_T\)</span>；</li>
+<li>在每个点上算 <span class="arithmatex">\(a_t = \partial f/\partial x\)</span>、<span class="arithmatex">\(b_t = \partial f/\partial u\)</span>，把代价展开到二次；</li>
+<li>从最后一步往前做一遍 LQR（Riccati 反推），得到每一步的修正：<span class="arithmatex">\(\delta u_t = k_t + K_t\,\delta x_t\)</span>；</li>
+<li>带着修正往前滚（如果代价没降就把步长 α 减半），回到 1。</li>
+</ol>
+<p><strong>例子</strong>：每次迭代后的总代价</p>
+<table>
+<thead>
+<tr>
+<th>迭代</th>
+<th>0</th>
+<th>1</th>
+<th>2</th>
+<th>3</th>
+<th>4 以后</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>代价</td>
+<td>296.09</td>
+<td>39.04</td>
+<td>23.76</td>
+<td>23.73</td>
+<td>23.73</td>
+</tr>
+</tbody>
+</table>
+<p>3 次就收敛，最后 x = 3.141。iLQR 用的是<strong>导数</strong>：它相当于第 8 章的解析梯度，只是还用了二阶信息，所以收敛很快。DDP 再多保留动力学的二阶项（L178）。</p>
+<p><strong>一句话</strong>：iLQR = 沿轨迹线性化 + LQR 反推 + 往前滚，几次就收敛。</p>
+<h3 id="mppi2026-11-20">第三步：MPPI：撒一把随机序列，按代价加权平均（2026-11-20）</h3>
+<p><strong>类比：派 64 个探子各走一条略有不同的路，走得好的人说话分量大，大家的意见加权平均成下一版路线。</strong></p>
+<p>MPPI 不求导数：</p>
+<ol>
+<li>在当前控制序列上加高斯噪声，得到 K 条候选序列 <span class="arithmatex">\(u + \varepsilon_k\)</span>；</li>
+<li>每条往前滚、算总代价 <span class="arithmatex">\(S_k\)</span>；</li>
+<li>权重 <span class="arithmatex">\(w_k \propto \exp\big(-(S_k - \min S)/\lambda\big)\)</span>，归一化；</li>
+<li>更新 <span class="arithmatex">\(u \leftarrow u + \sum_k w_k\,\varepsilon_k\)</span>。</li>
+</ol>
+<p><strong>例子</strong>：4 条序列的代价 [10, 12, 20, 11]：</p>
+<table>
+<thead>
+<tr>
+<th>λ</th>
+<th>权重</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>[0.665, 0.090, 0.000, 0.245]</td>
+</tr>
+<tr>
+<td>5</td>
+<td>[0.381, 0.255, 0.052, 0.312]</td>
+</tr>
+</tbody>
+</table>
+<p>λ 小 → 几乎只听最好的那条；λ 大 → 大家平均。这个 exp 加权和第 5 章的 softmax 是同一个东西，背后是重要性采样（原文 §C，L343）。</p>
+<p>同一个甩摆问题（64 条、σ = 1、λ = 1），每轮代价：296.1 → 101.7 → 56.1 → 41.3 → … → <strong>25.0</strong>（8 轮）。比 iLQR 慢，也没到 23.73，但<strong>完全不用导数</strong>，而且 64 条可以在 GPU 上同时滚。</p>
+<p><strong>一句话</strong>：MPPI = 撒随机序列 + exp(−代价/λ) 加权平均，不要导数，好并行。</p>
+<h3 id="vs-2026-11-20">第四步：放回全书：在线优化 vs 离线策略（2026-11-20）</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>iLQR</th>
+<th>MPPI</th>
+<th>RL（PPO / SuperMimic）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>要模型</td>
+<td>要，还要导数</td>
+<td>要，只要能往前滚</td>
+<td>PPO 不要；SuperMimic 要学一个</td>
+</tr>
+<tr>
+<td>梯度类型（第 8 章）</td>
+<td>解析（加二阶）</td>
+<td>采样（和似然比同类）</td>
+<td>PPO 采样；SuperMimic 解析</td>
+</tr>
+<tr>
+<td>什么时候算</td>
+<td>每一刻在线算</td>
+<td>每一刻在线算</td>
+<td>离线训练，部署时一次前向</td>
+</tr>
+<tr>
+<td>接触、突变</td>
+<td>导数难用</td>
+<td>能处理</td>
+<td>能处理</td>
+</tr>
+</tbody>
+</table>
+<p>用在机器人上时，iLQR / MPPI 通常做成 MPC：每个周期从当前状态解一次、只执行第一步（第 14 章）。RL 可以看成「把无数次在线优化的结果，离线压进一个网络」。</p>
+<p><strong>一句话</strong>：iLQR 和 MPPI 是在线现算，RL 是离线学好；梯度类型的取舍和第 8 章一模一样。</p>
+<h3 id="mppi">动画演示：MPPI 的采样与加权</h3>
+<p><img alt="MPPI：撒序列、按代价加权、更新" src="../animations/15-ilqr-mppi.gif" /></p>
+<p>可交互版：<a href="../animations/15-ilqr-mppi.html">animations/15-ilqr-mppi.html</a>（滑块：温度 λ、采样条数、噪声 σ）。</p>
+<p><strong>怎么看</strong>：</p>
+<ol>
+<li>细线是每轮采样的候选轨迹，颜色越深权重越大；粗蓝线是加权平均后的新轨迹，目标是到达 π（第三步）。</li>
+<li>右侧小图是每轮的总代价，虚线是 iLQR 的收敛值 23.73（第二步）。</li>
+<li>拖 λ：小了只听最好的几条，可能抖；大了平均太多，收敛慢。</li>
+</ol>
+<h2 id="_2">练习与作答记录</h2>
+<p><strong>题 1</strong>（第二步）：iLQR 第 2 步里，<span class="arithmatex">\(f(x,u) = x + 0.1(\sin x + u)\)</span> 的 <span class="arithmatex">\(a_t = \partial f/\partial x\)</span> 和 <span class="arithmatex">\(b_t = \partial f/\partial u\)</span> 各是什么？在 x = 0 和 x = π 处 a 各是多少？</p>
+<p><strong>作答</strong>：（待作答）</p>
+<p><strong>题 2</strong>（第三步）：3 条序列代价 [5, 6, 9]，λ = 2，算 MPPI 的权重。</p>
+<p><strong>作答</strong>：（待作答）</p>
+<p><strong>题 3</strong>（第四步）：一台四足要在完全没见过的楼梯上实时规划落脚点，你会选 MPPI 还是 iLQR 做 MPC？为什么？</p>
+<p><strong>作答</strong>：（待作答）</p>
+<h2 id="_3">口诀</h2>
+<blockquote>
+<p>不练本能现规划，求一串控制量；<br />
+iLQR 沿轨迹线性化，LQR 往回推，三遍就收敛；<br />
+MPPI 撒一把，exp 负代价除 λ 加权平均，不要导数好并行；<br />
+在线现算是 MPC，离线学好是 RL。</p>
+</blockquote>
+<h2 id="_4">本章复习卡片</h2>
+<p>M29（iLQR 的四步循环；和 LQR、DDP 的关系）、M30（MPPI 权重 exp(−(S−min S)/λ)，λ 的作用；在线优化 vs RL）</p>
+<h2 id="_5">附录 · 延伸阅读</h2>
+<blockquote>
+<p>留给以后深入学习用，不影响本章主线。★ 是建议先读的。</p>
+</blockquote>
+<h3 id="_6">推荐阅读</h3>
+<table>
+<thead>
+<tr>
+<th>读什么</th>
+<th>读哪里</th>
+<th>读它为了什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>★ Underactuated · Trajectory Optimization</td>
+<td><code>robot-motion-rl/materials/text/underactuated-trajopt.txt</code> L174–L178，练习 L223–L230</td>
+<td>iLQR 与 DDP 的思路，带自己实现的练习</td>
+</tr>
+<tr>
+<td>★ MPPI</td>
+<td><code>papers/mppi-1707.02342.txt</code> L147、§C（L343 起）</td>
+<td>信息论 MPC 的推导与重要性采样权重</td>
+</tr>
+<tr>
+<td>Tassa et al. 2012（iLQR with control limits）</td>
+<td>未下载</td>
+<td>带控制约束的 iLQR，MuJoCo MPC 的基础</td>
+</tr>
+<tr>
+<td>第 14 章</td>
+<td><a href="../lessons/14-convex-mpc.html">14-convex-mpc.md</a></td>
+<td>滚动优化的基本做法</td>
+</tr>
+<tr>
+<td>学习计划 MC-M5、MC-M6</td>
+<td>study-plan.md</td>
+<td>自己写 iLQR 和 MPPI 摆起</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_7">数学原理</h3>
+<ul>
+<li><strong>局部二次近似</strong>：在当前轨迹附近把动力学线性化、代价展开到二次，就能套 LQR 的闭式解。</li>
+<li><strong>线搜索</strong>：沿修正方向先试整步（α = 1），代价不降就减半，保证每次迭代代价单调下降。</li>
+<li><strong>重要性采样</strong>：用 exp(−S/λ) 给样本加权，相当于从「代价低的轨迹更可能」的分布里估计最优控制。</li>
+</ul>
+<h3 id="_8">公式清单</h3>
+<table>
+<thead>
+<tr>
+<th>公式</th>
+<th>意思</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span class="arithmatex">\(a_t = \partial f/\partial x,\ b_t = \partial f/\partial u\)</span></td>
+<td>沿轨迹线性化</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(\delta u_t = k_t + K_t\delta x_t\)</span></td>
+<td>iLQR 的修正（前馈 + 反馈）</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(w_k = \frac{\exp(-(S_k-\min S)/\lambda)}{\sum_j \exp(-(S_j-\min S)/\lambda)}\)</span></td>
+<td>MPPI 权重</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(u \leftarrow u + \sum_k w_k\varepsilon_k\)</span></td>
+<td>MPPI 更新</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_9">代码对照：把本章的数字用代码算一遍</h3>
+<blockquote>
+<p>用 Python + NumPy 把讲义里讲过的数算一遍，不算练习题。代码在仓库本地 <code>robot-motion-rl/solutions/chapter-code/ch15_ilqr_mppi.py</code>，配套测试 <code>tests/test_ch12_18.py</code>，notebook 在 <code>notebooks/ch15_ilqr_mppi.ipynb</code>。Mac 上直接能跑，不需要 GPU：</p>
+<p><code>bash  
+cd robot-motion-rl/solutions/chapter-code  
+uv run python ch15_ilqr_mppi.py  
+uv run pytest tests/test_ch12_18.py</code></p>
+</blockquote>
+<p><strong>讲义 ↔ 代码</strong>（系统和代价是编的；MPPI 随机种子固定为 0）：</p>
+<table>
+<thead>
+<tr>
+<th>讲义</th>
+<th>公式</th>
+<th>写法</th>
+<th>跑出来</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>第一步 不控制</td>
+<td>总代价</td>
+<td><code>total_cost(rollout(0, zeros), zeros)</code></td>
+<td>296.09</td>
+</tr>
+<tr>
+<td>第二步 iLQR</td>
+<td>反推 + 正推</td>
+<td><code>ilqr()</code></td>
+<td>296.09 → 39.04 → 23.76 → 23.73；末端 x = 3.141</td>
+</tr>
+<tr>
+<td>第三步 权重</td>
+<td>exp(−ΔS/λ)</td>
+<td><code>mppi_weights([10, 12, 20, 11], λ)</code></td>
+<td>λ=1：[0.665, 0.09, 0, 0.245]</td>
+</tr>
+<tr>
+<td>第三步 MPPI</td>
+<td>8 轮</td>
+<td><code>mppi()</code></td>
+<td>296.1 → … → 25.0</td>
+</tr>
+</tbody>
+</table>
+<p><strong>关键几行</strong>：</p>
+<pre><code class="language-python">a, b = 1 + DT * np.cos(xs[t]), DT              # 沿当前轨迹线性化
+ks[t], kk[t] = -qu / quu, -qux / quu           # LQR 反推：前馈 k、反馈 K
+un[t] = us[t] + alpha * ks[t] + kk[t] * (xn[-1] - xs[t])   # 带修正往前滚
+w = np.exp(-(s - s.min()) / lam); w /= w.sum() # MPPI：按代价加权
+us = us + w @ eps                              # 加权平均噪声来更新
+</code></pre>
+<p><strong>代码里才看得到的 2 件事</strong>：</p>
+<ul>
+<li>iLQR 的反推里，第 t 步的状态代价算在 <span class="arithmatex">\(x_{t+1}\)</span> 上，所以要通过 a、b 折回到 <span class="arithmatex">\((x_t, u_t)\)</span>；这是代码里 <code>lx</code>、<code>qx</code>、<code>qu</code> 那几行的来源。</li>
+<li>MPPI 的权重先减去最小代价再取 exp，防止 exp(−296) 下溢成 0；这不改变归一化后的权重。</li>
+</ul>
+<p><strong>自己改一改</strong>（不影响练习答案）：</p>
+<ul>
+<li>把 MPPI 的采样条数从 64 改成 8 或 512，看收敛速度和最终代价怎么变。</li>
+<li>把 iLQR 的初始控制从全 0 改成全 1，看收敛到的代价是否相同。</li>
+</ul><nav class="pager"><a href="14-convex-mpc.html">← 第 14 章 · 单刚体凸 MPC 与 WBC：四足怎么「算」出每只脚该推多大力</a><a href="16-amp.html">第 16 章 · AMP：不逐帧跟踪，只要求「动作像人」 →</a></nav>
+</main>
+<footer>来自个人学习仓库的对话讲义，含练习作答记录。源码：<a href="https://github.com/wikieden/robot-motion-rl">github.com/wikieden/robot-motion-rl</a>。更多讲义书：<a href="https://wikieden.github.io/ai-books/">AI 算法图解讲义（合集）</a></footer>
+</body></html>

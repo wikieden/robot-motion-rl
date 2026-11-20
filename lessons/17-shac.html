@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>第 17 章 · 可微仿真与 SHAC：SuperMimic 之前，解析梯度是怎么来的 · 机器人运控与强化学习</title>
+<style>
+:root{--bg:#fbfbfa;--fg:#1f2328;--mute:#5d6470;--line:#e3e5e8;--card:#fff;--acc:#2f6fdf;--code:#f2f3f5;--quote:#f4f6fa}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15181d;--fg:#e4e7ec;--mute:#9aa3b2;--line:#2c323b;--card:#1c2026;--acc:#7aa7ff;--code:#22272f;--quote:#1b2029}}
+:root[data-theme="dark"]{--bg:#15181d;--fg:#e4e7ec;--mute:#9aa3b2;--line:#2c323b;--card:#1c2026;--acc:#7aa7ff;--code:#22272f;--quote:#1b2029}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.75 -apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Helvetica Neue",sans-serif}
+a{color:var(--acc)}
+header.top{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+header.top .in{max-width:860px;margin:0 auto;padding:10px 16px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;font-size:14px}
+header.top .brand{font-weight:600;color:var(--fg);text-decoration:none;margin-right:auto}
+header.top a{text-decoration:none}
+main{max-width:860px;margin:0 auto;padding:24px 16px 72px;overflow-wrap:anywhere}
+h1{font-size:28px;line-height:1.35;margin:8px 0 16px} h2{font-size:22px;margin:40px 0 12px;padding-top:8px;border-top:1px solid var(--line)} h3{font-size:18px;margin:28px 0 8px}
+img{max-width:100%;height:auto;border-radius:8px;border:1px solid var(--line);background:#fff}
+blockquote{margin:16px 0;padding:10px 16px;background:var(--quote);border-left:3px solid var(--acc);border-radius:4px;color:var(--mute)}
+blockquote p{margin:4px 0}
+code{background:var(--code);padding:1px 5px;border-radius:4px;font-size:.9em}
+pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto} pre code{padding:0;background:none}
+table{border-collapse:collapse;display:block;overflow-x:auto;max-width:100%;margin:12px 0;font-size:15px}
+th,td{border:1px solid var(--line);padding:6px 10px;vertical-align:top} th{background:var(--code)}
+details{border:1px solid var(--line);border-radius:8px;padding:6px 12px;margin:8px 0;background:var(--card)}
+details[open]{padding-bottom:10px} summary{cursor:pointer;color:var(--acc);font-weight:500}
+mjx-container{overflow-x:auto;overflow-y:hidden;max-width:100%}
+.btn{display:inline-block;margin:4px 8px 4px 0;padding:6px 14px;border:1px solid var(--acc);border-radius:999px;text-decoration:none;font-size:14px}
+.pager{display:flex;justify-content:space-between;gap:12px;margin-top:48px;padding-top:16px;border-top:1px solid var(--line);font-size:15px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin:16px 0}
+.card{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden;color:inherit;text-decoration:none}
+.card:hover{border-color:var(--acc)} .card img{border:0;border-bottom:1px solid var(--line);border-radius:0;aspect-ratio:16/10;object-fit:contain;width:100%}
+.card .no{color:var(--mute);font-size:13px;padding:8px 12px 0} .card .t{padding:0 12px 12px;font-weight:500;line-height:1.5}
+.lead{font-size:17px;color:var(--mute)}
+footer{max-width:860px;margin:0 auto;padding:0 16px 40px;color:var(--mute);font-size:13px}
+</style>
+<script>window.MathJax={tex:{inlineMath:[["\\(","\\)"]],displayMath:[["\\[","\\]"],["$$","$$"]],processEscapes:true,processEnvironments:true}};</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js"></script>
+</head><body>
+<header class="top"><div class="in">
+<a class="brand" href="../index.html">机器人运控与强化学习</a>
+<a href="../lessons/index.html">讲义目录</a>
+<a href="../animations/index.html">动画</a>
+<a href="../review.html">复习卡片</a>
+<a href="../lessons/appendix-glossary.html">缩写表</a>
+<a href="https://wikieden.github.io/ai-books/">← 全部讲义书</a>
+</div></header>
+<main>
+<h1 id="17-shacsupermimic">第 17 章 · 可微仿真与 SHAC：SuperMimic 之前，解析梯度是怎么来的</h1><p><a class="btn" href="../animations/17-shac.html">▶ 打开本章可交互动画</a></p>
+<blockquote>
+<p>本章回答：既然解析梯度这么省样本（第 8 章），为什么不直接对物理仿真器求导？接触为什么让梯度变得没法用？SHAC 怎么用「短窗口 + critic」解决这个问题？SuperMimic 和它的关系是什么？<br />
+讲解日期：2026-11-20 · 上一章：<a href="../lessons/16-amp.html">第 16 章 AMP</a> · 下一章：<a href="../lessons/18-deploy.html">第 18 章 上真机</a><br />
+对应原文：SHAC 论文（<code>papers/shac-2204.07137.txt</code> L27–L29 摘要：平滑 critic、截断学习窗口；L79–L81；L109–L112 接触不光滑与平滑接触模型；§3（L155）；§3.2 优化地形（L224）；L182–L183 解析动力学在接触处不光滑；L202：任务时域 H = 1000，短视野 h = 32）；SuperMimic §2 相关工作（<code>papers/supermimic-2610.28480.txt</code> L146–L155）<br />
+本章缩写：SHAC = Short-Horizon Actor-Critic（短视野 / 演员-评论家）；BPTT = Backpropagation Through Time（反向传播 / 穿过 / 时间）；softplus：<span class="arithmatex">\(\log(1+e^x)\)</span>，ReLU 的平滑版；sigmoid：<span class="arithmatex">\(1/(1+e^{-x})\)</span>，softplus 的导数；β：平滑程度（读 "beta"）；k：接触刚度；z：脚离地高度（负数表示陷进地面）。全部缩写见 <a href="../lessons/appendix-glossary.html">附录 · 缩写与术语表</a></p>
+</blockquote>
+<h2 id="_1">讲解</h2>
+<h3 id="2026-11-20">第一步：可微仿真：让仿真器自己给导数（2026-11-20）</h3>
+<p><strong>类比：第 9 章是「拆不开收音机，就自己画一张近似图」；可微仿真是「把收音机的电路图直接给你」。</strong></p>
+<p>可微仿真器在算下一状态的同时，还能给出 <span class="arithmatex">\(\partial s_{t+1}/\partial s_t\)</span> 和 <span class="arithmatex">\(\partial s_{t+1}/\partial a_t\)</span>（用自动微分实现物理公式）。有了它，第 10 章的 BPTT 可以直接在<strong>真仿真器</strong>上做，不需要学 world model。DiffMimic（<code>papers/diffmimic-2304.03274.txt</code>）就是这样做动作模仿的。</p>
+<p>问题出在两处：接触让导数不可靠（第二步），时域长时梯度爆炸（第三步，和第 10 章一样）。</p>
+<p><strong>一句话</strong>：可微仿真器直接给导数，但接触和长时域让这些导数难用。</p>
+<h3 id="02026-11-20">第二步：接触的导数：要么是 0，要么很大（2026-11-20）</h3>
+<p><strong>类比：用尺子量「脚离地多高」时推力怎么变：脚在空中时，抬高或放低一点推力都是 0；一碰地，推力突然出现。</strong></p>
+<p>最简单的接触模型是罚函数：脚陷进地面（z &lt; 0）才有力 <span class="arithmatex">\(f = k\,\max(0, -z)\)</span>。它的导数在 z = 0 处<strong>跳变</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>z（m）</th>
+<th>+0.020</th>
+<th>+0.005</th>
+<th>0</th>
+<th>−0.005</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>硬接触 f（N）</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>5.00</td>
+</tr>
+<tr>
+<td>硬接触 df/dz</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>−1000</td>
+</tr>
+<tr>
+<td>平滑接触 f（β = 0.01）</td>
+<td>1.27</td>
+<td>4.74</td>
+<td>6.93</td>
+<td>9.74</td>
+</tr>
+<tr>
+<td>平滑接触 df/dz</td>
+<td>−119</td>
+<td>−378</td>
+<td>−500</td>
+<td>−623</td>
+</tr>
+</tbody>
+</table>
+<p>（k = 1000 N/m。）硬接触时，脚只要在空中，梯度就告诉策略「抬脚落脚都没关系」（导数 0）；一碰地导数又突然变成 −1000。策略根本学不会「往下踩一点会得到支撑」。</p>
+<p>平滑接触把 <span class="arithmatex">\(\max(0, -z)\)</span> 换成 softplus：<span class="arithmatex">\(f = k\beta\log(1 + e^{-z/\beta})\)</span>，导数 <span class="arithmatex">\(-k\cdot\text{sigmoid}(-z/\beta)\)</span> 从 0 平滑过渡到 −k。代价是离地 2 cm 时也有 1.27 N 的「虚假」推力（原文 L109–L112 提到很多可微仿真用这种平滑接触）。</p>
+<p><strong>一句话</strong>：硬接触的导数在触地处跳变；平滑接触让导数连续，但物理不再精确。</p>
+<h3 id="shac-critic2026-11-20">第三步：SHAC：短窗口 + 平滑 critic（2026-11-20）</h3>
+<p><strong>类比：第 10 章的下棋：只算几步，后面靠局面评估。</strong></p>
+<p>SHAC（2022）在可微仿真器上做的事，和 SuperMimic 第 10 章几乎一样（原文 L27–L29、L79–L81）：</p>
+<ul>
+<li><strong>截断学习窗口</strong>：一局 H = 1000 步，切成长度 h = 32 的短窗口（L202），每个窗口内做 BPTT，梯度最多连乘 32 次；1000 / 32 向上取整是 <strong>32</strong> 个窗口。</li>
+<li><strong>平滑的 critic</strong>：窗口末端接一个价值函数估计后面的回报。critic 是神经网络，本身是平滑的，起到「把崎岖的优化地形磨平」的作用（§3.2，L224 分析了长时域时地形如何变崎岖）。</li>
+</ul>
+<p>SuperMimic 原文明说它的「critic 自举的短视野目标」是受 SHAC 启发的（L149–L150），区别在两处（第 10 章 L297–L300 附近）：用生存权重代替硬终止；critic 不用目标网络。</p>
+<p><strong>一句话</strong>：SHAC = 可微仿真 + 32 步窗口 BPTT + critic；SuperMimic 继承了这个结构。</p>
+<h3 id="shac-vs-supermimic2026-11-20">第四步：SHAC vs SuperMimic：梯度从哪来（2026-11-20）</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>SHAC</th>
+<th>SuperMimic</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>梯度来自</td>
+<td>可微仿真器（真物理公式）</td>
+<td>学出来的 world model</td>
+</tr>
+<tr>
+<td>仿真器要求</td>
+<td>必须可微，接触常要平滑</td>
+<td>任意刚体仿真器（MuJoCo Warp），不要求可微</td>
+</tr>
+<tr>
+<td>接触</td>
+<td>平滑接触 → 物理有偏差</td>
+<td>模型从真实（硬接触）仿真数据里学，自己学到平滑的近似</td>
+</tr>
+<tr>
+<td>速度</td>
+<td>受仿真器限制</td>
+<td>想象比仿真快 10–62 倍（第 11 章）</td>
+</tr>
+<tr>
+<td>风险</td>
+<td>平滑带来的物理误差</td>
+<td>模型误差（第 8 章动画的「world model 偏差」）</td>
+</tr>
+</tbody>
+</table>
+<p>SuperMimic 原文（L68–L70、L151–L155）强调：因为梯度来自学到的模型而不是对仿真器求导，它「兼容非光滑接触和不可微的实现」。学一个模型，等于用数据自动找到了一个「好求导的近似」，绕开了手工设计平滑接触。</p>
+<p><strong>一句话</strong>：SHAC 对真仿真器求导，要平滑接触；SuperMimic 对学到的模型求导，仿真器随便用。</p>
+<h3 id="_2">动画演示：硬接触与平滑接触的导数</h3>
+<p><img alt="硬接触的导数在触地处跳变，平滑接触的导数连续" src="../animations/17-shac.gif" /></p>
+<p>可交互版：<a href="../animations/17-shac.html">animations/17-shac.html</a>（滑块：平滑程度 β、脚的高度 z）。</p>
+<p><strong>怎么看</strong>：</p>
+<ol>
+<li>上图：接触力随脚的高度 z 变化，红线是硬接触，蓝线是平滑接触（第二步）。</li>
+<li>下图：两者的导数 df/dz；红线在 z = 0 处从 0 跳到 −1000，蓝线是连续的 S 形。</li>
+<li>播放时脚从 3 cm 高处慢慢落下，竖线标出当前 z。拖 β：越小越接近硬接触，越大越「软」、虚假推力越大。</li>
+</ol>
+<h2 id="_3">练习与作答记录</h2>
+<p><strong>题 1</strong>（第二步）：k = 1000、β = 0.01，脚离地 1 cm（z = 0.01）时，平滑接触的力和导数各约是多少？（提示：<span class="arithmatex">\(\log(1+e^{-1}) \approx 0.313\)</span>，<span class="arithmatex">\(\text{sigmoid}(-1) \approx 0.269\)</span>。）</p>
+<p><strong>作答</strong>：（待作答）</p>
+<p><strong>题 2</strong>（第三步）：一局 H = 500 步，窗口 h = 16，要切成多少个窗口？窗口越短，梯度越稳还是越短视？</p>
+<p><strong>作答</strong>：（待作答）</p>
+<p><strong>题 3</strong>（第四步）：SuperMimic 的 world model 其实也学到了一种「平滑的接触」。和手写的 softplus 相比，它的平滑程度由什么决定？可能带来什么风险？</p>
+<p><strong>作答</strong>：（待作答）</p>
+<h2 id="_4">口诀</h2>
+<blockquote>
+<p>收音机给了电路图，仿真器自己出导数；<br />
+脚在空中导数零，一碰地跳到负一千，策略学不会踩；<br />
+softplus 把台阶磨成坡，导数连续，代价是隔空有力；<br />
+SHAC 对真仿真求导要磨平，SuperMimic 对学的模型求导随便用。</p>
+</blockquote>
+<h2 id="_5">本章复习卡片</h2>
+<p>M33（硬接触导数跳变、平滑接触 softplus 的取舍）、M34（SHAC 的两件法宝：截断窗口 + 平滑 critic；和 SuperMimic 的区别）</p>
+<h2 id="_6">附录 · 延伸阅读</h2>
+<blockquote>
+<p>留给以后深入学习用，不影响本章主线。★ 是建议先读的。</p>
+</blockquote>
+<h3 id="_7">推荐阅读</h3>
+<table>
+<thead>
+<tr>
+<th>读什么</th>
+<th>读哪里</th>
+<th>读它为了什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>★ SHAC</td>
+<td><code>papers/shac-2204.07137.txt</code> L27–L29、L79–L81、§3（L155）、§3.2（L224）、L202</td>
+<td>短视野可微 actor-critic 的原始论文</td>
+</tr>
+<tr>
+<td>★ SuperMimic §2</td>
+<td><code>papers/supermimic-2610.28480.txt</code> L146–L155</td>
+<td>它和 SHAC、可微仿真、RWM 的关系</td>
+</tr>
+<tr>
+<td>DiffMimic</td>
+<td><code>papers/diffmimic-2304.03274.txt</code></td>
+<td>直接在可微物理上做动作模仿</td>
+</tr>
+<tr>
+<td>第 9、10 章</td>
+<td><a href="../lessons/09-world-model.html">09-world-model.md</a>、<a href="../lessons/10-bptt-critic.html">10-bptt-critic.md</a></td>
+<td>学模型、BPTT + critic 的细节</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_8">数学原理</h3>
+<ul>
+<li><strong>softplus 与 ReLU</strong>：<span class="arithmatex">\(\text{softplus}(x) = \log(1+e^x)\)</span> 是 <span class="arithmatex">\(\max(0, x)\)</span> 的平滑版；<span class="arithmatex">\(\beta\,\text{softplus}(x/\beta)\)</span> 在 β → 0 时趋于 <span class="arithmatex">\(\max(0, x)\)</span>。</li>
+<li><strong>softplus 的导数是 sigmoid</strong>：<span class="arithmatex">\(\frac{d}{dx}\log(1+e^x) = \frac{1}{1+e^{-x}}\)</span>。</li>
+</ul>
+<h3 id="_9">公式清单</h3>
+<table>
+<thead>
+<tr>
+<th>公式</th>
+<th>意思</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span class="arithmatex">\(f = k\max(0, -z)\)</span></td>
+<td>硬接触（罚函数）</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(f = k\beta\log(1 + e^{-z/\beta})\)</span></td>
+<td>平滑接触（softplus）</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(df/dz = -k\,\text{sigmoid}(-z/\beta)\)</span></td>
+<td>平滑接触的导数</td>
+</tr>
+<tr>
+<td>窗口数 <span class="arithmatex">\(= \lceil H/h \rceil\)</span></td>
+<td>SHAC 的截断窗口</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_10">代码对照：把本章的数字用代码算一遍</h3>
+<blockquote>
+<p>用 Python + NumPy 把讲义里讲过的数算一遍，不算练习题。代码在仓库本地 <code>robot-motion-rl/solutions/chapter-code/ch17_shac.py</code>，配套测试 <code>tests/test_ch12_18.py</code>，notebook 在 <code>notebooks/ch17_shac.ipynb</code>。Mac 上直接能跑，不需要 GPU：</p>
+<p><code>bash  
+cd robot-motion-rl/solutions/chapter-code  
+uv run python ch17_shac.py  
+uv run pytest tests/test_ch12_18.py</code></p>
+</blockquote>
+<p><strong>讲义 ↔ 代码</strong>（刚度、β、高度是编的；H = 1000、h = 32 取自 SHAC 论文）：</p>
+<table>
+<thead>
+<tr>
+<th>讲义</th>
+<th>公式</th>
+<th>写法</th>
+<th>跑出来</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>第二步 硬接触</td>
+<td>k·max(0, −z)</td>
+<td><code>hard_contact_force</code>、<code>hard_contact_grad</code></td>
+<td>z = −0.005：5.00 N、−1000</td>
+</tr>
+<tr>
+<td>第二步 平滑接触</td>
+<td>softplus</td>
+<td><code>soft_contact_force</code>、<code>soft_contact_grad</code></td>
+<td>z = 0：6.93 N、−500；z = 0.02：1.27 N、−119</td>
+</tr>
+<tr>
+<td>第三步 窗口</td>
+<td>⌈H/h⌉</td>
+<td><code>windows(1000, 32)</code></td>
+<td>32</td>
+</tr>
+</tbody>
+</table>
+<p><strong>关键几行</strong>：</p>
+<pre><code class="language-python">f_hard = k * max(0.0, -z)                         # 只有陷进地面才有力
+f_soft = k * beta * np.log1p(np.exp(-z / beta))   # softplus：台阶磨成坡
+g_soft = -k / (1 + np.exp(z / beta))              # 导数是 sigmoid，连续
+n_win = -(-H // h)                                # 向上取整：1000 步切成 32 段
+</code></pre>
+<p><strong>代码里才看得到的 1 件事</strong>：</p>
+<ul>
+<li>用 <code>np.log1p(x)</code> 而不是 <code>np.log(1 + x)</code>：x 很小时前者更精确；z 很大（脚很高）时 <span class="arithmatex">\(e^{-z/\beta}\)</span> 接近 0，<code>log1p</code> 不会丢精度。</li>
+</ul>
+<p><strong>自己改一改</strong>（不影响练习答案）：</p>
+<ul>
+<li>把 β 改成 0.001，看 z = 0.02 处的虚假推力降到多少、z = 0 处的导数怎么变。</li>
+<li>取 β = 0.003，写一个小循环让脚从 z = 0.03 落到 −0.01，比较两种接触力随 z 的曲线。</li>
+</ul><nav class="pager"><a href="16-amp.html">← 第 16 章 · AMP：不逐帧跟踪，只要求「动作像人」</a><a href="18-deploy.html">第 18 章 · 上真机：执行器网络、动作修正量与 sim2sim 检查 →</a></nav>
+</main>
+<footer>来自个人学习仓库的对话讲义，含练习作答记录。源码：<a href="https://github.com/wikieden/robot-motion-rl">github.com/wikieden/robot-motion-rl</a>。更多讲义书：<a href="https://wikieden.github.io/ai-books/">AI 算法图解讲义（合集）</a></footer>
+</body></html>

@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>动作修正量</title><link rel="stylesheet" href="anim.css"></head>
+<body><main>
+<h1>第 18 章 · ASAP 的动作修正量：加上 Δa，仿真轨迹贴上真机</h1>
+<p class="sub">配套讲义：<a href="../lessons/18-deploy.html">第 18 章 · 上真机：执行器网络、动作修正量与 sim2sim 检查</a> 第三、四步。仿真 x' = x + a；真机 x' = x + 强度·a − 摩擦，默认强度 0.8、摩擦 0.05，和讲义的玩具一致。修正量 Δa 按讲义的线性公式自动拟合。<br>缩写：ASAP = Aligning Simulation and Real-World Physics（对齐 / 仿真与真实 / 物理）；Δa：动作修正量（delta action）；延迟：真机执行的是几个周期以前的指令。</p>
+<div class="panel"><svg id="sv" viewBox="0 0 680 400"></svg></div>
+<div class="stats">
+<div class="stat"><div class="l">步数</div><div class="v" id="s0">0</div></div>
+<div class="stat"><div class="l">拟合的 Δa</div><div class="v" id="s1">–</div></div>
+<div class="stat"><div class="l">仿真 − 真机（末端误差）</div><div class="v" id="s2">–</div></div>
+</div>
+<div class="row ctl"><label>真机电机强度</label><input type="range" id="gn" min="0.5" max="1.3" step="0.05" value="0.8"><span id="gnv">0.8</span></div>
+<div class="row ctl"><label>摩擦偏差</label><input type="range" id="fr" min="0" max="0.15" step="0.01" value="0.05"><span id="frv">0.05</span></div>
+<div class="row ctl"><label>延迟（周期）</label><input type="range" id="dl" min="0" max="3" step="1" value="0"><span id="dlv">0</span></div>
+<div class="row ctl"><button id="dm" class="on">动作修正模型：开</button></div>
+<div class="row"><button id="play">▶ 播放</button><button id="step">→ 单步</button><button id="reset">↺ 从头开始</button></div>
+<p class="note">看点：① 下方灰柱是每步的动作指令 a（同一串指令同时喂给三者）。② 黑线是真机，红线是原始仿真，蓝线是加了 Δa 的仿真（第三步）：Δa 打开时蓝线贴住黑线，关掉就和红线一样越跑越偏。③ 把延迟调到 1–3：真机晚几个周期才执行，线性的 Δa 补不了这一项，蓝线和黑线又分开了，这要靠训练时做延迟随机化（第四步）。</p>
+</main>
+<script src="anim.js"></script>
+<script>
+const sv=$('sv');const N=30,X0=60,W=600,T1=20,H1=230,T2=290,H2=80;
+const X=t=>X0+t/N*W,Y=v=>T1+H1-clamp(v/16,0,1)*H1;
+el('rect',{x:X0,y:T1,width:W,height:H1,fill:'var(--bg)',stroke:'var(--line)'},sv);el('rect',{x:X0,y:T2,width:W,height:H2,fill:'var(--bg)',stroke:'var(--line)'},sv);
+txt('位置 x（黑：真机　红：原始仿真　蓝：仿真 + Δa）',{x:X0,y:T1-6,class:'m'},sv);txt('动作指令 a',{x:X0,y:T2-6,class:'m'},sv);
+const Lr=el('polyline',{fill:'none',stroke:'var(--text)','stroke-width':2.4},sv),Ls=el('polyline',{fill:'none',stroke:'var(--bad)','stroke-width':1.8},sv),Ld=el('polyline',{fill:'none',stroke:'var(--accent)','stroke-width':2,'stroke-dasharray':'6 3'},sv);
+const ab=[];for(let i=0;i<N;i++)ab.push(el('rect',{x:X(i)+2,width:W/N-4,fill:'var(--muted)',opacity:0.6},sv));
+let t,acts,dmOn=true,c1,c0;
+const real=(x,a,g,f)=>x+g*a-f;
+function fit(g,f){// Δa = c1·a + c0，使 a + Δa = g·a − f
+  return[g-1,-f]}
+function reset(){['gn','fr','dl'].forEach(id=>$(id+'v').textContent=$(id).value);acts=Array.from({length:N},(_,i)=>0.4+0.3*Math.sin(i/4)+0.2*Math.sin(i/1.7));[c1,c0]=fit(+$('gn').value,+$('fr').value);t=0;draw()}
+function next(){if(t>=N)return false;t++;draw();return true}
+function draw(){const g=+$('gn').value,f=+$('fr').value,d=+$('dl').value;let xr=0,xs=0,xd=0;const pr=[`${X(0)},${Y(0)}`],ps=[pr[0]],pd=[pr[0]];
+  for(let i=0;i<t;i++){const a=acts[i],ad=i-d>=0?acts[i-d]:0;xr=real(xr,ad,g,f);xs=xs+a;xd=xd+(dmOn?a+c1*a+c0:a);pr.push(`${X(i+1)},${Y(xr)}`);ps.push(`${X(i+1)},${Y(xs)}`);pd.push(`${X(i+1)},${Y(xd)}`)}
+  Lr.setAttribute('points',pr.join(' '));Ls.setAttribute('points',ps.join(' '));Ld.setAttribute('points',pd.join(' '));
+  ab.forEach((b,i)=>{const h=i<t?acts[i]*H2:0;b.setAttribute('y',T2+H2-h);b.setAttribute('height',h)});
+  $('s0').textContent=t;$('s1').textContent=`${c1.toFixed(2)}·a ${c0<0?'−':'+'} ${Math.abs(c0).toFixed(2)}`;$('s2').textContent=((dmOn?xd:xs)-xr).toFixed(3);
+  $('dm').textContent='动作修正模型：'+(dmOn?'开':'关');$('dm').classList.toggle('on',dmOn)}
+['gn','fr','dl'].forEach(id=>$(id).oninput=()=>{ANIM.stop();ANIM.reset(0)});
+$('dm').onclick=()=>{dmOn=!dmOn;draw()};
+setupPlayer({captureSeed:1,reset,next},180);
+</script><a href="https://wikieden.github.io/ai-books/" style="position:fixed;right:12px;bottom:12px;z-index:99;padding:4px 10px;border-radius:14px;background:rgba(127,127,127,.18);color:inherit;font:13px/1.6 system-ui,sans-serif;text-decoration:none">← 全部讲义书</a>
+</body></html>

@@ -1,0 +1,595 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>附录 · 缩写与术语表 · 机器人运控与强化学习</title>
+<style>
+:root{--bg:#fbfbfa;--fg:#1f2328;--mute:#5d6470;--line:#e3e5e8;--card:#fff;--acc:#2f6fdf;--code:#f2f3f5;--quote:#f4f6fa}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15181d;--fg:#e4e7ec;--mute:#9aa3b2;--line:#2c323b;--card:#1c2026;--acc:#7aa7ff;--code:#22272f;--quote:#1b2029}}
+:root[data-theme="dark"]{--bg:#15181d;--fg:#e4e7ec;--mute:#9aa3b2;--line:#2c323b;--card:#1c2026;--acc:#7aa7ff;--code:#22272f;--quote:#1b2029}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.75 -apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Helvetica Neue",sans-serif}
+a{color:var(--acc)}
+header.top{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+header.top .in{max-width:860px;margin:0 auto;padding:10px 16px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;font-size:14px}
+header.top .brand{font-weight:600;color:var(--fg);text-decoration:none;margin-right:auto}
+header.top a{text-decoration:none}
+main{max-width:860px;margin:0 auto;padding:24px 16px 72px;overflow-wrap:anywhere}
+h1{font-size:28px;line-height:1.35;margin:8px 0 16px} h2{font-size:22px;margin:40px 0 12px;padding-top:8px;border-top:1px solid var(--line)} h3{font-size:18px;margin:28px 0 8px}
+img{max-width:100%;height:auto;border-radius:8px;border:1px solid var(--line);background:#fff}
+blockquote{margin:16px 0;padding:10px 16px;background:var(--quote);border-left:3px solid var(--acc);border-radius:4px;color:var(--mute)}
+blockquote p{margin:4px 0}
+code{background:var(--code);padding:1px 5px;border-radius:4px;font-size:.9em}
+pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto} pre code{padding:0;background:none}
+table{border-collapse:collapse;display:block;overflow-x:auto;max-width:100%;margin:12px 0;font-size:15px}
+th,td{border:1px solid var(--line);padding:6px 10px;vertical-align:top} th{background:var(--code)}
+details{border:1px solid var(--line);border-radius:8px;padding:6px 12px;margin:8px 0;background:var(--card)}
+details[open]{padding-bottom:10px} summary{cursor:pointer;color:var(--acc);font-weight:500}
+mjx-container{overflow-x:auto;overflow-y:hidden;max-width:100%}
+.btn{display:inline-block;margin:4px 8px 4px 0;padding:6px 14px;border:1px solid var(--acc);border-radius:999px;text-decoration:none;font-size:14px}
+.pager{display:flex;justify-content:space-between;gap:12px;margin-top:48px;padding-top:16px;border-top:1px solid var(--line);font-size:15px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin:16px 0}
+.card{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden;color:inherit;text-decoration:none}
+.card:hover{border-color:var(--acc)} .card img{border:0;border-bottom:1px solid var(--line);border-radius:0;aspect-ratio:16/10;object-fit:contain;width:100%}
+.card .no{color:var(--mute);font-size:13px;padding:8px 12px 0} .card .t{padding:0 12px 12px;font-weight:500;line-height:1.5}
+.lead{font-size:17px;color:var(--mute)}
+footer{max-width:860px;margin:0 auto;padding:0 16px 40px;color:var(--mute);font-size:13px}
+</style>
+<script>window.MathJax={tex:{inlineMath:[["\\(","\\)"]],displayMath:[["\\[","\\]"],["$$","$$"]],processEscapes:true,processEnvironments:true}};</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js"></script>
+</head><body>
+<header class="top"><div class="in">
+<a class="brand" href="../index.html">机器人运控与强化学习</a>
+<a href="../lessons/index.html">讲义目录</a>
+<a href="../animations/index.html">动画</a>
+<a href="../review.html">复习卡片</a>
+<a href="../lessons/appendix-glossary.html">缩写表</a>
+<a href="https://wikieden.github.io/ai-books/">← 全部讲义书</a>
+</div></header>
+<main>
+<h1 id="_1">附录 · 缩写与术语表</h1>
+<blockquote>
+<p>用途：讲义里遇到缩写或符号，先查这一页。每章开头的「本章缩写」只列这一章用到的。强化学习的基础记号（<span class="arithmatex">\(S_t\)</span>、<span class="arithmatex">\(G_t\)</span>、γ、MDP、V、Q 等）见《从零学强化学习》的 缩写表。整理日期：2026-11-20。</p>
+</blockquote>
+<h2 id="_2">机器人与控制</h2>
+<table>
+<thead>
+<tr>
+<th>缩写 / 记号</th>
+<th>全称 / 读法</th>
+<th>意思</th>
+<th>第一次出现</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PD</td>
+<td>Proportional–Derivative</td>
+<td>比例 / 微分：按误差和误差变化率出力的控制器</td>
+<td><a href="../lessons/01-layers-pd.html">第 1 章</a></td>
+</tr>
+<tr>
+<td>Kp、Kd</td>
+<td>proportional gain、derivative gain</td>
+<td>比例增益（弹簧多硬）、微分增益（阻尼多大）</td>
+<td><a href="../lessons/01-layers-pd.html">第 1 章</a></td>
+</tr>
+<tr>
+<td>q、q̇、q*</td>
+<td>q dot、q star</td>
+<td>关节角、关节角速度、目标角</td>
+<td><a href="../lessons/01-layers-pd.html">第 1 章</a></td>
+</tr>
+<tr>
+<td>τ</td>
+<td>tau</td>
+<td>力矩，单位 N·m</td>
+<td><a href="../lessons/01-layers-pd.html">第 1 章</a></td>
+</tr>
+<tr>
+<td>Hz</td>
+<td>Hertz</td>
+<td>赫兹：每秒多少次</td>
+<td><a href="../lessons/01-layers-pd.html">第 1 章</a></td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(q^{sp}\)</span></td>
+<td>setpoint</td>
+<td>设定值：<span class="arithmatex">\(\alpha a_t + q^0\)</span>，低增益时是力矩代理</td>
+<td><a href="../lessons/01-layers-pd.html">第 1 章</a></td>
+</tr>
+<tr>
+<td>VLA</td>
+<td>Vision-Language-Action</td>
+<td>视觉 / 语言 / 动作模型，在本书里是高层指令的来源</td>
+<td><a href="../lessons/01-layers-pd.html">第 1 章</a></td>
+</tr>
+<tr>
+<td>IMU</td>
+<td>Inertial Measurement Unit</td>
+<td>惯性 / 测量 / 单元：测角速度和加速度</td>
+<td><a href="../lessons/02-tracking-mdp.html">第 2 章</a></td>
+</tr>
+<tr>
+<td>G1</td>
+<td>Unitree G1</td>
+<td>宇树的 29 自由度人形机器人，SuperMimic 的真机平台</td>
+<td><a href="../lessons/02-tracking-mdp.html">第 2 章</a></td>
+</tr>
+<tr>
+<td>MPC</td>
+<td>Model Predictive Control</td>
+<td>模型 / 预测 / 控制</td>
+<td><a href="../lessons/11-supermimic.html">第 11 章</a></td>
+</tr>
+<tr>
+<td>LQR</td>
+<td>Linear Quadratic Regulator</td>
+<td>线性 / 二次 / 调节器：线性系统 + 二次代价的最优反馈</td>
+<td><a href="../lessons/12-lqr.html">第 12 章</a></td>
+</tr>
+<tr>
+<td>q、r、P、K</td>
+<td>—</td>
+<td>LQR 的偏离权重、用力权重、价值系数 V = Px²、增益 u = −Kx</td>
+<td><a href="../lessons/12-lqr.html">第 12 章</a></td>
+</tr>
+<tr>
+<td>HJB</td>
+<td>Hamilton–Jacobi–Bellman</td>
+<td>三位数学家的姓：连续时间的 Bellman 方程</td>
+<td><a href="../lessons/12-lqr.html">第 12 章</a></td>
+</tr>
+<tr>
+<td>CoM、CoP</td>
+<td>Center of Mass、Center of Pressure</td>
+<td>质心；压力中心</td>
+<td><a href="../lessons/13-lipm-zmp.html">第 13 章</a></td>
+</tr>
+<tr>
+<td>ZMP</td>
+<td>Zero Moment Point</td>
+<td>零 / 力矩 / 点：地面支撑合力的作用点，只能在脚底</td>
+<td><a href="../lessons/13-lipm-zmp.html">第 13 章</a></td>
+</tr>
+<tr>
+<td>LIPM</td>
+<td>Linear Inverted Pendulum Model</td>
+<td>线性 / 倒立摆 / 模型：ẍ = ω²(x − p)</td>
+<td><a href="../lessons/13-lipm-zmp.html">第 13 章</a></td>
+</tr>
+<tr>
+<td>ω、z_c</td>
+<td>omega；constant height</td>
+<td>LIPM 固有频率 √(g/z_c)；质心高度</td>
+<td><a href="../lessons/13-lipm-zmp.html">第 13 章</a></td>
+</tr>
+<tr>
+<td>ξ</td>
+<td>xi；capture point</td>
+<td>捕获点 x + ẋ/ω：脚踩这里就停住</td>
+<td><a href="../lessons/13-lipm-zmp.html">第 13 章</a></td>
+</tr>
+<tr>
+<td>QP</td>
+<td>Quadratic Program</td>
+<td>二次 / 规划：二次目标 + 线性约束的凸优化</td>
+<td><a href="../lessons/14-convex-mpc.html">第 14 章</a></td>
+</tr>
+<tr>
+<td>GRF</td>
+<td>Ground Reaction Force</td>
+<td>地面 / 反作用 / 力</td>
+<td><a href="../lessons/14-convex-mpc.html">第 14 章</a></td>
+</tr>
+<tr>
+<td>WBIC</td>
+<td>Whole-Body Impulse Control</td>
+<td>全身 / 冲量 / 控制：Kim 2019 的 WBC 变体</td>
+<td><a href="../lessons/14-convex-mpc.html">第 14 章</a></td>
+</tr>
+<tr>
+<td>J、Jᵀ</td>
+<td>Jacobian</td>
+<td>雅可比（关节速度 → 脚的速度）；转置把脚的力变成关节力矩 τ = Jᵀf</td>
+<td><a href="../lessons/14-convex-mpc.html">第 14 章</a></td>
+</tr>
+<tr>
+<td>iLQR</td>
+<td>iterative LQR</td>
+<td>迭代 / LQR：沿轨迹反复线性化 + LQR 反推</td>
+<td><a href="../lessons/15-ilqr-mppi.html">第 15 章</a></td>
+</tr>
+<tr>
+<td>DDP</td>
+<td>Differential Dynamic Programming</td>
+<td>微分 / 动态 / 规划：iLQR 再加动力学二阶项</td>
+<td><a href="../lessons/15-ilqr-mppi.html">第 15 章</a></td>
+</tr>
+<tr>
+<td>MPPI</td>
+<td>Model Predictive Path Integral</td>
+<td>模型预测 / 路径 / 积分：采样 + exp(−代价/λ) 加权</td>
+<td><a href="../lessons/15-ilqr-mppi.html">第 15 章</a></td>
+</tr>
+<tr>
+<td>WBC</td>
+<td>Whole-Body Control</td>
+<td>全身 / 控制</td>
+<td><a href="../lessons/11-supermimic.html">第 11 章</a></td>
+</tr>
+</tbody>
+</table>
+<h2 id="_3">强化学习与训练</h2>
+<table>
+<thead>
+<tr>
+<th>缩写 / 记号</th>
+<th>全称 / 读法</th>
+<th>意思</th>
+<th>第一次出现</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RL</td>
+<td>Reinforcement Learning</td>
+<td>强化 / 学习</td>
+<td><a href="../lessons/01-layers-pd.html">第 1 章</a></td>
+</tr>
+<tr>
+<td>MDP、POMDP</td>
+<td>(Partially Observable) Markov Decision Process</td>
+<td>（部分可观测的）马尔可夫决策过程</td>
+<td><a href="../lessons/02-tracking-mdp.html">第 2 章</a></td>
+</tr>
+<tr>
+<td>σ</td>
+<td>sigma</td>
+<td>第 2 章是奖励核宽度；第 3 章是高斯策略的标准差</td>
+<td><a href="../lessons/02-tracking-mdp.html">第 2 章</a></td>
+</tr>
+<tr>
+<td>dt</td>
+<td>delta t</td>
+<td>控制周期，这里 0.02 s</td>
+<td><a href="../lessons/02-tracking-mdp.html">第 2 章</a></td>
+</tr>
+<tr>
+<td>PPO</td>
+<td>Proximal Policy Optimization</td>
+<td>近端 / 策略 / 优化</td>
+<td><a href="../lessons/03-ppo-recipe.html">第 3 章</a></td>
+</tr>
+<tr>
+<td>GAE</td>
+<td>Generalized Advantage Estimation</td>
+<td>广义 / 优势 / 估计</td>
+<td><a href="../lessons/03-ppo-recipe.html">第 3 章</a></td>
+</tr>
+<tr>
+<td>KL</td>
+<td>Kullback–Leibler divergence</td>
+<td>两位统计学家的姓 / 散度：两个分布差多远</td>
+<td><a href="../lessons/03-ppo-recipe.html">第 3 章</a></td>
+</tr>
+<tr>
+<td>μ</td>
+<td>mu</td>
+<td>第 3 章是高斯均值；第 4 章是摩擦系数</td>
+<td><a href="../lessons/03-ppo-recipe.html">第 3 章</a></td>
+</tr>
+<tr>
+<td>ε</td>
+<td>epsilon</td>
+<td>第 3 章是 PPO 剪裁范围；第 8 章是标准正态噪声</td>
+<td><a href="../lessons/03-ppo-recipe.html">第 3 章</a></td>
+</tr>
+<tr>
+<td>lr</td>
+<td>learning rate</td>
+<td>学习率</td>
+<td><a href="../lessons/03-ppo-recipe.html">第 3 章</a></td>
+</tr>
+<tr>
+<td>GPU</td>
+<td>Graphics Processing Unit</td>
+<td>图形 / 处理 / 单元</td>
+<td><a href="../lessons/03-ppo-recipe.html">第 3 章</a></td>
+</tr>
+<tr>
+<td>sim2real</td>
+<td>simulation to reality</td>
+<td>仿真到真机</td>
+<td><a href="../lessons/04-sim2real.html">第 4 章</a></td>
+</tr>
+<tr>
+<td>DR</td>
+<td>Domain Randomization</td>
+<td>域 / 随机化：训练时随机改仿真参数</td>
+<td><a href="../lessons/04-sim2real.html">第 4 章</a></td>
+</tr>
+<tr>
+<td>ξ</td>
+<td>xi；sim context</td>
+<td>仿真上下文：这一局的随机化参数</td>
+<td><a href="../lessons/04-sim2real.html">第 4 章</a></td>
+</tr>
+<tr>
+<td>RMA</td>
+<td>Rapid Motor Adaptation</td>
+<td>快速 / 运动 / 适应：student 从历史里在线估计环境参数</td>
+<td><a href="../lessons/04-sim2real.html">第 4 章</a></td>
+</tr>
+<tr>
+<td>RSI</td>
+<td>Reference State Initialization</td>
+<td>参考 / 状态 / 初始化：从参考动作的随机时刻开局</td>
+<td><a href="../lessons/05-imitation-sampling.html">第 5 章</a></td>
+</tr>
+<tr>
+<td>ET</td>
+<td>Early Termination</td>
+<td>提前 / 终止</td>
+<td><a href="../lessons/05-imitation-sampling.html">第 5 章</a></td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(G_b\)</span></td>
+<td>return of bin b</td>
+<td>第 b 段（1 秒一段）的回报估计</td>
+<td><a href="../lessons/05-imitation-sampling.html">第 5 章</a></td>
+</tr>
+<tr>
+<td>GRPO</td>
+<td>Group Relative Policy Optimization</td>
+<td>组 / 相对 / 策略 / 优化</td>
+<td><a href="../lessons/06-grpo-credit.html">第 6 章</a></td>
+</tr>
+<tr>
+<td>δ_t</td>
+<td>delta；TD error</td>
+<td>时序差分误差：<span class="arithmatex">\(r_t + \gamma V(s_{t+1}) - V(s_t)\)</span></td>
+<td><a href="../lessons/06-grpo-credit.html">第 6 章</a></td>
+</tr>
+<tr>
+<td>GR2PO</td>
+<td>Group Relative Return Policy Optimization</td>
+<td>组 / 相对 / 回报 / 策略优化：按时间下标归一化回报</td>
+<td><a href="../lessons/06-grpo-credit.html">第 6 章</a></td>
+</tr>
+<tr>
+<td>GPU-h</td>
+<td>GPU hours</td>
+<td>GPU 时：GPU 数 × 小时数</td>
+<td><a href="../lessons/07-scaling-cost.html">第 7 章</a></td>
+</tr>
+<tr>
+<td>DAgger</td>
+<td>Dataset Aggregation</td>
+<td>数据集 / 聚合：一种蒸馏（模仿）方法</td>
+<td><a href="../lessons/07-scaling-cost.html">第 7 章</a></td>
+</tr>
+<tr>
+<td>score function</td>
+<td>—</td>
+<td>得分函数 <span class="arithmatex">\(\nabla_\theta\log\pi\)</span>；似然比梯度用它</td>
+<td><a href="../lessons/08-two-gradients.html">第 8 章</a></td>
+</tr>
+<tr>
+<td>pathwise gradient</td>
+<td>—</td>
+<td>路径梯度 / 解析梯度：沿「参数 → 动作 → 回报」求导</td>
+<td><a href="../lessons/08-two-gradients.html">第 8 章</a></td>
+</tr>
+<tr>
+<td>PPO-WM</td>
+<td>PPO in World Model</td>
+<td>在 world model 里跑的 PPO（SuperMimic 的消融基线）</td>
+<td><a href="../lessons/08-two-gradients.html">第 8 章</a></td>
+</tr>
+<tr>
+<td>WM</td>
+<td>World Model</td>
+<td>世界 / 模型：学出来的环境动力学</td>
+<td><a href="../lessons/09-world-model.html">第 9 章</a></td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(f_\omega\)</span>、ŝ</td>
+<td>omega；s hat</td>
+<td>动力学网络及其参数；模型预测的状态</td>
+<td><a href="../lessons/09-world-model.html">第 9 章</a></td>
+</tr>
+<tr>
+<td>k</td>
+<td>window length</td>
+<td>world model 的自回归训练窗口，这里 8</td>
+<td><a href="../lessons/09-world-model.html">第 9 章</a></td>
+</tr>
+<tr>
+<td>d̂、c_t</td>
+<td>d hat；survival weight</td>
+<td>预测的终止概率；生存权重 <span class="arithmatex">\(c_{t+1} = c_t(1-\hat d_{t+1})\)</span></td>
+<td><a href="../lessons/09-world-model.html">第 9 章</a></td>
+</tr>
+<tr>
+<td>BCE</td>
+<td>Binary Cross-Entropy</td>
+<td>二元 / 交叉熵：训练终止概率的损失</td>
+<td><a href="../lessons/09-world-model.html">第 9 章</a></td>
+</tr>
+<tr>
+<td>MLP</td>
+<td>Multilayer Perceptron</td>
+<td>多层 / 感知机</td>
+<td><a href="../lessons/09-world-model.html">第 9 章</a></td>
+</tr>
+<tr>
+<td>BPTT</td>
+<td>Backpropagation Through Time</td>
+<td>反向传播 / 穿过 / 时间</td>
+<td><a href="../lessons/10-bptt-critic.html">第 10 章</a></td>
+</tr>
+<tr>
+<td>H</td>
+<td>horizon</td>
+<td>想象视野，这里 32</td>
+<td><a href="../lessons/10-bptt-critic.html">第 10 章</a></td>
+</tr>
+<tr>
+<td>SHAC</td>
+<td>Short-Horizon Actor-Critic</td>
+<td>短视野 / 演员-评论家</td>
+<td><a href="../lessons/10-bptt-critic.html">第 10 章</a></td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(V_\psi\)</span></td>
+<td>psi</td>
+<td>critic（价值网络）及其参数</td>
+<td><a href="../lessons/10-bptt-critic.html">第 10 章</a></td>
+</tr>
+<tr>
+<td>UTD</td>
+<td>Update-To-Data ratio</td>
+<td>更新 / 对 / 数据 比：每采一份数据做几次更新</td>
+<td><a href="../lessons/11-supermimic.html">第 11 章</a></td>
+</tr>
+<tr>
+<td>Dyna</td>
+<td>—</td>
+<td>Sutton 1991：用模型生成数据训练策略的框架</td>
+<td><a href="../lessons/11-supermimic.html">第 11 章</a></td>
+</tr>
+<tr>
+<td>AMP</td>
+<td>Adversarial Motion Priors</td>
+<td>对抗式 / 动作 / 先验：判别器给「像不像」打分</td>
+<td><a href="../lessons/16-amp.html">第 16 章</a></td>
+</tr>
+<tr>
+<td>GAIL、GAN、LSGAN</td>
+<td>Generative Adversarial (Imitation Learning / Network)、Least-Squares GAN</td>
+<td>生成对抗模仿学习、生成对抗网络、最小二乘 GAN</td>
+<td><a href="../lessons/16-amp.html">第 16 章</a></td>
+</tr>
+<tr>
+<td>D、r_G、r_S</td>
+<td>Discriminator；goal；style</td>
+<td>判别器输出；任务奖励；风格奖励</td>
+<td><a href="../lessons/16-amp.html">第 16 章</a></td>
+</tr>
+<tr>
+<td>softplus、sigmoid</td>
+<td>—</td>
+<td>log(1 + eˣ)（ReLU 的平滑版）；1/(1 + e⁻ˣ)（softplus 的导数）</td>
+<td><a href="../lessons/17-shac.html">第 17 章</a></td>
+</tr>
+<tr>
+<td>β</td>
+<td>beta</td>
+<td>第 17 章：接触平滑程度</td>
+<td><a href="../lessons/17-shac.html">第 17 章</a></td>
+</tr>
+<tr>
+<td>sim2sim</td>
+<td>simulation to simulation</td>
+<td>换一个仿真器验证策略</td>
+<td><a href="../lessons/18-deploy.html">第 18 章</a></td>
+</tr>
+<tr>
+<td>ASAP</td>
+<td>Aligning Simulation and Real-World Physics</td>
+<td>对齐 / 仿真与真实 / 物理：学动作修正量 Δa</td>
+<td><a href="../lessons/18-deploy.html">第 18 章</a></td>
+</tr>
+<tr>
+<td>Δa</td>
+<td>delta action</td>
+<td>动作修正量</td>
+<td><a href="../lessons/18-deploy.html">第 18 章</a></td>
+</tr>
+<tr>
+<td>SysID</td>
+<td>System Identification</td>
+<td>系统 / 辨识：从数据里估物理参数</td>
+<td><a href="../lessons/18-deploy.html">第 18 章</a></td>
+</tr>
+</tbody>
+</table>
+<h2 id="_4">论文与系统</h2>
+<table>
+<thead>
+<tr>
+<th>名字</th>
+<th>是什么</th>
+<th>第一次出现</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DeepMimic</td>
+<td>2018，用 RL 模仿动捕片段的开山之作（RSI、提前终止）</td>
+<td><a href="../lessons/05-imitation-sampling.html">第 5 章</a></td>
+</tr>
+<tr>
+<td>AMP</td>
+<td>Adversarial Motion Priors（对抗式 / 动作 / 先验）：用判别器给「像不像」打分</td>
+<td><a href="../lessons/05-imitation-sampling.html">第 5 章</a></td>
+</tr>
+<tr>
+<td>PHC</td>
+<td>Perpetual Humanoid Control（持续 / 人形 / 控制）：大动作库 + 摔倒恢复</td>
+<td><a href="../lessons/05-imitation-sampling.html">第 5 章</a></td>
+</tr>
+<tr>
+<td>BeyondMimic</td>
+<td>2025，单动作专家 → 蒸馏 → 引导扩散，SuperMimic 的奖励和设定都沿用它</td>
+<td><a href="../lessons/02-tracking-mdp.html">第 2 章</a></td>
+</tr>
+<tr>
+<td>SONIC</td>
+<td>2025，NVIDIA 的通用动作跟踪器（Supersizing Motion Tracking），128 GPU × 7 天</td>
+<td><a href="../lessons/07-scaling-cost.html">第 7 章</a></td>
+</tr>
+<tr>
+<td>SuperMimic</td>
+<td>2026，UC Berkeley，可微 world model + BPTT 训通用跟踪器，CoRL 2026 oral</td>
+<td><a href="../lessons/01-layers-pd.html">第 1 章</a></td>
+</tr>
+<tr>
+<td>legged_gym</td>
+<td>2021，ETH，几千个机器狗并行 PPO 的配方</td>
+<td><a href="../lessons/03-ppo-recipe.html">第 3 章</a></td>
+</tr>
+<tr>
+<td>MuJoCo Warp</td>
+<td>MuJoCo 物理引擎的 GPU 版本</td>
+<td><a href="../lessons/03-ppo-recipe.html">第 3 章</a></td>
+</tr>
+<tr>
+<td>LAFAN1、BONES-SEED</td>
+<td>两个动捕数据集；BONES-SEED 公开子集 264.56 小时</td>
+<td><a href="../lessons/07-scaling-cost.html">第 7 章</a></td>
+</tr>
+<tr>
+<td>Underactuated Robotics</td>
+<td>Russ Tedrake 的 MIT 公开讲义（LQR、轨迹优化、人形）</td>
+<td><a href="../lessons/12-lqr.html">第 12 章</a></td>
+</tr>
+<tr>
+<td>Kim et al. 2019</td>
+<td>MIT Mini Cheetah 的凸 MPC + WBIC</td>
+<td><a href="../lessons/14-convex-mpc.html">第 14 章</a></td>
+</tr>
+<tr>
+<td>SHAC</td>
+<td>2022，可微仿真上的短视野 actor-critic，SuperMimic 目标函数的来源</td>
+<td><a href="../lessons/17-shac.html">第 17 章</a></td>
+</tr>
+<tr>
+<td>ANYmal（2019）</td>
+<td>ETH 四足，执行器网络</td>
+<td><a href="../lessons/18-deploy.html">第 18 章</a></td>
+</tr>
+</tbody>
+</table>
+</main>
+<footer>来自个人学习仓库的对话讲义，含练习作答记录。源码：<a href="https://github.com/wikieden/robot-motion-rl">github.com/wikieden/robot-motion-rl</a>。更多讲义书：<a href="https://wikieden.github.io/ai-books/">AI 算法图解讲义（合集）</a></footer>
+</body></html>

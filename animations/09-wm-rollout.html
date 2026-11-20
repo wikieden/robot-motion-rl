@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>想象里的误差</title><link rel="stylesheet" href="anim.css"></head>
+<body><main>
+<h1>第 9 章 · world model 自己滚：误差随步数累积，k 步训练帮它纠偏</h1>
+<p class="sub">配套讲义：<a href="../lessons/09-world-model.html">第 9 章 · 可微 world model：学一个能求导的「物理模拟器」</a> 第三、四步。真实系统是一个带摆动的衰减振子（编的，<strong>示意</strong>）；「只训 1 步」的模型每步有一点系统偏差，「k 步训练」的模型偏差按 1/k 缩小，用来表达 k 步自回归损失逼模型纠偏的方向，不是论文里的数字。<br>缩写：k：训练窗口长度（SuperMimic 用 8）；d̂：预测的终止概率；c_t：生存权重。</p>
+<div class="panel"><svg id="sv" viewBox="0 0 680 400"></svg></div>
+<div class="stats">
+<div class="stat"><div class="l">想象步数</div><div class="v" id="s0">0</div></div>
+<div class="stat"><div class="l">只训 1 步：误差</div><div class="v" id="s1">0</div></div>
+<div class="stat"><div class="l">k 步训练：误差</div><div class="v" id="s2">0</div></div>
+</div>
+<div class="row ctl"><label>每步偏差</label><input type="range" id="eb" min="0" max="0.05" step="0.005" value="0.02"><span id="ebv">0.02</span></div>
+<div class="row ctl"><label>训练窗口 k</label><input type="range" id="kk" min="1" max="16" step="1" value="8"><span id="kkv">8</span></div>
+<div class="row"><button id="play">▶ 播放</button><button id="step">→ 单步</button><button id="reset">↺ 从头开始</button></div>
+<p class="note">看点：① 黑线是真实轨迹；红线是「只训 1 步」的模型从同一起点吃自己的预测滚出来的，蓝线是「k 步训练」的模型（第三步）。② 阴影是 k 步训练窗口：红线在窗口里就开始偏，越往后越远；蓝线贴得更久。③ 下方小柱子是生存权重 c_t：每步按预测的终止概率 d̂ 打折，越往后越矮，回报里后面的奖励权重越小（第四步）。</p>
+</main>
+<script src="anim.js"></script>
+<script>
+const sv=$('sv');const X0=60,W=600,T1=20,H1=230,T2=290,H2=80,N=48;
+const X=t=>X0+t/N*W,Y=v=>T1+H1/2-v*H1*0.42;
+el('rect',{x:X0,y:T1,width:W,height:H1,fill:'var(--bg)',stroke:'var(--line)'},sv);
+const win=el('rect',{x:X0,y:T1,height:H1,fill:'var(--accent)',opacity:0.08},sv);
+const winT=txt('',{y:T1+14,class:'m'},sv);
+el('rect',{x:X0,y:T2,width:W,height:H2,fill:'var(--bg)',stroke:'var(--line)'},sv);
+txt('状态 x',{x:X0,y:T1-6,class:'m'},sv);txt('生存权重 c_t',{x:X0,y:T2-6,class:'m'},sv);
+const L={true:el('polyline',{fill:'none',stroke:'var(--text)','stroke-width':2},sv),one:el('polyline',{fill:'none',stroke:'var(--bad)','stroke-width':2},sv),k:el('polyline',{fill:'none',stroke:'var(--accent)','stroke-width':2},sv)};
+const cb=[];for(let t=0;t<N;t++)cb.push(el('rect',{x:X(t)+1,width:W/N-2,fill:'var(--teal)',opacity:0.7},sv));
+txt('黑：真实　红：只训 1 步　蓝：k 步训练',{x:X0+W-4,y:T1+H1-8,'text-anchor':'end',class:'m'},sv);
+let t,tr;
+function step(x,v,bias){const a=0.9;return[x+0.25*v+bias*2,v-0.25*x*1.1+bias*3]}
+function simulate(){const eb=+$('eb').value,k=+$('kk').value;const out={true:[],one:[],k:[]};
+  for(const [key,b] of [['true',0],['one',eb],['k',eb/k]]){let x=1,v=0;for(let i=0;i<=N;i++){out[key].push(x);[x,v]=step(x,v,b);x*=0.96;v*=0.96}}
+  const d=[];for(let i=0;i<N;i++)d.push(i<30?0.004:0.02);const c=[1];d.forEach(v=>c.push(c[c.length-1]*(1-v)));out.c=c;return out}
+function readCtl(){['eb','kk'].forEach(k=>$(k+'v').textContent=$(k).value)}
+['eb','kk'].forEach(k=>$(k).oninput=()=>{readCtl();ANIM.stop();ANIM.reset(0)});
+function reset(){readCtl();tr=simulate();t=0;draw()}
+function next(){if(t>=N)return false;t++;draw();return true}
+function draw(){const k=+$('kk').value;for(const key of ['true','one','k'])L[key].setAttribute('points',tr[key].slice(0,t+1).map((v,i)=>`${X(i)},${Y(v)}`).join(' '));
+  win.setAttribute('width',X(Math.min(k,N))-X0);winT.setAttribute('x',X(Math.min(k,N))+4);winT.textContent=`k = ${k} 步训练窗口`;
+  cb.forEach((r,i)=>{const h=i<t?tr.c[i]*H2:0;r.setAttribute('y',T2+H2-h);r.setAttribute('height',h)});
+  $('s0').textContent=t;$('s1').textContent=Math.abs(tr.one[t]-tr.true[t]).toFixed(3);$('s2').textContent=Math.abs(tr.k[t]-tr.true[t]).toFixed(3)}
+setupPlayer({captureSeed:1,reset,next},140);
+</script><a href="https://wikieden.github.io/ai-books/" style="position:fixed;right:12px;bottom:12px;z-index:99;padding:4px 10px;border-radius:14px;background:rgba(127,127,127,.18);color:inherit;font:13px/1.6 system-ui,sans-serif;text-decoration:none">← 全部讲义书</a>
+</body></html>

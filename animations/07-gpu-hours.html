@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GPU 时对比</title><link rel="stylesheet" href="anim.css"></head>
+<body><main>
+<h1>第 7 章 · SONIC vs SuperMimic 的 GPU 时（对数坐标）与公平性修正</h1>
+<p class="sub">配套讲义：<a href="../lessons/07-scaling-cost.html">第 7 章 · 规模化的代价：动作越多，PPO 越要堆算力</a> 第二至四步。数字全部来自 SuperMimic §4.1 与「Compute accounting」（<code>supermimic-2610.28480.txt</code> L318–L346）。<br>缩写：GPU-h = GPU hours（GPU 时：GPU 数 × 小时数）；L40、H100：两种 NVIDIA GPU；PPO-Sim：在仿真器里跑的 PPO 基线。</p>
+<div class="panel"><svg id="sv" viewBox="0 0 680 400"></svg></div>
+<div class="stats">
+<div class="stat"><div class="l">阶段</div><div class="v" id="s0">–</div></div>
+<div class="stat"><div class="l">剩下的 GPU 时倍数</div><div class="v" id="s1">–</div></div>
+</div>
+<div class="row ctl"><button id="cd">扣掉数据差 2.31×</button><button id="ch">扣掉硬件差 5.5×</button></div>
+<div class="row"><button id="play">▶ 播放</button><button id="step">→ 单步</button><button id="reset">↺ 从头开始</button></div>
+<p class="note">看点：① 左图两根柱子：SONIC 128 张 L40 × 168 h = 21504 GPU-h，SuperMimic 1 张 H100 × 3 h = 3 GPU-h。纵轴每格 10 倍，差约 7168 倍（第二步）。② 依次扣掉 SuperMimic 占的便宜：数据少 2.31 倍、H100 峰值最多高 5.5 倍，SONIC 的柱子缩短，倍数降到约 564（第三步）。③ 右图：PPO-Sim 从 1 卡加到 8 卡，18 小时后回报只到 0.72；SuperMimic 1 卡 1.2 小时到 0.82（第四步）。</p>
+</main>
+<script src="anim.js"></script>
+<script>
+const sv=$('sv');const X0=70,TOP=30,H=300,LMIN=0,LMAX=5;
+const Y=v=>TOP+H-(Math.log10(Math.max(v,1))-LMIN)/(LMAX-LMIN)*H;
+el('rect',{x:X0,y:TOP,width:270,height:H,fill:'var(--bg)',stroke:'var(--line)'},sv);
+[1,10,100,1000,10000,100000].forEach(v=>{txt(v>=1000?v/1000+'k':v,{x:X0-6,y:Y(v)+4,'text-anchor':'end',class:'m'},sv);el('line',{x1:X0,x2:X0+270,y1:Y(v),y2:Y(v),stroke:'var(--line)','stroke-width':0.5},sv)});
+txt('GPU 时（对数坐标）',{x:X0,y:TOP-10,class:'m'},sv);
+const bS=el('rect',{x:X0+40,width:70,fill:'var(--warm)'},sv),bM=el('rect',{x:X0+160,width:70,fill:'var(--accent)'},sv);
+txt('SONIC',{x:X0+75,y:TOP+H+18,'text-anchor':'middle'},sv);txt('SuperMimic',{x:X0+195,y:TOP+H+18,'text-anchor':'middle'},sv);
+const tS=txt('',{x:X0+75,'text-anchor':'middle',class:'m'},sv),tM=txt('',{x:X0+195,'text-anchor':'middle',class:'m'},sv);
+const RX=400,RW=250,RY=v=>TOP+H-v*H;
+el('rect',{x:RX,y:TOP,width:RW,height:H,fill:'var(--bg)',stroke:'var(--line)'},sv);
+txt('归一化回报（LAFAN1 受控对比）',{x:RX,y:TOP-10,class:'m'},sv);
+[0,0.5,1].forEach(v=>txt(v,{x:RX-6,y:RY(v)+4,'text-anchor':'end',class:'m'},sv));
+const items=[['PPO 1 卡',0.60,'var(--warm)'],['PPO 4 卡',0.70,'var(--warm)'],['PPO 8 卡',0.72,'var(--warm)'],['SuperMimic 1 卡',0.82,'var(--accent)']];
+const rb=items.map(([n,v,c],i)=>{txt(n,{x:RX+12+i*60+22,y:TOP+H+18+(i%2)*14,'text-anchor':'middle',class:'m'},sv);return{r:el('rect',{x:RX+12+i*60,width:44,fill:c},sv),t:txt('',{x:RX+12+i*60+22,'text-anchor':'middle',class:'m'},sv),v}});
+const tl=el('line',{x1:RX,x2:RX+RW,y1:RY(0.82),y2:RY(0.82),stroke:'var(--accent)','stroke-dasharray':'4 3'},sv);
+let st,dOn,hOn;
+const STAGES=['原始账','扣掉数据差','再扣硬件差','PPO 加卡对比'];
+function sonic(){return 21504/(dOn?611/264.56:1)/(hOn?5.5:1)}
+function draw(){const s=sonic();bS.setAttribute('y',Y(s));bS.setAttribute('height',TOP+H-Y(s));bM.setAttribute('y',Y(3));bM.setAttribute('height',TOP+H-Y(3));
+  tS.setAttribute('y',Y(s)-6);tS.textContent=Math.round(s);tM.setAttribute('y',Y(3)-6);tM.textContent='3';
+  const show=st>=3;rb.forEach(b=>{const v=show?b.v:0;b.r.setAttribute('y',RY(v));b.r.setAttribute('height',TOP+H-RY(v));b.t.setAttribute('y',RY(v)-6);b.t.textContent=show?b.v:''});tl.setAttribute('opacity',show?1:0);
+  $('s0').textContent=STAGES[Math.min(st,3)];$('s1').textContent=Math.round(s/3)+'×';$('cd').classList.toggle('on',dOn);$('ch').classList.toggle('on',hOn)}
+$('cd').onclick=()=>{ANIM.stop();dOn=!dOn;draw()};$('ch').onclick=()=>{ANIM.stop();hOn=!hOn;draw()};
+function reset(){st=0;dOn=false;hOn=false;draw()}
+function next(){if(st>=3)return false;st++;if(st===1)dOn=true;if(st===2)hOn=true;draw();return true}
+setupPlayer({captureSeed:1,reset,next},1400);
+</script><a href="https://wikieden.github.io/ai-books/" style="position:fixed;right:12px;bottom:12px;z-index:99;padding:4px 10px;border-radius:14px;background:rgba(127,127,127,.18);color:inherit;font:13px/1.6 system-ui,sans-serif;text-decoration:none">← 全部讲义书</a>
+</body></html>

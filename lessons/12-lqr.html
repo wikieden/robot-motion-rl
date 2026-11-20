@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>第 12 章 · LQR：模型已知、线性、二次代价时，Bellman 方程有闭式解 · 机器人运控与强化学习</title>
+<style>
+:root{--bg:#fbfbfa;--fg:#1f2328;--mute:#5d6470;--line:#e3e5e8;--card:#fff;--acc:#2f6fdf;--code:#f2f3f5;--quote:#f4f6fa}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15181d;--fg:#e4e7ec;--mute:#9aa3b2;--line:#2c323b;--card:#1c2026;--acc:#7aa7ff;--code:#22272f;--quote:#1b2029}}
+:root[data-theme="dark"]{--bg:#15181d;--fg:#e4e7ec;--mute:#9aa3b2;--line:#2c323b;--card:#1c2026;--acc:#7aa7ff;--code:#22272f;--quote:#1b2029}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.75 -apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Helvetica Neue",sans-serif}
+a{color:var(--acc)}
+header.top{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+header.top .in{max-width:860px;margin:0 auto;padding:10px 16px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;font-size:14px}
+header.top .brand{font-weight:600;color:var(--fg);text-decoration:none;margin-right:auto}
+header.top a{text-decoration:none}
+main{max-width:860px;margin:0 auto;padding:24px 16px 72px;overflow-wrap:anywhere}
+h1{font-size:28px;line-height:1.35;margin:8px 0 16px} h2{font-size:22px;margin:40px 0 12px;padding-top:8px;border-top:1px solid var(--line)} h3{font-size:18px;margin:28px 0 8px}
+img{max-width:100%;height:auto;border-radius:8px;border:1px solid var(--line);background:#fff}
+blockquote{margin:16px 0;padding:10px 16px;background:var(--quote);border-left:3px solid var(--acc);border-radius:4px;color:var(--mute)}
+blockquote p{margin:4px 0}
+code{background:var(--code);padding:1px 5px;border-radius:4px;font-size:.9em}
+pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto} pre code{padding:0;background:none}
+table{border-collapse:collapse;display:block;overflow-x:auto;max-width:100%;margin:12px 0;font-size:15px}
+th,td{border:1px solid var(--line);padding:6px 10px;vertical-align:top} th{background:var(--code)}
+details{border:1px solid var(--line);border-radius:8px;padding:6px 12px;margin:8px 0;background:var(--card)}
+details[open]{padding-bottom:10px} summary{cursor:pointer;color:var(--acc);font-weight:500}
+mjx-container{overflow-x:auto;overflow-y:hidden;max-width:100%}
+.btn{display:inline-block;margin:4px 8px 4px 0;padding:6px 14px;border:1px solid var(--acc);border-radius:999px;text-decoration:none;font-size:14px}
+.pager{display:flex;justify-content:space-between;gap:12px;margin-top:48px;padding-top:16px;border-top:1px solid var(--line);font-size:15px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin:16px 0}
+.card{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden;color:inherit;text-decoration:none}
+.card:hover{border-color:var(--acc)} .card img{border:0;border-bottom:1px solid var(--line);border-radius:0;aspect-ratio:16/10;object-fit:contain;width:100%}
+.card .no{color:var(--mute);font-size:13px;padding:8px 12px 0} .card .t{padding:0 12px 12px;font-weight:500;line-height:1.5}
+.lead{font-size:17px;color:var(--mute)}
+footer{max-width:860px;margin:0 auto;padding:0 16px 40px;color:var(--mute);font-size:13px}
+</style>
+<script>window.MathJax={tex:{inlineMath:[["\\(","\\)"]],displayMath:[["\\[","\\]"],["$$","$$"]],processEscapes:true,processEnvironments:true}};</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js"></script>
+</head><body>
+<header class="top"><div class="in">
+<a class="brand" href="../index.html">机器人运控与强化学习</a>
+<a href="../lessons/index.html">讲义目录</a>
+<a href="../animations/index.html">动画</a>
+<a href="../review.html">复习卡片</a>
+<a href="../lessons/appendix-glossary.html">缩写表</a>
+<a href="https://wikieden.github.io/ai-books/">← 全部讲义书</a>
+</div></header>
+<main>
+<h1 id="12-lqrbellman">第 12 章 · LQR：模型已知、线性、二次代价时，Bellman 方程有闭式解</h1><p><a class="btn" href="../animations/12-lqr.html">▶ 打开本章可交互动画</a></p>
+<blockquote>
+<p>本章回答：如果环境的公式完全知道，而且是线性的，最优控制还需要强化学习吗？LQR 的反馈增益 K 是怎么算出来的？q 和 r 这两个旋钮各调什么？它和强化学习的价值函数是什么关系？<br />
+讲解日期：2026-11-20 · 上一章：<a href="../lessons/11-supermimic.html">第 11 章 SuperMimic 全流程</a> · 下一章：<a href="../lessons/13-lipm-zmp.html">第 13 章 线性倒立摆与 ZMP</a><br />
+对应原文：Underactuated Robotics「Linear Quadratic Regulators」（<code>robot-motion-rl/materials/text/underactuated-lqr.txt</code> L10–L16 推导与 Riccati 方程，L38–L39 倒立摆 / cart-pole 平衡，L43–L45 有限时域）；Modern Robotics 第 11 章（<code>robot-system-architecture/materials/text/modern-robotics-lynch-park.txt</code>）<br />
+本章缩写：LQR = Linear Quadratic Regulator（线性 / 二次 / 调节器）；q、r：状态代价权重、控制代价权重；P：价值函数的系数（V(x) = P·x²）；K：反馈增益（u = −K·x）；Riccati：意大利数学家的姓，Riccati 方程是 LQR 里求 P 的那个方程；HJB = Hamilton–Jacobi–Bellman（三位数学家的姓：连续时间的 Bellman 方程）。全部缩写见 <a href="../lessons/appendix-glossary.html">附录 · 缩写与术语表</a></p>
+<p><strong>第二部分导读</strong>：第 1–11 章讲的是「用学习做运控」。第 12–15 章倒过来看：环境模型已知时，经典控制怎么直接算出控制量。它们是 MPC + WBC 这条路线的数学底子，也是理解「强化学习在省什么、在付什么」的参照。第 16–18 章再回到学习路线，补上动作风格、可微仿真和上真机。</p>
+</blockquote>
+<h2 id="_1">讲解</h2>
+<h3 id="2026-11-20">第一步：把非线性系统在平衡点附近拉直（2026-11-20）</h3>
+<p><strong>类比：地球是圆的，但你家院子可以当成平的。</strong> 离平衡点不远时，弯曲的动力学可以近似成直线。</p>
+<p>倒立摆竖直向上是不稳定的平衡点：<span class="arithmatex">\(\ddot\theta = \frac{g}{l}\sin\theta + u\)</span>。θ 很小时 <span class="arithmatex">\(\sin\theta \approx \theta\)</span>，</p>
+<div class="arithmatex">\[\ddot\theta \approx \frac{g}{l}\,\theta + u\]</div>
+<p>g = 9.8、l = 1 m 时系数是 <strong>9.8</strong>：偏一点点，加速度就往同一个方向放大，所以不管它就会倒。cart-pole、四旋翼、人形站立都能这样在平衡点附近线性化（原文 L38–L39）。</p>
+<p>为了能在纸上算，本章用一维离散版：<span class="arithmatex">\(x_{t+1} = a\,x_t + b\,u_t\)</span>，取 a = 1.1（每步自己放大 10%，不稳定）、b = 1。</p>
+<p><strong>一句话</strong>：在平衡点附近，非线性动力学可以近似成 <span class="arithmatex">\(x_{t+1} = ax + bu\)</span>。</p>
+<h3 id="2026-11-20_1">第二步：二次代价 + 已知模型 = 价值函数是抛物线（2026-11-20）</h3>
+<p><strong>类比：《从零学强化学习》第 8 章的 Bellman 方程，只是这次「环境」写成了公式，「奖励」写成了二次惩罚。</strong></p>
+<p>代价（越小越好）：每步 <span class="arithmatex">\(q\,x^2 + r\,u^2\)</span>。q 惩罚「偏离」，r 惩罚「用力」。最优价值函数（还要付的总代价）猜成抛物线 <span class="arithmatex">\(V(x) = P\,x^2\)</span>，代进 Bellman 方程：</p>
+<div class="arithmatex">\[P x^2 = \min_u \big[q x^2 + r u^2 + P(ax+bu)^2\big]\]</div>
+<p>对 u 求导令其为 0，得到<strong>线性</strong>的最优控制</p>
+<div class="arithmatex">\[u = -K x,\qquad K = \frac{abP}{r + b^2P}\]</div>
+<p>再代回去，消掉 <span class="arithmatex">\(x^2\)</span>，得到 P 要满足的 <strong>Riccati 方程</strong>：</p>
+<div class="arithmatex">\[P = q + a^2 P - \frac{(abP)^2}{r + b^2 P}\]</div>
+<p>和强化学习的对应：P 就是价值函数，K 就是策略；只是因为模型已知、线性、代价二次，Bellman 方程能<strong>直接解</strong>，不用采样、不用训练（原文 L10–L16 用 HJB 推了连续时间版本）。</p>
+<p><strong>一句话</strong>：线性 + 二次时，价值函数是 <span class="arithmatex">\(Px^2\)</span>，策略是 <span class="arithmatex">\(u = -Kx\)</span>，都有公式。</p>
+<h3 id="riccati-p2026-11-20">第三步：Riccati 迭代：一步一步算出 P（2026-11-20）</h3>
+<p><strong>类比：价值迭代（《从零学强化学习》第 12 章），只是每次更新的不是一张表，而是一个数 P。</strong></p>
+<p>从 P = q 开始反复代入 Riccati 方程。a = 1.1、b = 1、q = 1、r = 1：</p>
+<table>
+<thead>
+<tr>
+<th>迭代</th>
+<th>0</th>
+<th>1</th>
+<th>2</th>
+<th>3</th>
+<th>…</th>
+<th>收敛</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>P</td>
+<td>1.000</td>
+<td>1.605</td>
+<td>1.746</td>
+<td>1.769</td>
+<td>…</td>
+<td><strong>1.774</strong></td>
+</tr>
+</tbody>
+</table>
+<p><span class="arithmatex">\(K = 1.1 \times 1.774 / (1 + 1.774) \approx\)</span> <strong>0.703</strong>，闭环系数 <span class="arithmatex">\(a - bK = 1.1 - 0.703 =\)</span> <strong>0.397</strong>。原来每步放大 1.1 倍，现在每步缩到 0.397 倍：从 x = 1 出发，5 步后只剩 0.0098。</p>
+<p>迭代的次数对应「还剩几步」：有限时域 LQR 就是从最后一步往前推，推得足够久就收敛到无限时域的解（原文 L43–L45）。</p>
+<p><strong>一句话</strong>：Riccati 迭代几步就收敛，得到一个固定增益 K，把不稳定的系统拉稳。</p>
+<h3 id="q-r-2026-11-20">第四步：q 和 r 两个旋钮（2026-11-20）</h3>
+<p><strong>类比：开车时「多在乎偏离车道」和「多在乎方向盘打得猛」的权衡。</strong></p>
+<table>
+<thead>
+<tr>
+<th>q</th>
+<th>r</th>
+<th>K</th>
+<th>闭环系数 a − bK</th>
+<th>5 步后 x</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>1</td>
+<td>0.703</td>
+<td>0.397</td>
+<td>0.0098</td>
+</tr>
+<tr>
+<td>1</td>
+<td>10</td>
+<td>0.370</td>
+<td>0.730</td>
+<td>0.2071</td>
+</tr>
+<tr>
+<td>10</td>
+<td>1</td>
+<td>1.009</td>
+<td>0.091</td>
+<td>0.0000</td>
+</tr>
+</tbody>
+</table>
+<p>r 大 → 舍不得用力 → K 小、回得慢；q 大 → 很在乎偏离 → K 大、回得快但用力猛（真机上会撞到力矩饱和，第 1 章）。</p>
+<p><strong>LQR 和 RL 的分工</strong>：LQR 要模型已知、而且只在平衡点附近有效（离开太远线性化就不准）；RL 不要模型，能处理接触、大幅动作、非线性，但要大量样本。MPC（第 14 章）是中间路线：每一刻都在当前状态附近重新线性化、重新解一个小优化。</p>
+<p><strong>一句话</strong>：q 管「在乎偏离」，r 管「舍不得用力」；LQR 只在平衡点附近、模型已知时好用。</p>
+<h3 id="lqr">动画演示：LQR 把不稳定系统拉回来</h3>
+<p><img alt="LQR：调 q 和 r 看增益和回归速度" src="../animations/12-lqr.gif" /></p>
+<p>可交互版：<a href="../animations/12-lqr.html">animations/12-lqr.html</a>（滑块：q、r、系统系数 a）。</p>
+<p><strong>怎么看</strong>：</p>
+<ol>
+<li>上图灰线是不加控制的系统（a &gt; 1 会越跑越远），蓝线是 LQR 闭环，从 x = 1 出发（第一、三步）。</li>
+<li>中间的柱子是 Riccati 迭代里 P 的变化，几步就平了（第三步）。</li>
+<li>拖 q 和 r：K 和闭环系数跟着变，下方橙线是每步用的力 u = −Kx（第四步）。</li>
+</ol>
+<h2 id="_2">练习与作答记录</h2>
+<p><strong>题 1</strong>（第一步）：摆长 l = 0.5 m，线性化后的系数 g/l 是多少？摆越短越容易倒还是越难倒？</p>
+<p><strong>作答</strong>：（待作答）</p>
+<p><strong>题 2</strong>（第三步）：a = 1.2、b = 1、q = 1、r = 1，从 P = 1 开始算两次 Riccati 迭代，写出 P₁、P₂ 和用 P₂ 算的 K。</p>
+<p><strong>作答</strong>：（待作答）</p>
+<p><strong>题 3</strong>（第四步）：如果 a = 0.9（系统本来就稳定），q = 1、r = 1000，K 大约会是多少（接近 0 还是接近 1）？为什么？</p>
+<p><strong>作答</strong>：（待作答）</p>
+<h2 id="_3">口诀</h2>
+<blockquote>
+<p>院子当平地，平衡点附近拉直线；<br />
+二次代价配线性模型，价值是抛物线、策略是一条直线；<br />
+Riccati 反复代，几步就收敛，P 是价值、K 是策略；<br />
+q 在乎偏离、r 舍不得用力，离平衡点远了就不灵。</p>
+</blockquote>
+<h2 id="_4">本章复习卡片</h2>
+<p>M23（LQR 的 Riccati 方程与 K 的公式；和 RL 价值函数的对应）、M24（q、r 的作用；LQR 的适用范围）</p>
+<h2 id="_5">附录 · 延伸阅读</h2>
+<blockquote>
+<p>留给以后深入学习用，不影响本章主线。★ 是建议先读的。</p>
+</blockquote>
+<h3 id="_6">推荐阅读</h3>
+<table>
+<thead>
+<tr>
+<th>读什么</th>
+<th>读哪里</th>
+<th>读它为了什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>★ Underactuated Robotics · LQR</td>
+<td><code>robot-motion-rl/materials/text/underactuated-lqr.txt</code> L10–L16、L38–L47</td>
+<td>HJB 推导、cart-pole 平衡、有限时域 LQR</td>
+</tr>
+<tr>
+<td>Modern Robotics 第 11 章</td>
+<td><code>robot-system-architecture/materials/text/modern-robotics-lynch-park.txt</code></td>
+<td>线性反馈控制、稳定性</td>
+</tr>
+<tr>
+<td>《从零学强化学习》第 8、12 章</td>
+<td><code>cs285-deep-rl/notes/lessons/08-bellman.md</code>、<code>12-value-iteration.md</code></td>
+<td>Bellman 方程与价值迭代，LQR 是它的闭式特例</td>
+</tr>
+<tr>
+<td>学习计划 MC-M1</td>
+<td>study-plan.md</td>
+<td>倒立摆上手调 PD vs LQR</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_7">数学原理</h3>
+<ul>
+<li><strong>一阶泰勒展开</strong>：<span class="arithmatex">\(\sin\theta \approx \theta\)</span>（θ 小时）。</li>
+<li><strong>二次函数求最小</strong>：<span class="arithmatex">\(\min_u (\alpha u^2 + 2\beta u)\)</span> 在 <span class="arithmatex">\(u = -\beta/\alpha\)</span> 处取到。</li>
+<li><strong>离散系统稳定</strong>：<span class="arithmatex">\(x_{t+1} = c\,x_t\)</span> 收敛当且仅当 |c| &lt; 1。</li>
+</ul>
+<h3 id="_8">公式清单</h3>
+<table>
+<thead>
+<tr>
+<th>公式</th>
+<th>意思</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span class="arithmatex">\(x_{t+1} = ax_t + bu_t\)</span></td>
+<td>线性化后的离散系统</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(V(x) = Px^2\)</span></td>
+<td>二次价值函数</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(P = q + a^2P - \frac{(abP)^2}{r+b^2P}\)</span></td>
+<td>离散 Riccati 方程</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(u = -Kx,\ K = \frac{abP}{r+b^2P}\)</span></td>
+<td>LQR 控制律</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_9">代码对照：把本章的数字用代码算一遍</h3>
+<blockquote>
+<p>用 Python + NumPy 把讲义里讲过的数算一遍，不算练习题。代码在仓库本地 <code>robot-motion-rl/solutions/chapter-code/ch12_lqr.py</code>，配套测试 <code>tests/test_ch12_18.py</code>，notebook 在 <code>notebooks/ch12_lqr.ipynb</code>。Mac 上直接能跑，不需要 GPU：</p>
+<p><code>bash  
+cd robot-motion-rl/solutions/chapter-code  
+uv run python ch12_lqr.py  
+uv run pytest tests/test_ch12_18.py</code></p>
+</blockquote>
+<p><strong>讲义 ↔ 代码</strong>（系统和权重都是编的）：</p>
+<table>
+<thead>
+<tr>
+<th>讲义</th>
+<th>公式</th>
+<th>写法</th>
+<th>跑出来</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>第一步 线性化</td>
+<td>g/l</td>
+<td><code>linearize_pendulum()</code></td>
+<td>9.8</td>
+</tr>
+<tr>
+<td>第三步 Riccati</td>
+<td>反复代入</td>
+<td><code>solve_lqr(1.1, 1, 1, 1)</code></td>
+<td>P：1、1.605、1.746、1.769 → 1.774；K = 0.703</td>
+</tr>
+<tr>
+<td>第三步 闭环</td>
+<td>(a − bK)ˣ</td>
+<td><code>simulate(1.1, 1, K, 1, 5)</code></td>
+<td>5 步后 0.0098</td>
+</tr>
+<tr>
+<td>第四步 调权重</td>
+<td>同上</td>
+<td><code>solve_lqr(1.1, 1, q, r)</code></td>
+<td>K = 0.370、1.009</td>
+</tr>
+</tbody>
+</table>
+<p><strong>关键几行</strong>：</p>
+<pre><code class="language-python">p = q + a * a * p - (a * b * p) ** 2 / (r + b * b * p)   # Riccati：一次价值迭代
+k = a * b * p / (r + b * b * p)                           # 最优增益
+x = (a - b * k) * x                                       # 闭环：u = −Kx 代回系统
+</code></pre>
+<p><strong>代码里才看得到的 1 件事</strong>：</p>
+<ul>
+<li>迭代从 P = q 开始，相当于「只剩最后一步」时的价值；迭代 200 次是为了保险，实际 10 次以内就和收敛值差不到 0.001。</li>
+</ul>
+<p><strong>自己改一改</strong>（不影响练习答案）：</p>
+<ul>
+<li>把 b 从 1 改成 0.1（控制效果弱），看 K 和闭环系数怎么变。</li>
+<li>把 a 改成 2.0，看 r 要小到多少闭环才能稳。</li>
+</ul><nav class="pager"><a href="11-supermimic.html">← 第 11 章 · SuperMimic 全流程：三步循环、关键超参、结果和怎么选路线</a><a href="13-lipm-zmp.html">第 13 章 · 线性倒立摆与 ZMP：双足机器人为什么要不停地迈步 →</a></nav>
+</main>
+<footer>来自个人学习仓库的对话讲义，含练习作答记录。源码：<a href="https://github.com/wikieden/robot-motion-rl">github.com/wikieden/robot-motion-rl</a>。更多讲义书：<a href="https://wikieden.github.io/ai-books/">AI 算法图解讲义（合集）</a></footer>
+</body></html>

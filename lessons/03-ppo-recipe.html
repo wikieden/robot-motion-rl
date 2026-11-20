@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>第 3 章 · 运控里的 PPO 配方：高斯策略、几千个环境、按 KL 调学习率 · 机器人运控与强化学习</title>
+<style>
+:root{--bg:#fbfbfa;--fg:#1f2328;--mute:#5d6470;--line:#e3e5e8;--card:#fff;--acc:#2f6fdf;--code:#f2f3f5;--quote:#f4f6fa}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15181d;--fg:#e4e7ec;--mute:#9aa3b2;--line:#2c323b;--card:#1c2026;--acc:#7aa7ff;--code:#22272f;--quote:#1b2029}}
+:root[data-theme="dark"]{--bg:#15181d;--fg:#e4e7ec;--mute:#9aa3b2;--line:#2c323b;--card:#1c2026;--acc:#7aa7ff;--code:#22272f;--quote:#1b2029}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.75 -apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Helvetica Neue",sans-serif}
+a{color:var(--acc)}
+header.top{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+header.top .in{max-width:860px;margin:0 auto;padding:10px 16px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;font-size:14px}
+header.top .brand{font-weight:600;color:var(--fg);text-decoration:none;margin-right:auto}
+header.top a{text-decoration:none}
+main{max-width:860px;margin:0 auto;padding:24px 16px 72px;overflow-wrap:anywhere}
+h1{font-size:28px;line-height:1.35;margin:8px 0 16px} h2{font-size:22px;margin:40px 0 12px;padding-top:8px;border-top:1px solid var(--line)} h3{font-size:18px;margin:28px 0 8px}
+img{max-width:100%;height:auto;border-radius:8px;border:1px solid var(--line);background:#fff}
+blockquote{margin:16px 0;padding:10px 16px;background:var(--quote);border-left:3px solid var(--acc);border-radius:4px;color:var(--mute)}
+blockquote p{margin:4px 0}
+code{background:var(--code);padding:1px 5px;border-radius:4px;font-size:.9em}
+pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto} pre code{padding:0;background:none}
+table{border-collapse:collapse;display:block;overflow-x:auto;max-width:100%;margin:12px 0;font-size:15px}
+th,td{border:1px solid var(--line);padding:6px 10px;vertical-align:top} th{background:var(--code)}
+details{border:1px solid var(--line);border-radius:8px;padding:6px 12px;margin:8px 0;background:var(--card)}
+details[open]{padding-bottom:10px} summary{cursor:pointer;color:var(--acc);font-weight:500}
+mjx-container{overflow-x:auto;overflow-y:hidden;max-width:100%}
+.btn{display:inline-block;margin:4px 8px 4px 0;padding:6px 14px;border:1px solid var(--acc);border-radius:999px;text-decoration:none;font-size:14px}
+.pager{display:flex;justify-content:space-between;gap:12px;margin-top:48px;padding-top:16px;border-top:1px solid var(--line);font-size:15px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin:16px 0}
+.card{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden;color:inherit;text-decoration:none}
+.card:hover{border-color:var(--acc)} .card img{border:0;border-bottom:1px solid var(--line);border-radius:0;aspect-ratio:16/10;object-fit:contain;width:100%}
+.card .no{color:var(--mute);font-size:13px;padding:8px 12px 0} .card .t{padding:0 12px 12px;font-weight:500;line-height:1.5}
+.lead{font-size:17px;color:var(--mute)}
+footer{max-width:860px;margin:0 auto;padding:0 16px 40px;color:var(--mute);font-size:13px}
+</style>
+<script>window.MathJax={tex:{inlineMath:[["\\(","\\)"]],displayMath:[["\\[","\\]"],["$$","$$"]],processEscapes:true,processEnvironments:true}};</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js"></script>
+</head><body>
+<header class="top"><div class="in">
+<a class="brand" href="../index.html">机器人运控与强化学习</a>
+<a href="../lessons/index.html">讲义目录</a>
+<a href="../animations/index.html">动画</a>
+<a href="../review.html">复习卡片</a>
+<a href="../lessons/appendix-glossary.html">缩写表</a>
+<a href="https://wikieden.github.io/ai-books/">← 全部讲义书</a>
+</div></header>
+<main>
+<h1 id="3-ppo-kl">第 3 章 · 运控里的 PPO 配方：高斯策略、几千个环境、按 KL 调学习率</h1><p><a class="btn" href="../animations/03-gauss-ratio.html">▶ 打开本章可交互动画</a></p>
+<blockquote>
+<p>本章回答：PPO 用在连续动作的机器人上，策略长什么样？比率 r 怎么从高斯分布算出来？「4096 个环境 × 24 步」这类超参是什么意思？为什么学习率要跟着 KL 自动调？<br />
+讲解日期：2026-11-20 · 上一章：<a href="../lessons/02-tracking-mdp.html">第 2 章 把动作跟踪写成 MDP</a> · 下一章：<a href="../lessons/04-sim2real.html">第 4 章 从仿真到真机</a><br />
+对应原文：PPO 论文式 7（<code>papers/ppo-1707.06347.txt</code> L142）；legged_gym 超参表与自适应学习率（<code>papers/legged-gym-2109.11978.txt</code> L652–L680，表 3、Algorithm 1）；BeyondMimic 超参表（<code>papers/beyondmimic-2508.08241.txt</code> L2255–L2275）<br />
+本章缩写：PPO = Proximal Policy Optimization（近端 / 策略 / 优化）；GAE = Generalized Advantage Estimation（广义 / 优势 / 估计）；KL = Kullback–Leibler divergence（两位统计学家的姓 / 散度）；μ、σ：高斯分布的均值和标准差（读 "mu"、"sigma"）；ε：PPO 的剪裁范围（读 "epsilon"，常取 0.2）；lr = learning rate（学习率）；GPU = Graphics Processing Unit（图形 / 处理 / 单元）。全部缩写见 <a href="../lessons/appendix-glossary.html">附录 · 缩写与术语表</a></p>
+</blockquote>
+<h2 id="_1">讲解</h2>
+<h3 id="2026-11-20">第一步：连续动作用高斯策略（2026-11-20）</h3>
+<p><strong>类比：投飞镖。</strong> 你瞄准一个点（均值 μ），手会抖（标准差 σ），飞镖落在瞄准点附近。练得越好，抖得越小。</p>
+<p>《从零学强化学习》第 20–23 章讲的是离散动作（softmax 选一个）。机器人关节设定值是连续的数，所以策略输出一个高斯分布：网络算出 μ（29 维），σ 是一组单独学的参数（不随状态变），动作从 <span class="arithmatex">\(\mathcal N(\mu, \sigma^2)\)</span> 里抽。</p>
+<p>PPO 要用 <span class="arithmatex">\(\log \pi(a)\)</span>，一维高斯的 log 概率是</p>
+<div class="arithmatex">\[\log \pi(a) = -\frac{(a-\mu)^2}{2\sigma^2} - \log\sigma - \tfrac12\log(2\pi)\]</div>
+<p>多维时各维独立，直接相加。</p>
+<p><strong>例子</strong>：μ = 0.2，σ = 0.5，抽到 a = 0.7：</p>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>算式</th>
+<th>结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>平方项</td>
+<td>−(0.5)² / (2 × 0.25)</td>
+<td>−0.5</td>
+</tr>
+<tr>
+<td>−log σ</td>
+<td>−log 0.5</td>
+<td>+0.693</td>
+</tr>
+<tr>
+<td>常数</td>
+<td>−½ log(2π)</td>
+<td>−0.919</td>
+</tr>
+<tr>
+<td>合计</td>
+<td></td>
+<td><strong>−0.726</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>一句话</strong>：连续动作 = 瞄准 μ、手抖 σ；log 概率就是这三项之和。</p>
+<h3 id="2026-11-20_1">第二步：比率和剪裁，换成高斯版（2026-11-20）</h3>
+<p>第 23 章的比率 <span class="arithmatex">\(r = \pi_{新}(a)/\pi_{旧}(a)\)</span>，用 log 概率算更稳：<span class="arithmatex">\(r = \exp(\log\pi_{新} - \log\pi_{旧})\)</span>。</p>
+<p><strong>例子</strong>（同一个 a = 0.7，σ 不变）：</p>
+<table>
+<thead>
+<tr>
+<th>新 μ</th>
+<th>r</th>
+<th>A = +1 时 PPO 项 <span class="arithmatex">\(\min(rA, \text{clip}(r)A)\)</span></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0.3</td>
+<td>1.197</td>
+<td>1.197（在 [0.8, 1.2] 里，不剪）</td>
+</tr>
+<tr>
+<td>0.45</td>
+<td>1.455</td>
+<td><strong>1.200</strong>（被剪到 1 + ε）</td>
+</tr>
+</tbody>
+</table>
+<p>μ 往 a 的方向挪，r 变大；挪太多（超过 1.2）就被剪平，这一批数据不再推它往前走（第 23 章第四步）。</p>
+<p><strong>一句话</strong>：高斯策略的比率用 log 概率相减再 exp，剪裁规则和第 23 章一模一样。</p>
+<h3 id="2026-11-20_2">第三步：几千个环境一起跑：批量账（2026-11-20）</h3>
+<p><strong>类比：一个老师同时批 4096 份作业。</strong> 每份写 24 题，收上来一大摞，分 4 叠，每叠看 5 遍。</p>
+<p>GPU 仿真器（Isaac Gym、MuJoCo Warp）能同时跑几千个机器人。legged_gym 的配方（原文表 3，L654–L657）：</p>
+<table>
+<thead>
+<tr>
+<th>超参</th>
+<th>值</th>
+<th>意思</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>并行环境 × 每环境步数</td>
+<td>4096 × 24 = <strong>98304</strong></td>
+<td>一次迭代采这么多样本</td>
+</tr>
+<tr>
+<td>mini-batch</td>
+<td>98304 / 4 = <strong>24576</strong></td>
+<td>每次梯度用的样本数</td>
+</tr>
+<tr>
+<td>epochs</td>
+<td>5</td>
+<td>同一批数据过几遍</td>
+</tr>
+<tr>
+<td>每次迭代的梯度步</td>
+<td>4 × 5 = <strong>20</strong></td>
+<td></td>
+</tr>
+<tr>
+<td>clip ε / γ / GAE λ</td>
+<td>0.2 / 0.99 / 0.95</td>
+<td>第 22–23 章的老朋友</td>
+</tr>
+</tbody>
+</table>
+<p>legged_gym 发现 mini-batch 要比常规建议大得多，「几万」才好（L152–L154）。BeyondMimic 的表几乎一样（24 步、5 epochs、4 mini-batch、ε = 0.2、熵系数 0.005）。</p>
+<p>为什么 on-policy 的 PPO 在机器人上反而最流行？采样在 GPU 上几乎免费，PPO 样本效率低的缺点被并行抵消了；它稳、好调、对超参不敏感。legged_gym 用 4096 只机器狗，不到 <strong>20 分钟</strong>、1500 次更新训出能在崎岖地形上走的四足策略（L340–L341）。</p>
+<p><strong>一句话</strong>：4096 × 24 一批、切 4 份、看 5 遍、每轮 20 步梯度；并行把 PPO 的低样本效率抵消掉了。</p>
+<h3 id="kl-2026-11-20">第四步：按 KL 自动调学习率（2026-11-20）</h3>
+<p><strong>类比：开车看转速表。</strong> 转速太高就松油门，太低就踩一点，保持在一个舒服的区间。</p>
+<p>每次更新后算新旧策略的 KL（第 23 章第三步：两个分布差多远），目标 <span class="arithmatex">\(KL^* = 0.01\)</span>。legged_gym Algorithm 1（L672–L680）：</p>
+<ul>
+<li>KL &gt; 2 × 0.01：学习率 ÷ 1.5（步子太大，收一收），下限 1e-5；</li>
+<li>KL &lt; 0.5 × 0.01：学习率 × 1.5（步子太小，放一放），上限 1e-2；</li>
+<li>中间：不动。</li>
+</ul>
+<p><strong>例子</strong>（当前 lr = 1e-3）：</p>
+<table>
+<thead>
+<tr>
+<th>KL</th>
+<th>0.03</th>
+<th>0.01</th>
+<th>0.004</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>新 lr</td>
+<td>6.67e-4</td>
+<td>1e-3</td>
+<td>1.5e-3</td>
+</tr>
+</tbody>
+</table>
+<p>这和 PPO 的剪裁是两道保险：剪裁在<strong>一批数据内</strong>防止某个样本推太远；KL 调学习率在<strong>迭代之间</strong>把整体步子维持在信任区域附近。</p>
+<p><strong>一句话</strong>：KL 太大就降学习率、太小就升，让每次更新的步子稳定在 0.01 左右。</p>
+<h3 id="_2">动画演示：高斯策略的比率与剪裁</h3>
+<p><img alt="高斯策略：μ 移动时比率 r 怎么变、什么时候被剪" src="../animations/03-gauss-ratio.gif" /></p>
+<p>可交互版：<a href="../animations/03-gauss-ratio.html">animations/03-gauss-ratio.html</a>（滑块：新 μ、σ、样本 a、优势 A 的正负）。</p>
+<p><strong>怎么看</strong>：</p>
+<ol>
+<li>灰色钟形是旧策略，蓝色是新策略，竖线是抽到的动作 a（第一步）。</li>
+<li>两条曲线在 a 处的高度之比就是 r，下方条形图显示 r 和 [0.8, 1.2] 的剪裁区间（第二步）。</li>
+<li>把新 μ 往 a 拖：r 变大，超过 1.2 后 PPO 项变平（A &gt; 0 时）。把 A 切成负的，看剪裁在另一侧起作用。</li>
+</ol>
+<h2 id="_3">练习与作答记录</h2>
+<p><strong>题 1</strong>（第一步）：μ = 0，σ = 1，a = 1。算 log π(a)。如果 σ 变成 0.5 呢？σ 变小时，离 μ 远的动作的 log 概率怎么变？</p>
+<p><strong>作答</strong>：（待作答）</p>
+<p><strong>题 2</strong>（第三步）：用 2048 个环境、每环境 32 步、8 个 mini-batch、4 epochs。一次迭代多少样本？每个 mini-batch 多大？做多少步梯度？</p>
+<p><strong>作答</strong>：（待作答）</p>
+<p><strong>题 3</strong>（第四步）：lr = 2e-3，连续三次更新的 KL 是 0.025、0.025、0.003。按 Algorithm 1 写出每次之后的 lr。</p>
+<p><strong>作答</strong>：（待作答）</p>
+<h2 id="_4">口诀</h2>
+<blockquote>
+<p>连续动作投飞镖：瞄准 μ、手抖 σ，log 概率三项加；<br />
+比率 log 相减再 exp，过了一点二就剪平；<br />
+四千个环境二十四步，切四份看五遍；<br />
+KL 超两倍降一点五，低一半升一点五。</p>
+</blockquote>
+<h2 id="_5">本章复习卡片</h2>
+<p>M05（高斯策略 log 概率与比率）、M06（运控 PPO 批量账与按 KL 调学习率）</p>
+<h2 id="_6">附录 · 延伸阅读</h2>
+<blockquote>
+<p>留给以后深入学习用，不影响本章主线。★ 是建议先读的。</p>
+</blockquote>
+<h3 id="_7">推荐阅读</h3>
+<table>
+<thead>
+<tr>
+<th>读什么</th>
+<th>读哪里</th>
+<th>读它为了什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>★ legged_gym</td>
+<td><code>papers/legged-gym-2109.11978.txt</code> L152–L154（大 mini-batch）、L652–L680（表 3、Algorithm 1）</td>
+<td>大规模并行 PPO 的原始配方</td>
+</tr>
+<tr>
+<td>★ PPO 37 个实现细节</td>
+<td><code>cs285-deep-rl/materials/blog/ppo-37-implementation-details.html</code> 连续动作部分</td>
+<td>状态无关 log σ、观测归一化、advantage 归一化等坑</td>
+</tr>
+<tr>
+<td>PPO 论文</td>
+<td><code>papers/ppo-1707.06347.txt</code> L142（式 7）</td>
+<td>剪裁目标原文</td>
+</tr>
+<tr>
+<td>BeyondMimic 超参表</td>
+<td><code>papers/beyondmimic-2508.08241.txt</code> L2255–L2275</td>
+<td>人形跟踪用的 PPO 超参</td>
+</tr>
+<tr>
+<td>CleanRL</td>
+<td><code>cs285-deep-rl/materials/cleanrl/cleanrl/ppo_continuous_action.py</code></td>
+<td>单文件实现，逐行对照</td>
+</tr>
+<tr>
+<td>《从零学强化学习》第 22–23 章</td>
+<td><code>cs285-deep-rl/notes/lessons/</code></td>
+<td>GAE、比率、剪裁的推导</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_8">数学原理</h3>
+<ul>
+<li><strong>高斯密度</strong>：<span class="arithmatex">\(\mathcal N(a;\mu,\sigma^2) = \frac{1}{\sqrt{2\pi}\sigma}e^{-(a-\mu)^2/(2\sigma^2)}\)</span>，取 log 就是第一步的三项。</li>
+<li><strong>独立多维</strong>：各维独立时联合密度是乘积，log 后变成求和。</li>
+</ul>
+<h3 id="_9">公式清单</h3>
+<table>
+<thead>
+<tr>
+<th>公式</th>
+<th>意思</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span class="arithmatex">\(\log\pi(a) = -\frac{(a-\mu)^2}{2\sigma^2} - \log\sigma - \frac12\log 2\pi\)</span></td>
+<td>一维高斯 log 概率</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(r = \exp(\log\pi_{新} - \log\pi_{旧})\)</span></td>
+<td>比率</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(L = \min(rA,\ \text{clip}(r, 1-\varepsilon, 1+\varepsilon)A)\)</span></td>
+<td>PPO 剪裁目标</td>
+</tr>
+<tr>
+<td>样本数 = 环境数 × 步数；梯度步 = mini-batch 数 × epochs</td>
+<td>批量账</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_10">代码对照：把本章的数字用代码算一遍</h3>
+<blockquote>
+<p>用 Python + NumPy 把讲义里讲过的数算一遍，不算练习题。代码在仓库本地 <code>robot-motion-rl/solutions/chapter-code/ch03_ppo_recipe.py</code>，配套测试 <code>tests/test_ch01_06.py</code>，notebook 在 <code>notebooks/ch03_ppo_recipe.ipynb</code>。Mac 上直接能跑，不需要 GPU：</p>
+<p><code>bash  
+cd robot-motion-rl/solutions/chapter-code  
+uv run python ch03_ppo_recipe.py  
+uv run pytest tests/test_ch01_06.py</code></p>
+</blockquote>
+<p><strong>讲义 ↔ 代码</strong>（μ、σ、a 是编的，批量和 KL 规则取自 legged_gym）：</p>
+<table>
+<thead>
+<tr>
+<th>讲义</th>
+<th>公式</th>
+<th>写法</th>
+<th>跑出来</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>第一步 log 概率</td>
+<td>三项之和</td>
+<td><code>gauss_logp(0.7, 0.2, 0.5)</code></td>
+<td>−0.726</td>
+</tr>
+<tr>
+<td>第二步 比率</td>
+<td>exp(log 差)</td>
+<td><code>ratio(0.7, 0.3, 0.2, 0.5)</code></td>
+<td>1.197；μ = 0.45 时 1.455，剪成 1.200</td>
+</tr>
+<tr>
+<td>第三步 批量账</td>
+<td>4096 × 24</td>
+<td><code>batch_accounting()</code></td>
+<td>(98304, 24576, 20)</td>
+</tr>
+<tr>
+<td>第四步 调学习率</td>
+<td>Algorithm 1</td>
+<td><code>adaptive_lr(1e-3, kl)</code></td>
+<td>6.67e-4、1e-3、1.5e-3</td>
+</tr>
+</tbody>
+</table>
+<p><strong>关键几行</strong>：</p>
+<pre><code class="language-python">logp = -((a - mu) ** 2) / (2 * sigma**2) - np.log(sigma) - 0.5 * np.log(2 * np.pi)
+r = np.exp(logp_new - logp_old)                       # 比率用 log 相减再 exp，数值更稳
+term = min(r * adv, np.clip(r, 1 - eps, 1 + eps) * adv)
+if kl &gt; 2 * kl_target: lr = max(lr / 1.5, 1e-5)        # 步子太大，收
+elif kl &lt; kl_target / 2: lr = min(lr * 1.5, 1e-2)      # 步子太小，放
+</code></pre>
+<p><strong>代码里才看得到的 2 件事</strong>：</p>
+<ul>
+<li>σ 不变时，log 概率的后两项（−log σ、常数）在新旧策略里相同，相减后消掉，比率只取决于平方项。</li>
+<li>学习率有上下限（1e-5、1e-2），否则 KL 一直偏小时学习率会无限变大。</li>
+</ul>
+<p><strong>自己改一改</strong>（不影响练习答案）：</p>
+<ul>
+<li>让新策略的 σ 也变（比如 0.5 → 0.4），看同一个 a 的比率怎么变。</li>
+<li>用 <code>adaptive_lr</code> 模拟 KL 一直是 0.001 的十次更新，看 lr 多久撞到上限。</li>
+</ul><nav class="pager"><a href="02-tracking-mdp.html">← 第 2 章 · 把动作跟踪写成 MDP：看什么、做什么、怎么打分、什么时候算摔</a><a href="04-sim2real.html">第 4 章 · 从仿真到真机：域随机化、特权信息与 teacher-student →</a></nav>
+</main>
+<footer>来自个人学习仓库的对话讲义，含练习作答记录。源码：<a href="https://github.com/wikieden/robot-motion-rl">github.com/wikieden/robot-motion-rl</a>。更多讲义书：<a href="https://wikieden.github.io/ai-books/">AI 算法图解讲义（合集）</a></footer>
+</body></html>

@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>动画演示 · 机器人运控与强化学习</title>
+<style>
+:root{--bg:#fbfbfa;--fg:#1f2328;--mute:#5d6470;--line:#e3e5e8;--card:#fff;--acc:#2f6fdf;--code:#f2f3f5;--quote:#f4f6fa}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15181d;--fg:#e4e7ec;--mute:#9aa3b2;--line:#2c323b;--card:#1c2026;--acc:#7aa7ff;--code:#22272f;--quote:#1b2029}}
+:root[data-theme="dark"]{--bg:#15181d;--fg:#e4e7ec;--mute:#9aa3b2;--line:#2c323b;--card:#1c2026;--acc:#7aa7ff;--code:#22272f;--quote:#1b2029}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.75 -apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Helvetica Neue",sans-serif}
+a{color:var(--acc)}
+header.top{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+header.top .in{max-width:860px;margin:0 auto;padding:10px 16px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;font-size:14px}
+header.top .brand{font-weight:600;color:var(--fg);text-decoration:none;margin-right:auto}
+header.top a{text-decoration:none}
+main{max-width:860px;margin:0 auto;padding:24px 16px 72px;overflow-wrap:anywhere}
+h1{font-size:28px;line-height:1.35;margin:8px 0 16px} h2{font-size:22px;margin:40px 0 12px;padding-top:8px;border-top:1px solid var(--line)} h3{font-size:18px;margin:28px 0 8px}
+img{max-width:100%;height:auto;border-radius:8px;border:1px solid var(--line);background:#fff}
+blockquote{margin:16px 0;padding:10px 16px;background:var(--quote);border-left:3px solid var(--acc);border-radius:4px;color:var(--mute)}
+blockquote p{margin:4px 0}
+code{background:var(--code);padding:1px 5px;border-radius:4px;font-size:.9em}
+pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto} pre code{padding:0;background:none}
+table{border-collapse:collapse;display:block;overflow-x:auto;max-width:100%;margin:12px 0;font-size:15px}
+th,td{border:1px solid var(--line);padding:6px 10px;vertical-align:top} th{background:var(--code)}
+details{border:1px solid var(--line);border-radius:8px;padding:6px 12px;margin:8px 0;background:var(--card)}
+details[open]{padding-bottom:10px} summary{cursor:pointer;color:var(--acc);font-weight:500}
+mjx-container{overflow-x:auto;overflow-y:hidden;max-width:100%}
+.btn{display:inline-block;margin:4px 8px 4px 0;padding:6px 14px;border:1px solid var(--acc);border-radius:999px;text-decoration:none;font-size:14px}
+.pager{display:flex;justify-content:space-between;gap:12px;margin-top:48px;padding-top:16px;border-top:1px solid var(--line);font-size:15px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin:16px 0}
+.card{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden;color:inherit;text-decoration:none}
+.card:hover{border-color:var(--acc)} .card img{border:0;border-bottom:1px solid var(--line);border-radius:0;aspect-ratio:16/10;object-fit:contain;width:100%}
+.card .no{color:var(--mute);font-size:13px;padding:8px 12px 0} .card .t{padding:0 12px 12px;font-weight:500;line-height:1.5}
+.lead{font-size:17px;color:var(--mute)}
+footer{max-width:860px;margin:0 auto;padding:0 16px 40px;color:var(--mute);font-size:13px}
+</style>
+<script>window.MathJax={tex:{inlineMath:[["\\(","\\)"]],displayMath:[["\\[","\\]"],["$$","$$"]],processEscapes:true,processEnvironments:true}};</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js"></script>
+</head><body>
+<header class="top"><div class="in">
+<a class="brand" href="../index.html">机器人运控与强化学习</a>
+<a href="../lessons/index.html">讲义目录</a>
+<a href="../animations/index.html">动画</a>
+<a href="../review.html">复习卡片</a>
+<a href="../lessons/appendix-glossary.html">缩写表</a>
+<a href="https://wikieden.github.io/ai-books/">← 全部讲义书</a>
+</div></header>
+<main>
+<h1 id="_1">动画演示</h1>
+<p>《机器人运控与强化学习》每章一个可交互动画（18 章，18 个）。讲义里嵌的是 GIF（Markdown 预览、GitHub、Mac 备忘录都能直接播放）；想自己拖滑块、单步、换参数，就用浏览器打开同名 <code>.html</code>。</p>
+<table>
+<thead>
+<tr>
+<th>章</th>
+<th>原理</th>
+<th>讲义</th>
+<th>GIF</th>
+<th>可交互</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>低增益 PD：50 Hz 阶梯目标、1 kHz 力矩、负载压出的稳态误差</td>
+<td><a href="../lessons/01-layers-pd.html">第 1 章</a></td>
+<td><a href="01-pd-layers.gif">01-pd-layers.gif</a></td>
+<td><a href="01-pd-layers.html">html</a></td>
+</tr>
+<tr>
+<td>2</td>
+<td>跟踪奖励核 exp(−e²/σ²) 与 −e² 对照</td>
+<td><a href="../lessons/02-tracking-mdp.html">第 2 章</a></td>
+<td><a href="02-reward-kernel.gif">02-reward-kernel.gif</a></td>
+<td><a href="02-reward-kernel.html">html</a></td>
+</tr>
+<tr>
+<td>3</td>
+<td>高斯策略的比率 r 与 PPO 剪裁</td>
+<td><a href="../lessons/03-ppo-recipe.html">第 3 章</a></td>
+<td><a href="03-gauss-ratio.gif">03-gauss-ratio.gif</a></td>
+<td><a href="03-gauss-ratio.html">html</a></td>
+</tr>
+<tr>
+<td>4</td>
+<td>域随机化：换地面时三种策略的奖励</td>
+<td><a href="../lessons/04-sim2real.html">第 4 章</a></td>
+<td><a href="04-domain-rand.gif">04-domain-rand.gif</a></td>
+<td><a href="04-domain-rand.html">html</a></td>
+</tr>
+<tr>
+<td>5</td>
+<td>按回报重置：难段多练，学会后回落</td>
+<td><a href="../lessons/05-imitation-sampling.html">第 5 章</a></td>
+<td><a href="05-reset-sampling.gif">05-reset-sampling.gif</a></td>
+<td><a href="05-reset-sampling.html">html</a></td>
+</tr>
+<tr>
+<td>6</td>
+<td>信用分配：GRPO 整条打分 vs PPO + GAE 逐步打分</td>
+<td><a href="../lessons/06-grpo-credit.html">第 6 章</a></td>
+<td><a href="06-grpo-vs-ppo-credit.gif">06-grpo-vs-ppo-credit.gif</a></td>
+<td><a href="06-grpo-vs-ppo-credit.html">html</a></td>
+</tr>
+<tr>
+<td>7</td>
+<td>SONIC vs SuperMimic 的 GPU 时与公平性修正</td>
+<td><a href="../lessons/07-scaling-cost.html">第 7 章</a></td>
+<td><a href="07-gpu-hours.gif">07-gpu-hours.gif</a></td>
+<td><a href="07-gpu-hours.html">html</a></td>
+</tr>
+<tr>
+<td>8</td>
+<td>采样（似然比）梯度 vs 解析（pathwise）梯度</td>
+<td><a href="../lessons/08-two-gradients.html">第 8 章</a></td>
+<td><a href="08-score-vs-pathwise.gif">08-score-vs-pathwise.gif</a></td>
+<td><a href="08-score-vs-pathwise.html">html</a></td>
+</tr>
+<tr>
+<td>9</td>
+<td>world model 自己滚：误差累积、k 步训练纠偏、生存权重</td>
+<td><a href="../lessons/09-world-model.html">第 9 章</a></td>
+<td><a href="09-wm-rollout.gif">09-wm-rollout.gif</a></td>
+<td><a href="09-wm-rollout.html">html</a></td>
+</tr>
+<tr>
+<td>10</td>
+<td>视野 H：梯度连乘爆炸 / 消失，critic 补上视野外</td>
+<td><a href="../lessons/10-bptt-critic.html">第 10 章</a></td>
+<td><a href="10-bptt-horizon.gif">10-bptt-horizon.gif</a></td>
+<td><a href="10-bptt-horizon.html">html</a></td>
+</tr>
+<tr>
+<td>11</td>
+<td>SuperMimic 三步循环；冻结 world model 的 model exploitation 对照</td>
+<td><a href="../lessons/11-supermimic.html">第 11 章</a></td>
+<td><a href="11-supermimic-loop.gif">11-supermimic-loop.gif</a></td>
+<td><a href="11-supermimic-loop.html">html</a></td>
+</tr>
+<tr>
+<td>12</td>
+<td>LQR：Riccati 迭代算出 K，调 q / r 看回归速度与用力</td>
+<td><a href="../lessons/12-lqr.html">第 12 章</a></td>
+<td><a href="12-lqr.gif">12-lqr.gif</a></td>
+<td><a href="12-lqr.html">html</a></td>
+</tr>
+<tr>
+<td>13</td>
+<td>线性倒立摆：离开 ZMP 按 cosh 发散，踩在捕获点上停住</td>
+<td><a href="../lessons/13-lipm-zmp.html">第 13 章</a></td>
+<td><a href="13-lipm-zmp.gif">13-lipm-zmp.gif</a></td>
+<td><a href="13-lipm-zmp.html">html</a></td>
+</tr>
+<tr>
+<td>14</td>
+<td>凸 MPC：规划一段只执行第一步，力被摩擦锥截住</td>
+<td><a href="../lessons/14-convex-mpc.html">第 14 章</a></td>
+<td><a href="14-convex-mpc.gif">14-convex-mpc.gif</a></td>
+<td><a href="14-convex-mpc.html">html</a></td>
+</tr>
+<tr>
+<td>15</td>
+<td>MPPI：撒随机序列，按 exp(−代价/λ) 加权平均</td>
+<td><a href="../lessons/15-ilqr-mppi.html">第 15 章</a></td>
+<td><a href="15-ilqr-mppi.gif">15-ilqr-mppi.gif</a></td>
+<td><a href="15-ilqr-mppi.html">html</a></td>
+</tr>
+<tr>
+<td>16</td>
+<td>AMP：策略动作分布靠近动作库，风格奖励上升</td>
+<td><a href="../lessons/16-amp.html">第 16 章</a></td>
+<td><a href="16-amp.gif">16-amp.gif</a></td>
+<td><a href="16-amp.html">html</a></td>
+</tr>
+<tr>
+<td>17</td>
+<td>接触的导数：硬接触跳变 vs 平滑接触连续</td>
+<td><a href="../lessons/17-shac.html">第 17 章</a></td>
+<td><a href="17-shac.gif">17-shac.gif</a></td>
+<td><a href="17-shac.html">html</a></td>
+</tr>
+<tr>
+<td>18</td>
+<td>ASAP 动作修正量：加上 Δa，仿真轨迹贴上真机</td>
+<td><a href="../lessons/18-deploy.html">第 18 章</a></td>
+<td><a href="18-deploy.gif">18-deploy.gif</a></td>
+<td><a href="18-deploy.html">html</a></td>
+</tr>
+</tbody>
+</table>
+<p>第 6、8、11 章的动画原是 cs285-deep-rl 运控专题的 02、01、03，2026-11-20 搬到这里并按章改名。</p>
+<h2 id="_2">跑起来看</h2>
+<p>在文件面板里点开 html 只是静态快照，按钮和滑块不动。用本地服务打开：<code>.claude/launch.json</code> 里的 <code>robot-motion-rl-animations</code>，或者在仓库根目录：</p>
+<pre><code class="language-bash">python3 -m http.server 8354 --directory robot-motion-rl/notes/animations
+</code></pre>
+<p>然后浏览器打开 <code>http://localhost:8354/01-pd-layers.html</code>。</p>
+<h2 id="_3">新增或修改一个动画</h2>
+<ol>
+<li>页面引用 <code>anim.css</code> 和 <code>anim.js</code>（与其他专题同一套），提供 <code>reset(seed)</code> 和 <code>next()</code>（返回 <code>false</code> 表示播完），用 <code>setupPlayer({captureSeed, reset, next}, 毫秒)</code> 挂上播放按钮。随机数一律用 <code>rnd()</code> / <code>gauss()</code>，录制结果可复现。</li>
+<li>重新录 GIF（在本目录下执行）：</li>
+</ol>
+<p><code>bash
+   node ../../../tools/anim-capture/capture.mjs 01-pd-layers.html 01-pd-layers.gif 90</code></p>
+<ol start="3">
+<li>新增或改名后，在仓库根目录跑 <code>python3 tools/gallery/build.py</code> 更新画廊。</li>
+</ol>
+</main>
+<footer>来自个人学习仓库的对话讲义，含练习作答记录。源码：<a href="https://github.com/wikieden/robot-motion-rl">github.com/wikieden/robot-motion-rl</a>。更多讲义书：<a href="https://wikieden.github.io/ai-books/">AI 算法图解讲义（合集）</a></footer>
+</body></html>
