@@ -61,6 +61,17 @@
 | 18 | [上真机](https://wikieden.github.io/robot-motion-rl/lessons/18-deploy.html) | 四类差距；执行器网络；ASAP 动作修正量；sim2sim 与上机清单 | [18](https://wikieden.github.io/robot-motion-rl/animations/18-deploy.html) | M35–M36 | 正文 ✅，练习待作答 |
 | 附录 | [缩写与术语表](https://wikieden.github.io/robot-motion-rl/lessons/appendix-glossary.html) | 全书缩写、记号、论文名 | — | — | ✅ |
 
+## 联系与合作
+
+欢迎来信：<wikieden@gmail.com>。可以合作的方向：
+
+- 讲义勘误与建议
+- 课程 / 企业内训
+- 内容合作与转载授权
+- 赞助本系列持续更新
+
+赞助请发邮件联系。
+
 ---
 
 本仓库由私有学习仓库里的脚本 `tools/publish-transformer/build.py` 自动生成，内容摘自讲义目录，不要直接修改这里的文件。
